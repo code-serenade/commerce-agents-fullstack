@@ -29,7 +29,8 @@ export function FilesPageActions({
         onChange={onUploadChange}
       />
       <Button
-        size="sm"
+        size="lg"
+        variant="primary"
         disabled={!canUploadFiles}
         className="disabled:border-primary/35 disabled:bg-(--agent-chat-accent-soft) disabled:text-(--agent-chat-accent-foreground) disabled:opacity-70"
         onClick={onUploadClick}

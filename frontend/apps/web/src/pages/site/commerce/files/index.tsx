@@ -1,17 +1,15 @@
 import { useRef } from "react"
-import { FolderOpen, Library } from "lucide-react"
+import { FolderOpen } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import {
   CommerceBody,
+  CommercePanel,
   CommercePageHeader,
   CommerceSurface,
   CommerceToolbar,
   InlineAlert,
 } from "../components/commerce-ui"
-import {
-  DocumentIntroCard,
-  DocumentSection,
-} from "../components/document-section"
+import { DocumentIntroCard } from "../components/document-section"
 import { FilesTable } from "./components/files-table"
 import { FilesBulkSelectionActions } from "./components/files-bulk-selection-actions"
 import { FilesFilters } from "./components/files-filters"
@@ -35,11 +33,11 @@ export default function FilesPage() {
         title={t("commerce.pages.files.title")}
         description={t("commerce.pages.files.description")}
       />
-      <CommerceBody className="min-[1200px]:px-8">
+      <CommerceBody>
         <DocumentIntroCard
-          title={t("commerce.pages.files.boundaryTitle")}
-          description={t("commerce.pages.files.boundaryDescription")}
-          icon={<Library className="size-4" />}
+          title={t("commerce.files.panelTitle")}
+          description={t("commerce.files.panelDescription")}
+          icon={<FolderOpen className="size-4" />}
           actions={
             <FilesPageActions
               canUploadFiles={page.canUploadFiles}
@@ -65,11 +63,7 @@ export default function FilesPage() {
             description={t("commerce.files.chatContextUnavailable.description")}
           />
         ) : null}
-        <DocumentSection
-          title={t("commerce.files.panelTitle")}
-          description={t("commerce.files.panelDescription")}
-          icon={<FolderOpen className="size-4" />}
-        >
+        <CommercePanel>
           <div className="grid gap-3">
             <FilesUsageSummary summary={page.usageSummary} t={t} />
             <FilesTurnSelectionSummary
@@ -130,7 +124,7 @@ export default function FilesPage() {
               usingFileIds={page.usingFileIds}
             />
           </div>
-        </DocumentSection>
+        </CommercePanel>
       </CommerceBody>
       <FilesDeleteDialog
         deleteImpact={page.deleteImpact}

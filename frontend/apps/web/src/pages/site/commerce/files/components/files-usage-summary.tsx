@@ -27,19 +27,19 @@ const SUMMARY_ITEMS = [
 
 export function FilesUsageSummary({ summary, t }: FilesUsageSummaryProps) {
   return (
-    <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid overflow-hidden rounded-lg border border-(--app-border) bg-muted/30 sm:grid-cols-2 xl:grid-cols-4">
       {SUMMARY_ITEMS.map((item) => {
         const Icon = item.icon
         return (
           <div
             key={item.key}
-            className="flex h-24 min-w-0 items-center gap-2 rounded-lg border border-(--document-card-border) bg-(image:--document-card-background) px-3 shadow-(--document-card-shadow) backdrop-blur-md"
+            className="flex h-16 min-w-0 items-center gap-3 border-b border-(--app-border) px-3 last:border-b-0 sm:[&:nth-child(odd)]:border-r sm:[&:nth-last-child(-n+2)]:border-b-0 xl:border-r xl:border-b-0 xl:last:border-r-0"
           >
             <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
               <Icon className="size-4" />
             </span>
             <span className="min-w-0">
-              <span className="block text-[11px] text-muted-foreground">
+              <span className="block text-xs text-muted-foreground">
                 {t(`commerce.files.summary.${item.key}.label`)}
               </span>
               <span className="block truncate text-sm font-semibold text-foreground">
