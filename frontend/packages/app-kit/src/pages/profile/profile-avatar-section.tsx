@@ -11,7 +11,7 @@ export function ProfileAvatarSection({
   labels,
 }: ProfileAvatarSectionProps) {
   return (
-    <aside className="min-w-0 rounded-xl border border-(--document-card-border) bg-(image:--document-card-background) p-4 shadow-(--document-card-shadow) backdrop-blur-md lg:order-2">
+    <aside className="flex min-w-0 rounded-xl border border-(--document-card-border) bg-(image:--document-card-background) p-4 shadow-(--document-card-shadow) backdrop-blur-md lg:h-full">
       <div className="space-y-4">
         <h2 className="text-sm font-semibold">{labels.avatarTitle}</h2>
         <AvatarPhotoEditor

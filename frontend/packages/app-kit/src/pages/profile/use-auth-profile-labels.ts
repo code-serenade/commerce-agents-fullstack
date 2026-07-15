@@ -7,6 +7,7 @@ export function useAuthProfileLabels(): AuthProfileLabels {
   return {
     title: t("profile.title"),
     accountSection: t("profile.sections.account"),
+    account: t("profile.fields.account"),
     id: t("profile.fields.id"),
     name: t("profile.fields.name"),
     namePlaceholder: t("profile.placeholders.name"),

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useQueryClient } from "@tanstack/react-query"
 import { toRequestError } from "@workspace/services/errors/request-error"
@@ -51,7 +51,7 @@ export function useProfilePage() {
     }
   }, [t])
 
-  const save = async () => {
+  const save = useCallback(async () => {
     setIsSaving(true)
     setSaveStatus("")
     try {
@@ -73,7 +73,7 @@ export function useProfilePage() {
     } finally {
       setIsSaving(false)
     }
-  }
+  }, [queryClient, schoolName, t, teamName])
 
   return {
     appProfile: {

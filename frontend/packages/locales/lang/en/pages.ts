@@ -60,23 +60,25 @@ const pages = {
       security: "Password",
     },
     fields: {
+      account: "Account",
       id: "ID",
       email: "Email",
-      name: "Name",
+      name: "Nickname",
       currentPassword: "Current password",
       newPassword: "New password",
       confirmPassword: "Confirm password",
     },
     placeholders: {
-      name: "Enter your display name",
+      name: "Enter your nickname",
       email: "Enter email address",
       currentPassword: "Enter current password",
       newPassword: "Enter new password",
       confirmPassword: "Enter new password again",
     },
     help: {
-      name: "Your name may appear around this app where you contribute or are mentioned.",
-      emailNotSet: "Set an email address for account recovery and notifications.",
+      name: "Your nickname may appear around this app where you contribute or are mentioned.",
+      emailNotSet:
+        "Set an email address for account recovery and notifications.",
       newPassword: "The new password must be at least 8 characters.",
     },
     avatar: {
@@ -122,6 +124,7 @@ const pages = {
       passwordMismatch: "New passwords do not match.",
     },
     fallback: {
+      account: "Unknown account",
       id: "Unknown ID",
       email: "Email not set",
       name: "Member",

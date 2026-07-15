@@ -1,5 +1,5 @@
 import { type ReactNode, useMemo } from "react"
-import { LogIn, UserPlus, UserRound } from "lucide-react"
+import { LogIn, School, UserPlus, UserRound } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useDispatch, useSelector } from "react-redux"
 import { useLocation, useNavigate } from "react-router"
@@ -86,7 +86,9 @@ export function WebAppShell({ children }: WebAppShellProps) {
         : location.pathname === item.path
     )
   const topBarTitle =
-    location.pathname.startsWith("/profile")
+    location.pathname.startsWith("/team-school")
+      ? t("profile.teamSchoolPage.title")
+      : location.pathname.startsWith("/profile")
       ? t("pages:profile.title")
       : currentItem
         ? t(currentItem.labelKey)
@@ -174,6 +176,11 @@ export function WebAppShell({ children }: WebAppShellProps) {
                   icon: <UserRound />,
                   label: t("web.shell.account.actions.profile"),
                   onSelect: () => navigate("/profile"),
+                },
+                {
+                  icon: <School />,
+                  label: t("web.shell.account.actions.teamSchool"),
+                  onSelect: () => navigate("/team-school"),
                 },
               ]
             : [

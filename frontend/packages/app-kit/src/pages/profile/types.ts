@@ -6,6 +6,7 @@ export interface AuthProfileModel {
   userAvatar?: string
   displayName: string
   displayId: string
+  account: string
   email: string
   hasEmail: boolean
   avatarFallback: string
@@ -35,6 +36,7 @@ export interface AuthProfileModel {
 export interface AuthProfileLabels {
   title: ReactNode
   accountSection: ReactNode
+  account: ReactNode
   id: ReactNode
   name: ReactNode
   namePlaceholder?: string
@@ -76,11 +78,13 @@ export interface AuthProfileLabels {
 }
 
 export interface AuthProfilePageProps {
+  contentClassName?: string
   initialUser?: UserInfo | null
   onUserChange?: (user: UserInfo) => void
 }
 
 export interface AuthProfileViewProps {
+  contentClassName?: string
   profile: AuthProfileModel
   labels: AuthProfileLabels
 }

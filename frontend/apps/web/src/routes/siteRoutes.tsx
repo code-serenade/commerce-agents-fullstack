@@ -16,6 +16,7 @@ import {
   ProductsPage,
   QuestionIdeasPage,
   ProfilePage,
+  TeamSchoolPage,
   WorkspacesPage,
   WorkspacesDetailPage,
 } from "@/routes/lazy/sitePages"
@@ -105,6 +106,10 @@ export const siteRoutes: RouteObject = {
         {
           path: "profile",
           element: withSuspense(<ProfilePage />),
+        },
+        {
+          path: "team-school",
+          element: withSuspense(<TeamSchoolPage />),
         },
       ],
     },

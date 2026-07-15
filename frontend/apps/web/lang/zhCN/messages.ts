@@ -42,6 +42,7 @@ const messages = {
         logout: "退出登录",
         actions: {
           profile: "个人资料",
+          teamSchool: "队伍学校",
         },
       },
     },
@@ -3287,9 +3288,15 @@ const messages = {
     },
   },
   profile: {
+    teamSchoolPage: {
+      title: "队伍学校设置",
+      description: "设置当前账号所属的院校和队伍，用于实训归属和问答额度识别。",
+    },
     appProfile: {
       title: "学校与团队",
       description: "这些信息用于识别实训归属，也会影响你的 AI 问答总次数。",
+      summaryTitle: "队伍学校",
+      summaryDescription: "这里展示当前账号的实训归属信息，修改请进入队伍学校设置。",
       loading: "正在读取学校与团队信息...",
       loadFailed: "学校与团队信息读取失败。",
       missingAppUser:
@@ -3303,6 +3310,10 @@ const messages = {
       save: "保存学校与团队",
       saving: "保存中...",
       saved: "学校与团队已保存",
+      manageTeamSchool: "管理队伍学校",
+      setupTeamSchool: "去设置",
+      summaryHelp: "绑定后可用于实训归属识别，并提升 AI 问答额度。",
+      unsetValue: "未填写",
       boundStatus: "已绑定",
       unboundStatus: "未绑定",
       quotaRule:

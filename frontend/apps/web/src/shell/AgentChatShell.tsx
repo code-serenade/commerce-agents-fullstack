@@ -7,6 +7,7 @@ import {
   MoreHorizontal,
   MessageSquareText,
   Pencil,
+  School,
   ShoppingBag,
   Sparkles,
   Trash2,
@@ -456,6 +457,11 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
                   label: t("web.shell.account.actions.profile"),
                   onSelect: () => navigate("/profile"),
                 },
+                {
+                  icon: <School />,
+                  label: t("web.shell.account.actions.teamSchool"),
+                  onSelect: () => navigate("/team-school"),
+                },
               ]
             : undefined,
         }}
@@ -635,6 +641,9 @@ function getRouteTitleKey(pathname: string) {
   if (pathname === "/profile") {
     return "pages:profile.title"
   }
+  if (pathname === "/team-school") {
+    return "profile.teamSchoolPage.title"
+  }
   return null
 }
 
@@ -671,6 +680,9 @@ function getRouteDescriptionKey(pathname: string) {
   }
   if (isWorkspacesRoute(pathname)) {
     return "commerce.pages.workspaces.description"
+  }
+  if (pathname === "/team-school") {
+    return "profile.teamSchoolPage.description"
   }
   return null
 }

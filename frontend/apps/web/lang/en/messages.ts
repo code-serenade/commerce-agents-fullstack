@@ -42,6 +42,7 @@ const messages = {
         logout: "Log out",
         actions: {
           profile: "Profile",
+          teamSchool: "Team school",
         },
       },
     },
@@ -3472,10 +3473,18 @@ const messages = {
     },
   },
   profile: {
+    teamSchoolPage: {
+      title: "Team school settings",
+      description:
+        "Set the school and team for this account so training ownership and question quota can be identified.",
+    },
     appProfile: {
       title: "School and team",
       description:
         "These details identify your training group and affect your AI question quota.",
+      summaryTitle: "Team school",
+      summaryDescription:
+        "This shows the training ownership for this account. Use team school settings to edit it.",
       loading: "Loading school and team...",
       loadFailed: "Failed to load school and team.",
       missingAppUser:
@@ -3490,6 +3499,11 @@ const messages = {
       save: "Save school and team",
       saving: "Saving...",
       saved: "School and team saved",
+      manageTeamSchool: "Manage team school",
+      setupTeamSchool: "Set up",
+      summaryHelp:
+        "Binding helps identify training ownership and increases the AI question quota.",
+      unsetValue: "Not set",
       boundStatus: "Bound",
       unboundStatus: "Not bound",
       quotaRule:

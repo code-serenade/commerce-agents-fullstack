@@ -1,6 +1,6 @@
+import { useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { Badge } from "@workspace/ui-components/stable/badge"
-import { Button } from "@workspace/ui-components/stable/button"
 import {
   Field,
   FieldDescription,
@@ -20,7 +20,7 @@ export interface AppProfileSectionProps {
   saveStatus: string
   onSchoolNameChange: (value: string) => void
   onTeamNameChange: (value: string) => void
-  onSave: () => void
+  onSave: () => Promise<void> | void
 }
 
 export function AppProfileSection({
@@ -37,9 +37,34 @@ export function AppProfileSection({
 }: AppProfileSectionProps) {
   const { t } = useTranslation()
   const isBound = Boolean(profile?.isSchoolTeamBound)
+  const savedSchoolName = profile?.schoolName ?? ""
+  const savedTeamName = profile?.teamName ?? ""
+  const hasProfileChange =
+    schoolName.trim() !== savedSchoolName || teamName.trim() !== savedTeamName
+
+  useEffect(() => {
+    if (!profile || isLoading || isSaving || loadError || !hasProfileChange) {
+      return
+    }
+
+    const timer = window.setTimeout(() => {
+      void onSave()
+    }, 800)
+
+    return () => window.clearTimeout(timer)
+  }, [
+    hasProfileChange,
+    isLoading,
+    isSaving,
+    loadError,
+    onSave,
+    profile,
+    schoolName,
+    teamName,
+  ])
 
   return (
-    <section className="rounded-lg border border-(--app-border) bg-(--app-surface) p-5">
+    <section className="rounded-xl border border-(--document-card-border) bg-(image:--document-card-background) p-5 shadow-(--document-card-shadow) backdrop-blur-md">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <h2 className="text-lg font-semibold text-(--app-text)">
@@ -56,7 +81,7 @@ export function AppProfileSection({
         </Badge>
       </div>
 
-      <div className="mt-4 rounded-md border border-(--app-border) bg-muted/30 px-3 py-2 text-sm text-(--app-muted-text)">
+      <div className="mt-4 rounded-lg border border-(--document-card-border) bg-(--agent-chat-content-surface) px-3 py-2 text-sm text-(--app-muted-text)">
         {t("profile.appProfile.quotaRule")}
       </div>
 
@@ -88,18 +113,15 @@ export function AppProfileSection({
                 {t("profile.appProfile.fieldHelp")}
               </FieldDescription>
             </Field>
-            <div className="flex flex-wrap items-center gap-3">
-              <Button onClick={onSave} disabled={isSaving}>
-                {isSaving
-                  ? t("profile.appProfile.saving")
-                  : t("profile.appProfile.save")}
-              </Button>
-              {loadError || saveStatus ? (
+            {isSaving || loadError || saveStatus ? (
+              <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm text-(--app-muted-text)">
-                  {loadError || saveStatus}
+                  {isSaving
+                    ? t("profile.appProfile.saving")
+                    : loadError || saveStatus}
                 </p>
-              ) : null}
-            </div>
+              </div>
+            ) : null}
           </FieldGroup>
         </div>
       )}
