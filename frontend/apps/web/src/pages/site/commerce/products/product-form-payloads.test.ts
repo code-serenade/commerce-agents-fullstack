@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+  productPayload,
   productDraftPayload,
   productDraftStreamPayload,
 } from "./product-form-payloads"
@@ -8,6 +9,19 @@ const descriptionKey = "description"
 const nameKey = "name"
 
 describe("productDraftPayload", () => {
+  it("normalizes product prices to a non-negative two-decimal value", () => {
+    expect(
+      productPayload({
+        currency: "CNY",
+        name: "Price test",
+        price: "-12.349",
+      })
+    ).toMatchObject({
+      currency: "CNY",
+      price: "12.34",
+    })
+  })
+
   it("keeps template smart fill as the default request mode", () => {
     const payload = productDraftPayload({
       brand: "Atlas",

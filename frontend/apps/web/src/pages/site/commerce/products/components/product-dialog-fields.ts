@@ -1,4 +1,8 @@
-import type { SimpleField, SimpleFormValues } from "../../components/commerce-ui"
+import {
+  normalizeNumericInput,
+  type SimpleField,
+  type SimpleFormValues,
+} from "../../components/commerce-ui"
 import type { CommerceTranslate } from "../../components/commerce-types"
 import type { ProductsPageState } from "../use-products-page"
 
@@ -13,7 +17,10 @@ export function productInitialValues(
     externalId: page.selectedProduct?.externalId ?? "",
     name: page.selectedProduct?.name ?? "",
     platform: page.selectedProduct?.platform ?? "",
-    price: page.selectedProduct?.price ?? "",
+    price: normalizeNumericInput(page.selectedProduct?.price ?? "", {
+      decimalScale: 2,
+      nonNegative: true,
+    }),
   }
 }
 
@@ -28,8 +35,19 @@ export function productFields(t: CommerceTranslate): SimpleField[] {
     { key: "externalId", label: t("commerce.fields.platformProductId") },
     { key: "category", label: t("commerce.fields.category") },
     { key: "brand", label: t("commerce.fields.brand") },
-    { key: "price", label: t("commerce.fields.price"), type: "number" },
-    { key: "currency", label: t("commerce.fields.currency") },
+    {
+      key: "currency",
+      label: t("commerce.fields.currency"),
+      layout: "half",
+    },
+    {
+      decimalScale: 2,
+      key: "price",
+      label: t("commerce.fields.price"),
+      layout: "half",
+      nonNegative: true,
+      type: "number",
+    },
     {
       key: "description",
       label: t("commerce.fields.description"),

@@ -2,14 +2,12 @@ import { useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
 import {
   getProductApi,
-  getProductDashboardApi,
   getProductCompetitorApi,
   getProductMaterialApi,
   listCompetitorChangesApi,
   listProductAssetsApi,
   listProductCompetitorsApi,
   listProductKnowledgeApi,
-  listProductMaterialVersionsApi,
   listProductMaterialsApi,
   listProductsApi,
 } from "@/api"
@@ -23,6 +21,7 @@ export const productListQueryKey = (keyword: string) => [
 
 export function useProductQueries({
   keyword,
+  materialStatus,
   selectedAssetId,
   selectedCompetitorId,
   selectedKnowledgeId,
@@ -30,6 +29,7 @@ export function useProductQueries({
   selectedProductId,
 }: {
   keyword: string
+  materialStatus: string
   selectedAssetId: string | null
   selectedCompetitorId: string | null
   selectedKnowledgeId: string | null
@@ -44,18 +44,11 @@ export function useProductQueries({
         keyword: keyword || undefined,
       }),
   })
-  const dashboardQuery = useQuery({
-    queryKey: [...productsQueryKey, "dashboard"],
-    queryFn: getProductDashboardApi,
-  })
   const products = useMemo(() => productsQuery.data ?? [], [productsQuery.data])
   const selectedProductSnapshot = useMemo(() => {
-    if (!products.length) return null
+    if (!selectedProductId) return null
 
-    return (
-      products.find((product) => product.id === selectedProductId) ??
-      products[0]
-    )
+    return products.find((product) => product.id === selectedProductId) ?? null
   }, [products, selectedProductId])
   const productId = selectedProductSnapshot?.id
   const productDetailQuery = useQuery({
@@ -94,9 +87,24 @@ export function useProductQueries({
     return assets.find((item) => item.id === selectedAssetId) ?? assets[0]
   }, [assets, selectedAssetId])
   const materialsQuery = useQuery({
-    queryKey: [...productsQueryKey, productId, "materials"],
+    queryKey: [
+      ...productsQueryKey,
+      productId,
+      "materials",
+      materialStatus || "all",
+    ],
     enabled: Boolean(productId),
-    queryFn: () => listProductMaterialsApi(productId!, { status: "active" }),
+    queryFn: async () => {
+      if (materialStatus) {
+        return listProductMaterialsApi(productId!, { status: materialStatus })
+      }
+
+      const [activeMaterials, archivedMaterials] = await Promise.all([
+        listProductMaterialsApi(productId!, { status: "active" }),
+        listProductMaterialsApi(productId!, { status: "archived" }),
+      ])
+      return [...activeMaterials, ...archivedMaterials]
+    },
   })
   const materials = useMemo(
     () => materialsQuery.data ?? [],
@@ -118,24 +126,16 @@ export function useProductQueries({
       selectedMaterialSnapshot?.id,
       "detail",
     ],
-    enabled: Boolean(productId && selectedMaterialSnapshot?.id),
+    enabled: Boolean(
+      productId &&
+        selectedMaterialSnapshot?.id &&
+        selectedMaterialSnapshot.status !== "archived"
+    ),
     queryFn: () =>
       getProductMaterialApi(productId!, selectedMaterialSnapshot!.id),
   })
   const selectedMaterial =
     materialDetailQuery.data ?? selectedMaterialSnapshot
-  const materialVersionsQuery = useQuery({
-    queryKey: [
-      ...productsQueryKey,
-      productId,
-      "materials",
-      selectedMaterial?.id,
-      "versions",
-    ],
-    enabled: Boolean(productId && selectedMaterial?.id),
-    queryFn: () =>
-      listProductMaterialVersionsApi(productId!, selectedMaterial!.id),
-  })
   const competitorsQuery = useQuery({
     queryKey: [...productsQueryKey, productId, "competitors"],
     enabled: Boolean(productId),
@@ -186,11 +186,9 @@ export function useProductQueries({
     assets,
     changes: changesQuery.data ?? [],
     competitors,
-    dashboard: dashboardQuery.data,
     knowledge,
     loading:
       productsQuery.isLoading ||
-      dashboardQuery.isLoading ||
       productDetailQuery.isLoading ||
       knowledgeQuery.isLoading ||
       assetsQuery.isLoading ||
@@ -198,8 +196,6 @@ export function useProductQueries({
       materialDetailQuery.isLoading ||
       competitorsQuery.isLoading ||
       competitorDetailQuery.isLoading,
-    materialVersions: materialVersionsQuery.data ?? [],
-    materialVersionsLoading: materialVersionsQuery.isLoading,
     materials,
     products,
     selectedAsset,

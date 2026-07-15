@@ -1,5 +1,4 @@
 import { useTranslation } from "react-i18next"
-import { Button } from "@workspace/ui-components"
 import {
   CommercePanel,
   CommerceTable,
@@ -12,15 +11,7 @@ export function ProductsMasterPanel({ page }: { page: ProductsPageState }) {
   const { t } = useTranslation()
 
   return (
-    <CommercePanel
-      title={t("commerce.products.panels.list")}
-      description={t("commerce.products.panels.listDesc")}
-      actions={
-        <Button size="sm" onClick={() => page.setDialog("create-product")}>
-          {t("commerce.products.panels.create")}
-        </Button>
-      }
-    >
+    <CommercePanel>
       <div className="space-y-3">
         <CommerceToolbar
           keyword={page.keyword}

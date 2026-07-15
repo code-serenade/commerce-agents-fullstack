@@ -6,9 +6,14 @@ import type {
   ProductKnowledgeResponse,
   ProductMaterialResponse,
 } from "@/api"
-import { MutedText } from "../../components/commerce-ui"
+import {
+  MutedText,
+  StatusBadge,
+  toneForStatus,
+} from "../../components/commerce-ui"
 import type { CommerceColumn } from "../../components/commerce-ui"
 import type { CommerceTranslate } from "../../components/commerce-types"
+import { getCommerceStatusLabel } from "../../domain/status-options"
 import type { ProductsPageState } from "../use-products-page"
 import type { ProductDialogName } from "../use-products-page"
 import {
@@ -110,36 +115,46 @@ export function createMaterialColumns(
       key: "title",
       header: t("commerce.products.columns.material"),
       render: (item) => (
-        <button
-          type="button"
-          className="block min-w-0 text-left"
-          onClick={() => page.setSelectedMaterialId(item.id)}
-        >
+        <div className="min-w-0">
           <span className="block truncate font-medium text-foreground">
             {item.title || item.materialType}
           </span>
           <MutedText>
             {item.content?.slice(0, 64) || t("commerce.common.noContent")}
           </MutedText>
-        </button>
+        </div>
       ),
+      minWidth: "9rem",
+    },
+    {
+      key: "status",
+      header: t("commerce.common.status"),
+      render: (item) => (
+        <StatusBadge tone={toneForStatus(item.status)}>
+          {getCommerceStatusLabel(t, item.status)}
+        </StatusBadge>
+      ),
+      width: "7rem",
     },
     {
       key: "version",
       header: t("commerce.common.version"),
       render: (item) => item.version ?? "-",
+      width: "5rem",
     },
     {
       key: "actions",
       header: t("commerce.common.actions"),
-      render: (item) => (
-        <div className="flex flex-wrap gap-2">
-          {editButton(t, "edit-material", page, () =>
-            page.setSelectedMaterialId(item.id)
-          )}
-          {archiveButton(t, () => page.archiveMaterial(item.id))}
-        </div>
-      ),
+      render: (item) =>
+        item.status === "archived" ? null : (
+          <div className="flex flex-wrap gap-2">
+            {editButton(t, "edit-material", page, () =>
+              page.setSelectedMaterialId(item.id)
+            )}
+            {archiveButton(t, () => page.archiveMaterial(item.id))}
+          </div>
+        ),
+      width: "9rem",
     },
   ]
 }
