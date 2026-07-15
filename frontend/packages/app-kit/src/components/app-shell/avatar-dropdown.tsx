@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { ChevronsUpDown, LogOut } from "lucide-react"
+import { LogOut, UserRound } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import {
   DropdownMenu,
@@ -56,6 +56,21 @@ function itemClassName() {
   return "flex min-h-8 cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm leading-none font-medium text-foreground outline-hidden transition data-[disabled]:pointer-events-none data-[disabled]:opacity-50 hover:bg-(--shell-sidebar-item-hover-background) hover:text-foreground focus:bg-(--shell-sidebar-item-hover-background) focus:text-foreground"
 }
 
+function AvatarPlaceholder({ size }: { size: "sm" | "md" | "lg" }) {
+  const sizeClassName =
+    size === "sm" ? "h-6 w-6" : size === "md" ? "h-8 w-8" : "h-10 w-10"
+  const iconClassName =
+    size === "sm" ? "size-3.5" : size === "md" ? "size-4" : "size-5"
+
+  return (
+    <span
+      className={`flex ${sizeClassName} items-center justify-center rounded-full bg-slate-200 text-slate-600 ring-1 ring-slate-300/80 dark:bg-slate-700 dark:text-slate-300 dark:ring-slate-600/80`}
+    >
+      <UserRound aria-hidden="true" className={iconClassName} />
+    </span>
+  )
+}
+
 export function AvatarDropdownItem({
   icon,
   label,
@@ -83,7 +98,6 @@ export function AvatarDropdownItem({
 export function AvatarDropdown({
   avatarSrc,
   avatarAlt,
-  avatarFallback,
   displayName,
   displayId,
   children,
@@ -98,23 +112,19 @@ export function AvatarDropdown({
   const trigger = triggerVariant === "sidebar" ? (
     <button
       type="button"
-      className="flex w-full cursor-pointer items-center gap-2.5 overflow-hidden rounded-xl bg-transparent px-2.5 py-2 text-left outline-hidden transition group-data-[collapsible=icon]:w-9 group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:rounded-full group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-0"
+      className="flex w-full cursor-pointer items-center gap-3 overflow-hidden rounded-xl bg-transparent px-2.5 py-2 text-left outline-hidden transition group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:rounded-full group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-0"
       aria-label={openAccountMenuLabel}
       onClick={onTriggerSelect}
     >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#0f1724]">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full">
         {avatarSrc ? (
           <img
             src={avatarSrc}
             alt={avatarAlt}
-            className="block h-9 w-9 rounded-full object-cover"
+            className="block h-10 w-10 rounded-full object-cover"
           />
         ) : null}
-        {!avatarSrc ? (
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1c2431] text-[13px] font-semibold text-white">
-            {avatarFallback}
-          </span>
-        ) : null}
+        {!avatarSrc ? <AvatarPlaceholder size="lg" /> : null}
       </span>
       <span className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
         <span className="block truncate text-sm font-semibold text-foreground">
@@ -124,9 +134,6 @@ export function AvatarDropdown({
           {displayId}
         </span>
       </span>
-      {onTriggerSelect ? null : (
-        <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
-      )}
     </button>
   ) : (
     <button
@@ -135,7 +142,7 @@ export function AvatarDropdown({
       aria-label={openAccountMenuLabel}
       onClick={onTriggerSelect}
     >
-      <span className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-full bg-[#0f1724]">
+      <span className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-full">
         {avatarSrc ? (
           <img
             src={avatarSrc}
@@ -143,11 +150,7 @@ export function AvatarDropdown({
             className="block h-6 w-6 rounded-full object-cover"
           />
         ) : null}
-        {!avatarSrc ? (
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#1c2431] text-[10px] font-semibold text-white">
-            {avatarFallback}
-          </span>
-        ) : null}
+        {!avatarSrc ? <AvatarPlaceholder size="sm" /> : null}
       </span>
     </button>
   )
@@ -169,7 +172,7 @@ export function AvatarDropdown({
         className="z-[2000] w-56 overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)] p-0 text-[var(--surface-foreground)] opacity-100 shadow-[0_24px_80px_rgba(0,0,0,0.55)] outline-hidden"
       >
         <div className="flex items-center gap-2 px-2 py-2">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#0f1724]">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full">
             {avatarSrc ? (
               <img
                 src={avatarSrc}
@@ -177,11 +180,7 @@ export function AvatarDropdown({
                 className="block h-8 w-8 rounded-full object-cover"
               />
             ) : null}
-            {!avatarSrc ? (
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1c2431] text-[11px] font-semibold text-white">
-                {avatarFallback}
-              </span>
-            ) : null}
+            {!avatarSrc ? <AvatarPlaceholder size="md" /> : null}
           </span>
           <div className="min-w-0">
             <div className="truncate text-[13px] font-semibold text-foreground">
