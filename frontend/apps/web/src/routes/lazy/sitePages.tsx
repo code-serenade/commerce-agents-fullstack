@@ -2,7 +2,7 @@ import { lazy } from "react"
 
 export const AgentChatPage = lazy(() => import("@/pages/site/agent-chat"))
 export const AgentCapabilitiesPage = lazy(
-  () => import("@/pages/site/agent-capabilities")
+  () => import("@/pages/site/agent-capabilities/usage-guide")
 )
 export const QuestionIdeasPage = lazy(
   () => import("@/pages/site/question-ideas")

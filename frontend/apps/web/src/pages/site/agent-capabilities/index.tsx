@@ -1,7 +1,5 @@
 import { GraduationCap } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { useNavigate } from "react-router"
-import { Button } from "@workspace/ui-components"
 import { useOptionalAgentChatContext } from "../agent-chat/context/use-agent-chat-context"
 import {
   CommerceBody,
@@ -31,7 +29,6 @@ const capabilityEntryLinks = [
 export default function AgentCapabilitiesPage() {
   const { t } = useTranslation()
   const chat = useOptionalAgentChatContext()
-  const navigate = useNavigate()
   const capabilities = t("agentCapabilities.capabilities.items", {
     returnObjects: true,
   }) as Array<{ title: string; description: string }>
@@ -50,10 +47,6 @@ export default function AgentCapabilitiesPage() {
   const resetConversation = () => {
     chat?.startNewConversation()
   }
-  const startNewConversation = () => {
-    resetConversation()
-    navigate("/commerce")
-  }
   const capabilityEntryHandlers = [resetConversation]
 
   return (
@@ -63,11 +56,6 @@ export default function AgentCapabilitiesPage() {
         eyebrow={t("agentCapabilities.header.eyebrow")}
         title={t("agentCapabilities.header.title")}
         description={t("agentCapabilities.header.description")}
-        actions={
-          <Button size="sm" variant="outline" onClick={startNewConversation}>
-            {t("agentCapabilities.header.action")}
-          </Button>
-        }
       />
       <CommerceBody className="min-[1200px]:px-8">
         <DocumentIntroCard

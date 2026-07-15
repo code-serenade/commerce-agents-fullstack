@@ -43,6 +43,7 @@ export interface SidebarShellNavEntry {
   label: ReactNode
   href?: string
   active?: boolean
+  iconSize?: "default" | "xs"
   iconTone?: "default" | "muted"
   tone?: "default" | "muted"
   textSize?: "default" | "lg"
@@ -636,6 +637,9 @@ function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
       : "",
     item.iconTone === "muted"
       ? "[&_[data-sidebar=menu-button]_svg]:text-sidebar-foreground/55"
+      : "",
+    item.iconSize === "xs"
+      ? "[&_[data-sidebar=menu-button]_svg]:size-3"
       : "",
     item.textSize === "lg" ? "[&_[data-sidebar=menu-button]]:text-sm" : "",
   ]

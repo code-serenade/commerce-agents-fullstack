@@ -1,7 +1,6 @@
 import { Lightbulb } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router"
-import { Button } from "@workspace/ui-components"
 import { useOptionalAgentChatContext } from "../agent-chat/context/use-agent-chat-context"
 import {
   getStudentPromptRecipeItems,
@@ -36,15 +35,6 @@ export default function QuestionIdeasPage() {
         eyebrow={t("questionIdeas.header.eyebrow")}
         title={t("questionIdeas.header.title")}
         description={t("questionIdeas.header.description")}
-        actions={
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => navigate("/commerce")}
-          >
-            {t("questionIdeas.header.action")}
-          </Button>
-        }
       />
       <CommerceBody className="min-[1200px]:px-8">
         <DocumentIntroCard

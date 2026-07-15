@@ -20,35 +20,8 @@ describe("AgentCapabilitiesPage", () => {
     chatState.startNewConversation.mockReset()
   })
 
-  it("starts a fresh chat from the capability page when chat context exists", async () => {
+  it("still opens when chat context is missing", async () => {
     const i18n = await createAgentChatTestI18n()
-    const user = userEvent.setup()
-
-    render(
-      <TestShell i18n={i18n} withChatContext>
-        <Routes>
-          <Route
-            path="/agent-capabilities"
-            element={<AgentCapabilitiesPage />}
-          />
-          <Route path="/commerce" element={<div>Q&A page</div>} />
-        </Routes>
-      </TestShell>
-    )
-
-    await user.click(
-      screen.getByRole("button", {
-        name: i18n.t("agentCapabilities.header.action"),
-      })
-    )
-
-    expect(chatState.startNewConversation).toHaveBeenCalledTimes(1)
-    expect(screen.getByText("Q&A page")).toBeInTheDocument()
-  })
-
-  it("still opens and navigates back to Q&A when chat context is missing", async () => {
-    const i18n = await createAgentChatTestI18n()
-    const user = userEvent.setup()
 
     render(
       <TestShell i18n={i18n}>
@@ -67,14 +40,6 @@ describe("AgentCapabilitiesPage", () => {
         name: i18n.t("agentCapabilities.header.title"),
       })
     ).toBeInTheDocument()
-
-    await user.click(
-      screen.getByRole("button", {
-        name: i18n.t("agentCapabilities.header.action"),
-      })
-    )
-
-    expect(screen.getByText("Q&A page")).toBeInTheDocument()
   })
 
   it("starts a fresh chat from the Q&A entry card", async () => {

@@ -53,26 +53,19 @@ export interface AgentChatShellProps {
 }
 
 const CHAT_ROUTE_PATHS = ["/", "/commerce", "/agent"] as const
-const CHAT_NAVIGATION_ROUTE_PATHS = [
-  "/",
-  "/commerce",
-  "/agent",
-  "/agent-capabilities",
-  "/question-ideas",
-] as const
-const AMBIGUOUS_NAVIGATION_ROUTE_PATHS = [
+const PROTECTED_MENU_ROUTE_PATHS = [
+  "/overview",
   "/products",
   "/materials",
   "/campaigns",
+  "/workspaces",
+  "/platform-connect",
+  "/approvals",
+  "/operations",
+  "/agent-output",
+  "/profile",
+  "/team-school",
 ] as const
-const SIDEBAR_NAVIGATION_MODE_STORAGE_KEY =
-  "agentChat.sidebar.navigationMode"
-
-type SidebarNavigationMode = "chat" | "training"
-type SidebarNavigationModeState = {
-  mode: SidebarNavigationMode
-  pathname: string
-}
 
 export function AgentChatShell({ children }: AgentChatShellProps) {
   return (
@@ -94,19 +87,8 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     title: string
   } | null>(null)
   const [renameValue, setRenameValue] = useState("")
-  const [navigationModeState, setNavigationModeState] =
-    useState<SidebarNavigationModeState>(() => ({
-      mode: getInitialSidebarNavigationMode(location.pathname),
-      pathname: location.pathname,
-    }))
-  const navigationMode =
-    navigationModeState.pathname === location.pathname
-      ? navigationModeState.mode
-      : (getSidebarNavigationModeFromPath(location.pathname) ??
-        navigationModeState.mode)
   const user = useSelector((state: RootState) => state.auth.user)
   const { requestLogin } = useAuthDialog()
-  const isLoggedIn = Boolean(user)
   const displayName = user?.name || t("web.shell.account.loginCta")
   const displayId = user
     ? user.display_id || user.email || t("web.shell.account.defaultId")
@@ -127,24 +109,13 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     navigate("/home", { replace: true })
   }
 
-  useEffect(() => {
-    storeSidebarNavigationMode(navigationMode)
-  }, [navigationMode])
-
-  const setNavigationMode = (mode: SidebarNavigationMode) => {
-    setNavigationModeState({
-      mode,
-      pathname: location.pathname,
-    })
-  }
-
   const openRenameDialog = (conversation: { id: string; title: string }) => {
     setRenameTarget(conversation)
     setRenameValue(conversation.title)
   }
 
   const navigateTo = (path: string) => {
-    if (!user && ["/products", "/materials", "/campaigns"].includes(path)) {
+    if (!user && isProtectedMenuRoute(path)) {
       requestLogin({ pathname: path })
       return
     }
@@ -155,6 +126,24 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     chat.startNewConversation()
     navigateTo("/commerce")
   }
+
+  useEffect(() => {
+    const handleNewConversationShortcut = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return
+      if (event.key.toLowerCase() !== "k") return
+      if ((!event.ctrlKey && !event.metaKey) || event.altKey || event.shiftKey)
+        return
+
+      event.preventDefault()
+      chat.startNewConversation()
+      navigate("/commerce")
+    }
+
+    window.addEventListener("keydown", handleNewConversationShortcut)
+    return () => {
+      window.removeEventListener("keydown", handleNewConversationShortcut)
+    }
+  }, [chat, navigate])
 
   const openConversation = (conversationId: string) => {
     navigateTo(`/commerce/${conversationId}`)
@@ -179,30 +168,25 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   const newConversationItem = {
     key: "new-chat",
     icon: <MessageCircleMore />,
-    label: t("agentChat.sidebar.newChat"),
+    label: (
+      <span className="flex min-w-0 flex-1 items-center gap-2">
+        <span className="min-w-0 flex-1 truncate">
+          {t("agentChat.sidebar.newChat")}
+        </span>
+        <span
+          aria-hidden="true"
+          className="shrink-0 text-xs font-normal text-sidebar-foreground/45 group-data-[collapsible=icon]:hidden"
+        >
+          Ctrl K
+        </span>
+      </span>
+    ),
     textSize: "lg" as const,
+    variant: "prominentAction" as const,
     active: !chat.conversationId && isRouteActive("/commerce"),
     onSelect: openNewConversation,
   }
   const functionNavigationItems = [
-    {
-      key: "capabilities",
-      path: "/agent-capabilities",
-      icon: <Bot />,
-      label: t("agentChat.shell.navigation.capabilities"),
-      textSize: "lg" as const,
-      active: isRouteActive("/agent-capabilities"),
-      onSelect: () => navigateTo("/agent-capabilities"),
-    },
-    {
-      key: "question-ideas",
-      path: "/question-ideas",
-      icon: <Sparkles />,
-      label: t("agentChat.shell.navigation.questionIdeas"),
-      textSize: "lg" as const,
-      active: isRouteActive("/question-ideas"),
-      onSelect: () => navigateTo("/question-ideas"),
-    },
     {
       key: "product-board",
       path: "/products",
@@ -230,34 +214,71 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       active: isRouteActive("/campaigns"),
       onSelect: () => navigateTo("/campaigns"),
     },
+    {
+      key: "capabilities",
+      path: "/agent-capabilities",
+      icon: <Bot />,
+      label: t("agentChat.shell.navigation.capabilities"),
+      textSize: "lg" as const,
+      active: isRouteActive("/agent-capabilities"),
+      onSelect: () => navigateTo("/agent-capabilities"),
+    },
+    {
+      key: "question-ideas",
+      path: "/question-ideas",
+      icon: <Sparkles />,
+      label: t("agentChat.shell.navigation.questionIdeas"),
+      textSize: "lg" as const,
+      active: isRouteActive("/question-ideas"),
+      onSelect: () => navigateTo("/question-ideas"),
+    },
   ]
-  const visibleFunctionNavigationItems = isLoggedIn
-    ? functionNavigationItems
-    : functionNavigationItems.filter(
-        (item) =>
-          !["product-board", "materials", "campaigns"].includes(item.key)
-      )
+  const functionNavigationPaths = new Set(
+    functionNavigationItems.map((item) => item.path)
+  )
+  const trainingNavigationSections = webNavigationSections.map((section) => ({
+    ...section,
+    items: section.items.filter(
+      (item) => item.id !== "home" && item.id !== "overview"
+    ),
+  }))
+  const trainingNavigationItems = trainingNavigationSections.flatMap(
+    (section) =>
+      section.items
+        .filter((item) => !functionNavigationPaths.has(item.path))
+        .map((item) => ({
+          key: item.id,
+          path: item.path,
+          icon: item.icon,
+          label: t(item.labelKey),
+          active: item.matcher
+            ? item.matcher(location.pathname)
+            : isRouteActive(item.path),
+          onSelect: () => navigateTo(item.path),
+        }))
+  )
   const workspaceSection: SidebarShellSection = {
     key: "workspace",
     label: t("agentChat.shell.sections.workspace"),
     hideLabel: true,
-    maxContentHeight: "lg",
+    leadingItems: [newConversationItem],
+    leadingItemsFixed: true,
     itemOverflow: {
-      maxVisibleItems: 4,
+      maxVisibleItems: 5,
       moreLabel: t("agentChat.sidebar.more"),
       lessLabel: t("agentChat.sidebar.less"),
     },
-    items: [newConversationItem, ...visibleFunctionNavigationItems],
+    items: [...functionNavigationItems, ...trainingNavigationItems],
   }
   const recentsSection: SidebarShellSection = {
     key: "recents",
     label: t("agentChat.shell.sections.recents"),
     hideWhenSidebarCollapsed: true,
-    maxContentHeight: "md",
     items: chat.conversations.length
       ? [
           ...chat.conversations.map((conversation) => ({
             key: conversation.id,
+            iconSize: "xs" as const,
             iconTone: "muted" as const,
             icon: <MessageSquareText />,
             label: conversation.title,
@@ -278,43 +299,14 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       : [
           {
             key: "empty-recents",
-            iconTone: "muted" as const,
-            icon: <MessageSquareText />,
-            label: t("agentChat.sidebar.empty"),
+            label: user
+              ? t("agentChat.sidebar.empty")
+              : t("agentChat.sidebar.guestEmpty"),
+            variant: "plainText" as const,
           },
         ],
   }
-  const trainingNavigationSections = webNavigationSections.map((section) => ({
-    ...section,
-    items: section.items.filter((item) => item.id !== "home"),
-  }))
-  const trainingSections: SidebarShellSection[] =
-    trainingNavigationSections.map((section) => ({
-      key: section.id,
-      label: t(section.labelKey),
-      items: section.items.map((item) => ({
-        key: item.id,
-        icon: item.icon,
-        label: t(item.labelKey),
-        active: item.matcher
-          ? item.matcher(location.pathname)
-          : isRouteActive(item.path),
-        onSelect: () => navigateTo(item.path),
-      })),
-    }))
-  const sections: SidebarShellSection[] = !isLoggedIn
-    ? [workspaceSection]
-    : navigationMode === "chat"
-      ? [workspaceSection, recentsSection]
-      : trainingSections
-  const navigationHeader = isLoggedIn ? (
-    <SidebarNavigationModeTabs
-      activeMode={navigationMode}
-      chatLabel={t("agentChat.shell.tabs.chat")}
-      trainingLabel={t("agentChat.shell.tabs.training")}
-      onModeChange={setNavigationMode}
-    />
-  ) : undefined
+  const sections: SidebarShellSection[] = [workspaceSection, recentsSection]
   const mobileConversationItems = chat.conversations.map((conversation) => ({
     key: conversation.id,
     label: conversation.title,
@@ -322,33 +314,16 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     active: isQuestionRoute && conversation.id === chat.conversationId,
     onSelect: () => openConversation(conversation.id),
   }))
-  const mobileFunctionSubItems = visibleFunctionNavigationItems.map((item) => ({
+  const mobileFunctionSubItems = [
+    ...functionNavigationItems,
+    ...trainingNavigationItems,
+  ].map((item) => ({
     key: item.key,
     label: item.label,
     href: item.path,
     active: item.active,
     onSelect: item.onSelect,
   }))
-  const mobileTrainingItems: MobileBottomNavItem[] =
-    trainingNavigationSections.map((section) => ({
-      key: `training-${section.id}`,
-      icon: section.items[0]?.icon,
-      label: t(section.labelKey),
-      active: section.items.some((item) =>
-        item.matcher
-          ? item.matcher(location.pathname)
-          : isRouteActive(item.path)
-      ),
-      subItems: section.items.map((item) => ({
-        key: item.id,
-        label: t(item.labelKey),
-        href: item.path,
-        active: item.matcher
-          ? item.matcher(location.pathname)
-          : isRouteActive(item.path),
-        onSelect: () => navigateTo(item.path),
-      })),
-    }))
   const mobileNavigationItems: MobileBottomNavItem[] = [
     {
       key: "workspace",
@@ -372,27 +347,24 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
         ...mobileFunctionSubItems,
       ],
     },
-    ...(isLoggedIn
-      ? [
-          {
-            key: "recents",
-            icon: <MessageSquareText />,
-            label: t("agentChat.shell.sections.recents"),
-            active: isQuestionRoute && chat.conversationId !== null,
-            subItems: mobileConversationItems.length
-              ? mobileConversationItems
-              : [
+    {
+      key: "recents",
+      icon: <MessageSquareText />,
+      label: t("agentChat.shell.sections.recents"),
+      active: isQuestionRoute && chat.conversationId !== null,
+      subItems: mobileConversationItems.length
+        ? mobileConversationItems
+        : [
                   {
                     key: "empty-recents",
-                    label: t("agentChat.sidebar.empty"),
+                    label: user
+                      ? t("agentChat.sidebar.empty")
+                      : t("agentChat.sidebar.guestEmpty"),
                     href: "/commerce",
                     onSelect: () => navigateTo("/commerce"),
                   },
-                ],
-          },
-          ...mobileTrainingItems,
-        ]
-      : []),
+          ],
+    },
   ]
 
   return (
@@ -404,7 +376,6 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
         brandLogo={<CommerceAgentLogo />}
         brandTitle={t("agentChat.shell.brandTitle")}
         sections={sections}
-        navigationHeader={navigationHeader}
         mobileNavigation={{
           label: t("web.shell.navigation.mobileLabel"),
           items: mobileNavigationItems,
@@ -529,63 +500,10 @@ function isAnyRouteActive(pathname: string, paths: readonly string[]) {
   return paths.some((path) => isAgentChatRouteActive(pathname, path))
 }
 
-function getInitialSidebarNavigationMode(
-  pathname: string
-): SidebarNavigationMode {
-  return (
-    getSidebarNavigationModeFromPath(pathname) ??
-    getStoredSidebarNavigationMode() ??
-    "chat"
+function isProtectedMenuRoute(pathname: string) {
+  return PROTECTED_MENU_ROUTE_PATHS.some((path) =>
+    isAgentChatRouteActive(pathname, path)
   )
-}
-
-function getSidebarNavigationModeFromPath(
-  pathname: string
-): SidebarNavigationMode | null {
-  if (isAnyRouteActive(pathname, CHAT_NAVIGATION_ROUTE_PATHS)) {
-    return "chat"
-  }
-  if (isAnyRouteActive(pathname, AMBIGUOUS_NAVIGATION_ROUTE_PATHS)) {
-    return null
-  }
-  if (
-    webNavigationSections.some((section) =>
-      section.items.some(
-        (item) =>
-          item.id !== "home" &&
-          (item.matcher
-            ? item.matcher(pathname)
-            : isAgentChatRouteActive(pathname, item.path))
-      )
-    )
-  ) {
-    return "training"
-  }
-
-  return null
-}
-
-function getStoredSidebarNavigationMode(): SidebarNavigationMode | null {
-  if (typeof window === "undefined") return null
-
-  let mode: string | null = null
-  try {
-    mode = window.sessionStorage.getItem(SIDEBAR_NAVIGATION_MODE_STORAGE_KEY)
-  } catch {
-    return null
-  }
-
-  return mode === "chat" || mode === "training" ? mode : null
-}
-
-function storeSidebarNavigationMode(mode: SidebarNavigationMode) {
-  if (typeof window === "undefined") return
-
-  try {
-    window.sessionStorage.setItem(SIDEBAR_NAVIGATION_MODE_STORAGE_KEY, mode)
-  } catch {
-    // Ignore storage failures; route-based tab restoration still works.
-  }
 }
 
 function isAgentChatRouteActive(pathname: string, path: string) {
@@ -730,50 +648,6 @@ function isWorkspacesRoute(pathname: string) {
   return pathname === "/workspaces" || pathname.startsWith("/workspaces/")
 }
 
-function SidebarNavigationModeTabs({
-  activeMode,
-  chatLabel,
-  trainingLabel,
-  onModeChange,
-}: {
-  activeMode: SidebarNavigationMode
-  chatLabel: string
-  trainingLabel: string
-  onModeChange: (mode: SidebarNavigationMode) => void
-}) {
-  const tabs: Array<{ key: SidebarNavigationMode; label: string }> = [
-    { key: "chat", label: chatLabel },
-    { key: "training", label: trainingLabel },
-  ]
-
-  return (
-    <div className="grid grid-cols-2 gap-1 rounded-xl border border-sidebar-primary/25 bg-sidebar-primary/10 p-1 shadow-inner">
-      {tabs.map((tab) => {
-        const active = activeMode === tab.key
-
-        return (
-          <button
-            key={tab.key}
-            type="button"
-            className={[
-              "h-8 cursor-pointer rounded-lg px-2 text-xs font-semibold ring-sidebar-ring transition-colors focus-visible:ring-2 focus-visible:outline-none",
-              active
-                ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md ring-1 ring-sidebar-primary/45"
-                : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-            aria-pressed={active}
-            onClick={() => onModeChange(tab.key)}
-          >
-            {tab.label}
-          </button>
-        )
-      })}
-    </div>
-  )
-}
-
 function ConversationActionMenu({
   actionLabel,
   deleteLabel,
@@ -797,6 +671,7 @@ function ConversationActionMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
+        className="bg-transparent! hover:bg-transparent! hover:text-sidebar-foreground! active:bg-transparent! focus:bg-transparent! data-[state=open]:bg-transparent! data-[state=open]:text-sidebar-foreground!"
         disabled={disabled}
         label={actionLabel}
         size="compactIcon"

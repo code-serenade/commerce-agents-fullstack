@@ -1239,6 +1239,7 @@ const messages = {
       expandFunctionNav: "Expand common entries",
       collapseFunctionNav: "Collapse common entries",
       empty: "No conversations yet",
+      guestEmpty: "Sign in to sync conversation history",
     },
     shell: {
       brandEyebrow: "Commerce Multi-Agent Platform",
@@ -3254,6 +3255,85 @@ const messages = {
     },
   },
   agentCapabilities: {
+    final: {
+      intro: {
+        title: "How students use the platform",
+        description:
+          "Prepare materials around a real ecommerce task, ask a question, let AI roles collaborate, and store the result as a task and review record.",
+      },
+      flow: {
+        title: "The complete task workflow",
+        description:
+          "The sidebar entries are stages of one task, not unrelated features.",
+        items: [
+          { stage: "Before", title: "Prepare materials", detail: "Choose products, files, images, or campaigns." },
+          { stage: "Start", title: "State the problem", detail: "Explain the goal, constraints, and expected result." },
+          { stage: "In progress", title: "AI role collaboration", detail: "The system selects operations, data, and other roles." },
+          { stage: "Finish", title: "Review the result", detail: "Receive conclusions, plans, checklists, or reports." },
+          { stage: "After", title: "Submit and review", detail: "Save tasks, review records, and business results." },
+        ],
+      },
+      tasks: {
+        title: "For your first visit, choose one outcome",
+        description: "Start with the task closest to your current goal. The system organizes the relevant materials and output around that workflow.",
+        resultLabel: "You can get",
+        items: [
+          { title: "Plan a campaign", shortDescription: "Goals, budget, timeline, and checklist", description: "Prepare product details, then state the campaign goal, budget, and dates so the system can generate a timeline, content direction, execution checklist, and review metrics.", result: "Campaign plan · Checklist · Risk notes" },
+          { title: "Analyze a product", shortDescription: "Selling points, price, competitors, and opportunity", description: "Select a product and add its price, selling points, and competitor materials so the system can assess demand, margin, content, and service risk.", result: "Opportunity assessment · Selling points · Test plan" },
+          { title: "Review business data", shortDescription: "Anomalies, causes, evidence, and actions", description: "Upload browsing, click, cart, order, or refund data so the system can locate likely problems and propose the next validation steps.", result: "Diagnosis · Evidence gaps · Optimization actions" },
+        ],
+      },
+      journey: {
+        title: "How to complete one task",
+        description: "Follow the actual operating sequence shown below. The feature locations match the current product.",
+        steps: [
+          { navLabel: "Prepare", title: "Prepare the product and materials needed for this task", description: "Add the product, selling points, assets, and competitors under Product Analysis. You can also start Q&A before every detail is ready.", screenshotAlt: "Product analysis after sign-in", note: "1 Add or select a product; 2 Review selling points, assets, knowledge, and competitor materials." },
+          { navLabel: "Open Q&A", title: "Start from New Conversation", description: "Enter the task and add files, products, or campaigns as needed. Only explicitly selected context is used in this turn.", screenshotAlt: "Q&A entry after sign-in", note: "1 New conversation; 2 Enter the task; 3 Choose files, products, campaigns, and response settings." },
+          { navLabel: "Choose mode", title: "Keep Automatically select for your first task", description: "Open Response settings only when you need to control answer style, depth, speed, or participating roles.", screenshotAlt: "Response settings after sign-in", note: "1 Choose response preferences; 2 Automatically select, one role, or multiple roles." },
+          { navLabel: "State task", title: "Describe the problem with four pieces of information", description: "State what to complete, what you can provide, the constraints, and the desired result. When details are incomplete, the system asks for the key information it still needs." },
+          { navLabel: "Save result", title: "Save the result according to its next use", description: "Use the corresponding page when you need to continue execution, organize or download the result, or submit it for review.", screenshotAlt: "Training tasks and deliverables after sign-in", note: "1 Create a training task; 2 Review, edit, or continue an existing task." },
+        ],
+        recipeTitle: "The four types of information AI needs first",
+        recipeDescription:
+          "The task goal sets the direction, available materials provide evidence, constraints define the execution boundary, and the desired result determines the answer format. When information is incomplete, the system asks follow-up questions.",
+        recipe: [
+          { title: "What to complete", detail: "Assess a product, create a plan, improve content, or review data" },
+          { title: "What you can provide", detail: "Product details, budget, platform data, or course requirements" },
+          { title: "What constraints apply", detail: "Time, budget, format, and mandatory rules" },
+          { title: "What result you want", detail: "A plan, checklist, report, or next action" },
+        ],
+        promptLabel: "Complete question example",
+        prompt: "Using the product and materials I selected, identify the three strongest selling points and provide a campaign direction, execution checklist, main risks, and the data still needed.",
+        destinationsTitle: "Choose where to save based on the next use",
+        destinations: [
+          { purpose: "Continue executing the task", title: "Training tasks and delivery", detail: "Save tasks, runs, execution guidance, and inspectable submissions." },
+          { purpose: "Organize, copy, or download", title: "Conversation reports and review", detail: "Preview, copy, download, and archive plans or reports from this turn." },
+          { purpose: "Submit for teacher review", title: "Teacher review records", detail: "Review submissions, decisions, returned revisions, and key actions." },
+        ],
+      },
+      reference: {
+        title: "Open the feature for your current task",
+        description: "Choose what you want to do next and go directly to the corresponding page.",
+        items: [
+          { title: "Q&A entry", detail: "Start a task, enter the question, and view AI collaboration." },
+          { title: "Product selection analysis", detail: "Manage products, selling points, assets, knowledge, and competitors." },
+          { title: "Files and images", detail: "Upload files that can be selected and read for the current turn." },
+          { title: "Campaign planning practice", detail: "Plan goals, budget, dates, and deliverables." },
+          { title: "Data diagnosis guidance", detail: "Review products, campaigns, business data, and anomalies." },
+          { title: "Training tasks and delivery", detail: "Store task history, revisions, and deliverables." },
+          { title: "Teacher review records", detail: "Track submissions, decisions, returned revisions, and actions." },
+          { title: "Business result tracking", detail: "Review long tasks, notifications, alerts, and stage results." },
+        ],
+      },
+      boundary: {
+        title: "What the system does and does not do",
+        description: "Important data, budgets, and real platform actions always require human verification.",
+        supportedTitle: "The system can",
+        guardedTitle: "The system will not do automatically",
+        supported: ["Read products, files, and campaigns explicitly selected for this turn.", "Generate plans, checklists, reports, scripts, and form drafts.", "Keep conversations, tasks, deliverables, and review history."],
+        guarded: ["It will not read every file in the account by default.", "It will not present recommendations as real platform execution results.", "It will not bypass review for publishing, budget changes, or deletion."],
+      },
+    },
     header: {
       eyebrow: "Usage guide",
       title: "Commerce Multi-Agent Platform usage guide",

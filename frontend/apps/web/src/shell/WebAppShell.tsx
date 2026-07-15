@@ -1,4 +1,4 @@
-import { type ReactNode, useMemo } from "react"
+import { type ReactNode, useCallback, useMemo } from "react"
 import { LogIn, School, UserPlus, UserRound } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useDispatch, useSelector } from "react-redux"
@@ -30,10 +30,13 @@ export function WebAppShell({ children }: WebAppShellProps) {
   const { t } = useTranslation()
   const user = useSelector((state: RootState) => state.auth.user)
   const { requestLogin } = useAuthDialog()
-  const navigateTo = (path: string) => {
-    if (!user && path !== "/commerce" && path !== "/home") { requestLogin({ pathname: path }); return }
+  const navigateTo = useCallback((path: string) => {
+    if (!user && path !== "/commerce" && path !== "/home") {
+      requestLogin({ pathname: path })
+      return
+    }
     navigate(path)
-  }
+  }, [navigate, requestLogin, user])
 
   const sections = useMemo(
     () =>
@@ -55,7 +58,7 @@ export function WebAppShell({ children }: WebAppShellProps) {
           }
         }),
       })),
-    [location.pathname, navigate, t]
+    [location.pathname, navigateTo, t]
   )
   const mobileNavigationItems = useMemo<MobileBottomNavItem[]>(
     () =>
@@ -75,7 +78,7 @@ export function WebAppShell({ children }: WebAppShellProps) {
           }
         })
       ),
-    [location.pathname, navigate, t]
+    [location.pathname, navigateTo, t]
   )
 
   const currentItem = webNavigationSections
