@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react"
-import { useTranslation } from "react-i18next"
 import { useQuery } from "@tanstack/react-query"
 import {
   exportWorkspaceArtifactApi,
@@ -10,8 +9,6 @@ import {
   type WorkspaceArtifactResponse,
   type WorkspaceResponse,
 } from "@/api"
-import { buildAgentOutputReport } from "./domain/report-structure"
-import { getOutputArtifactDisplay } from "./view-model/output-artifact-display-view-model"
 
 export interface AgentOutputDeliverable extends WorkspaceArtifactResponse {
   workspace: WorkspaceResponse
@@ -31,7 +28,6 @@ export interface AgentOutputBackendState {
 }
 
 export function useAgentOutputPage() {
-  const { t } = useTranslation()
   const [selectedArtifactId, setSelectedArtifactId] = useState<string | null>(
     null
   )
@@ -97,23 +93,6 @@ export function useAgentOutputPage() {
   })
   const backendError =
     backendQuery.error ?? artifactDetailQuery.error ?? artifactExportQuery.error
-  const report = useMemo(() => {
-    const result = buildAgentOutputReport(
-      selectedArtifact,
-      artifactExportQuery.data ?? null
-    )
-    if (
-      !result ||
-      !selectedArtifact ||
-      result.title !== selectedArtifact.title
-    ) {
-      return result
-    }
-    return {
-      ...result,
-      title: getOutputArtifactDisplay(t, selectedArtifact).title,
-    }
-  }, [artifactExportQuery.data, selectedArtifact, t])
 
   return {
     backend: {
@@ -130,7 +109,6 @@ export function useAgentOutputPage() {
       setSelectedArtifactId,
       workspaces: backendQuery.data?.workspaces ?? [],
     } satisfies AgentOutputBackendState,
-    report,
   }
 }
 

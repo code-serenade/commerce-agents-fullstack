@@ -18,7 +18,7 @@ export function OutputMarkdownContent({ content }: { content: string }) {
   if (!blocks.length) return null
 
   return (
-    <div className="space-y-4 p-5 text-sm/7 text-foreground">
+    <div className="mx-auto w-full max-w-5xl space-y-4 px-4 py-4 text-sm/7 text-foreground md:space-y-5 md:px-8 md:py-6">
       {blocks.map((block, index) => (
         <OutputMarkdownBlock block={block} key={`${index}-${block.kind}`} />
       ))}
@@ -141,7 +141,7 @@ function TableBlock({
   block: Extract<AssistantAnswerBlock, { kind: "table" }>
 }) {
   return (
-    <div className="max-w-full overflow-x-auto rounded-lg border border-(--document-card-border) bg-background shadow-sm [&_table]:border-separate [&_table]:border-spacing-0 [&_tbody_tr:last-child_td]:border-b-0 [&_tbody_tr:nth-child(even)]:bg-muted/25 [&_td]:border-r [&_td]:border-b [&_td]:border-(--document-card-border) [&_td]:px-3 [&_td]:py-2.5 [&_td]:align-top [&_td]:text-sm/7 [&_td:last-child]:border-r-0 [&_th]:border-r [&_th]:border-b [&_th]:border-(--document-card-border) [&_th]:bg-muted/45 [&_th]:px-3 [&_th]:py-2.5 [&_th]:text-left [&_th]:text-sm/6 [&_th]:font-semibold [&_th]:text-foreground [&_th:last-child]:border-r-0">
+    <div className="max-w-full touch-pan-x overflow-x-auto overscroll-x-contain rounded-lg border border-(--document-card-border) bg-background shadow-sm [&_table]:min-w-144 [&_table]:border-separate [&_table]:border-spacing-0 [&_tbody_tr:last-child_td]:border-b-0 [&_tbody_tr:nth-child(even)]:bg-muted/25 [&_td]:border-r [&_td]:border-b [&_td]:border-(--document-card-border) [&_td]:px-2.5 [&_td]:py-2 [&_td]:align-top [&_td]:text-xs/6 [&_td:last-child]:border-r-0 [&_th]:border-r [&_th]:border-b [&_th]:border-(--document-card-border) [&_th]:bg-muted/45 [&_th]:px-2.5 [&_th]:py-2 [&_th]:text-left [&_th]:text-xs/5 [&_th]:font-semibold [&_th]:text-foreground [&_th:last-child]:border-r-0 md:shadow-none md:[&_table]:min-w-0 md:[&_tbody_tr:nth-child(even)]:bg-muted/15 md:[&_td]:px-3 md:[&_td]:py-2.5 md:[&_td]:text-sm/7 md:[&_th]:bg-muted/20 md:[&_th]:px-3 md:[&_th]:py-2.5 md:[&_th]:text-sm/6">
       <Table>
         <TableHeader>
           <TableRow>
@@ -172,9 +172,9 @@ function TableBlock({
 
 function resolveHeadingClassName(depth: number) {
   if (depth <= 1) {
-    return "border-b border-(--document-card-border) pb-3 text-2xl/tight font-semibold"
+    return "border-b border-(--document-card-border) pb-3 text-xl/7 font-semibold md:text-2xl/tight"
   }
-  if (depth === 2) return "pt-2 text-lg/7 font-semibold"
+  if (depth === 2) return "pt-1 text-base/7 font-semibold md:pt-2 md:text-lg/7"
   if (depth === 3) return "text-base/7 font-semibold"
   return "text-sm/6 font-semibold text-muted-foreground"
 }
