@@ -3,7 +3,7 @@ import { Button } from "@workspace/ui-components"
 import { IdText, StatusBadge, toneForStatus } from "../../components/commerce-ui"
 import type { CommerceColumn } from "../../components/commerce-ui"
 import type { CommerceTranslate } from "../../components/commerce-types"
-import { getCommerceStatusLabel } from "../../domain/status-options"
+import { getCommerceStatusLabel } from "../../domain/enum-mappings"
 import type { ProductsPageState } from "../use-products-page"
 export {
   createAssetColumns,

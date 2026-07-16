@@ -14,7 +14,7 @@ import {
   MutedText,
   SubPanelAction,
 } from "../../components/commerce-ui"
-import { commerceStatusOptions } from "../../domain/status-options"
+import { commerceStatusOptions } from "../../domain/enum-mappings"
 import type { ProductsPageState } from "../use-products-page"
 import {
   createAssetColumns,

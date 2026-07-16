@@ -1,4 +1,5 @@
 import { StatusBadge, type StatusTone } from "../../components/commerce-ui"
+import { fileUsageLabel } from "../../domain/enum-mappings"
 import type { FileConversationUseState } from "../domain/logic"
 
 interface FilesUseStateBadgeProps {
@@ -16,7 +17,7 @@ export function FilesUseStateBadge({ state, t }: FilesUseStateBadgeProps) {
 
   return (
     <StatusBadge tone={tone}>
-      {t(`commerce.files.detailDialog.usageState.${state}`)}
+      {fileUsageLabel(t, state)}
     </StatusBadge>
   )
 }

@@ -1,4 +1,5 @@
 import { CommerceDetailDrawer } from "../../components/commerce-ui"
+import { fileReadStatusLabel } from "../../domain/enum-mappings"
 import {
   type FileConversationUseState,
   fileDisplayName,
@@ -117,7 +118,7 @@ export function FilesDetailDrawer({
         >
           <FilesDetailRow
             label={t("commerce.files.detailDialog.fields.readStatus")}
-            value={t(`commerce.files.status.${readStatus}`)}
+            value={fileReadStatusLabel(t, readStatus)}
           />
           <FilesDetailRow
             label={t("commerce.files.detailDialog.fields.summary")}

@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { StatusBadge, type StatusTone } from "../../components/commerce-ui"
+import { fileReadStatusLabel } from "../../domain/enum-mappings"
 
 const STATE_TONES = {
   failed: "danger",
@@ -17,7 +18,7 @@ export function FilesReadableStatus({
 
   return (
     <StatusBadge tone={STATE_TONES[state]}>
-      {t(`commerce.files.status.${state}`)}
+      {fileReadStatusLabel(t, state)}
     </StatusBadge>
   )
 }

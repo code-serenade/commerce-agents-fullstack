@@ -13,15 +13,14 @@ import {
 } from "../../components/commerce-ui"
 import type { CommerceColumn } from "../../components/commerce-ui"
 import type { CommerceTranslate } from "../../components/commerce-types"
-import { getCommerceStatusLabel } from "../../domain/status-options"
-import type { ProductsPageState } from "../use-products-page"
-import type { ProductDialogName } from "../use-products-page"
 import {
+  getCommerceEnumLabel,
+  getCommerceStatusLabel,
   knowledgeConfidenceLabel,
   knowledgeContentTypeLabel,
   knowledgeSourceTypeLabel,
-} from "./product-dialog-fields"
-
+} from "../../domain/enum-mappings"
+import type { ProductDialogName, ProductsPageState } from "../use-products-page"
 export function createKnowledgeColumns(
   page: ProductsPageState,
   t: CommerceTranslate
@@ -82,7 +81,7 @@ export function createAssetColumns(
     {
       key: "type",
       header: t("commerce.common.type"),
-      render: (item) => item.assetType,
+      render: (item) => getCommerceEnumLabel(t, "assetType", item.assetType),
     },
     {
       key: "actions",
@@ -117,7 +116,8 @@ export function createMaterialColumns(
       render: (item) => (
         <div className="min-w-0">
           <span className="block truncate font-medium text-foreground">
-            {item.title || item.materialType}
+            {item.title ||
+              getCommerceEnumLabel(t, "materialType", item.materialType)}
           </span>
           <MutedText>
             {item.content?.slice(0, 64) || t("commerce.common.noContent")}
@@ -204,7 +204,6 @@ export function createCompetitorColumns(
     },
   ]
 }
-
 function editButton(
   t: CommerceTranslate,
   dialog: ProductDialogName,
@@ -242,7 +241,9 @@ export function createChangeColumns(
       header: t("commerce.products.columns.change"),
       render: (item) => (
         <div className="min-w-0">
-          <div className="truncate font-medium">{item.changeType}</div>
+          <div className="truncate font-medium">
+            {getCommerceEnumLabel(t, "changeType", item.changeType)}
+          </div>
           <MutedText>
             {item.summary || `${item.oldValue || "-"} -> ${item.newValue || "-"}`}
           </MutedText>

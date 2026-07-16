@@ -1,5 +1,10 @@
 import { X } from "lucide-react"
 import { Button, NativeSelect } from "@workspace/ui-components"
+import {
+  fileKindFilterOptions,
+  fileReadStatusFilterOptions,
+  fileUsageFilterOptions,
+} from "../../domain/enum-mappings"
 import type {
   TrainingFileKindFilter,
   TrainingFileReadStatusFilter,
@@ -18,31 +23,6 @@ interface FilesFiltersProps {
   usageFilter: TrainingFileUsageFilter
 }
 
-const KIND_FILTERS: TrainingFileKindFilter[] = [
-  "all",
-  "image",
-  "pdf",
-  "word",
-  "sheet",
-  "text",
-  "other",
-]
-
-const READ_STATUS_FILTERS: TrainingFileReadStatusFilter[] = [
-  "all",
-  "readable",
-  "pending",
-  "failed",
-  "unsupported",
-]
-
-const USAGE_FILTERS: TrainingFileUsageFilter[] = [
-  "all",
-  "available",
-  "attached",
-  "selectedForTurn",
-]
-
 export function FilesFilters({
   hasActiveFilters,
   kindFilter,
@@ -58,30 +38,21 @@ export function FilesFilters({
     <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
       <NativeSelect
         value={kindFilter}
-        options={KIND_FILTERS.map((value) => ({
-          label: t(`commerce.files.filters.kind.${value}`),
-          value,
-        }))}
+        options={fileKindFilterOptions(t)}
         onValueChange={(value) =>
           onKindFilterChange(value as TrainingFileKindFilter)
         }
       />
       <NativeSelect
         value={readStatusFilter}
-        options={READ_STATUS_FILTERS.map((value) => ({
-          label: t(`commerce.files.filters.readStatus.${value}`),
-          value,
-        }))}
+        options={fileReadStatusFilterOptions(t)}
         onValueChange={(value) =>
           onReadStatusFilterChange(value as TrainingFileReadStatusFilter)
         }
       />
       <NativeSelect
         value={usageFilter}
-        options={USAGE_FILTERS.map((value) => ({
-          label: t(`commerce.files.filters.usage.${value}`),
-          value,
-        }))}
+        options={fileUsageFilterOptions(t)}
         onValueChange={(value) =>
           onUsageFilterChange(value as TrainingFileUsageFilter)
         }
