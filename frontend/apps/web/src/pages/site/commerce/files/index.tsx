@@ -1,5 +1,4 @@
 import { useRef } from "react"
-import { FolderOpen } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import {
   CommerceBody,
@@ -9,7 +8,6 @@ import {
   CommerceToolbar,
   InlineAlert,
 } from "../components/commerce-ui"
-import { DocumentIntroCard } from "../components/document-section"
 import { FilesTable } from "./components/files-table"
 import { FilesFilters } from "./components/files-filters"
 import { FilesDeleteDialog } from "./components/files-delete-dialog"
@@ -31,23 +29,18 @@ export default function FilesPage() {
         eyebrow={t("commerce.pages.files.eyebrow")}
         title={t("commerce.pages.files.title")}
         description={t("commerce.pages.files.description")}
+        actions={
+          <FilesPageActions
+            canUploadFiles={page.canUploadFiles}
+            onUploadChange={page.handleUploadChange}
+            onUploadClick={() => uploadInputRef.current?.click()}
+            t={t}
+            uploadInputRef={uploadInputRef}
+            uploading={page.uploading}
+          />
+        }
       />
       <CommerceBody>
-        <DocumentIntroCard
-          title={t("commerce.files.panelTitle")}
-          description={t("commerce.files.panelDescription")}
-          icon={<FolderOpen className="size-4" />}
-          actions={
-            <FilesPageActions
-              canUploadFiles={page.canUploadFiles}
-              onUploadChange={page.handleUploadChange}
-              onUploadClick={() => uploadInputRef.current?.click()}
-              t={t}
-              uploadInputRef={uploadInputRef}
-              uploading={page.uploading}
-            />
-          }
-        />
         {page.error ? (
           <InlineAlert
             variant="error"

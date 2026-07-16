@@ -3,9 +3,7 @@ import {
   CommercePageHeader,
   CommerceSurface,
 } from "../components/commerce-ui"
-import { ShieldCheck } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { DocumentIntroCard } from "../components/document-section"
 import { ApprovalDialogs } from "./components/approval-dialogs"
 import {
   ApprovalMetrics,
@@ -26,11 +24,6 @@ export default function ApprovalsPage() {
         description={t("commerce.pages.approvals.description")}
       />
       <CommerceBody>
-        <DocumentIntroCard
-          title={t("commerce.pages.approvals.boundaryTitle")}
-          description={t("commerce.pages.approvals.boundaryDescription")}
-          icon={<ShieldCheck className="size-4" />}
-        />
         <ApprovalMetrics items={page.metricCards} />
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(24rem,0.85fr)]">
           <ApprovalRequestsPanel page={page} />

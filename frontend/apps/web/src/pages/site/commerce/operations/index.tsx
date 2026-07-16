@@ -3,9 +3,7 @@ import {
   CommercePageHeader,
   CommerceSurface,
 } from "../components/commerce-ui"
-import { TrendingUp } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { DocumentIntroCard } from "../components/document-section"
 import { OperationDialogs } from "./components/operation-dialogs"
 import {
   AlertsPanel,
@@ -28,11 +26,6 @@ export default function OperationsPage() {
         description={t("commerce.pages.operations.description")}
       />
       <CommerceBody>
-        <DocumentIntroCard
-          title={t("commerce.pages.operations.boundaryTitle")}
-          description={t("commerce.pages.operations.boundaryDescription")}
-          icon={<TrendingUp className="size-4" />}
-        />
         <OperationMetrics items={page.metricCards} />
         <div className="grid gap-4 xl:grid-cols-2">
           <LongTasksPanel page={page} />
