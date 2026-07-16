@@ -7,7 +7,10 @@ import {
 } from "../../components/commerce-ui"
 import type { CommerceColumn } from "../../components/commerce-ui"
 import type { CommerceTranslate } from "../../components/commerce-types"
-import { getCommerceStatusLabel } from "../../domain/status-options"
+import {
+  getCommerceEnumLabel,
+  getCommerceStatusLabel,
+} from "../../domain/enum-mappings"
 import type { WorkspacesPageState } from "../use-workspaces-page"
 
 export function createExecutionColumns(
@@ -20,7 +23,9 @@ export function createExecutionColumns(
       header: t("commerce.workspaces.columns.suggestion"),
       render: (item) => (
         <div className="min-w-0">
-          <div className="truncate font-medium">{item.actionType}</div>
+          <div className="truncate font-medium">
+            {getCommerceEnumLabel(t, "actionType", item.actionType)}
+          </div>
           <MutedText>{item.description}</MutedText>
         </div>
       ),

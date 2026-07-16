@@ -8,6 +8,7 @@ import {
 } from "../../components/commerce-ui"
 import type { CommerceColumn } from "../../components/commerce-ui"
 import type { CommerceTranslate } from "../../components/commerce-types"
+import { getCommerceStatusLabel } from "../../domain/enum-mappings"
 import type { PlatformConnectPageState } from "../use-platform-connect-page"
 
 export function PlatformSyncPanel({ page }: { page: PlatformConnectPageState }) {
@@ -41,7 +42,7 @@ function syncColumns(t: CommerceTranslate): CommerceColumn<PlatformSyncStatusIte
       header: t("commerce.platform.columns.sync"),
       render: (item) => (
         <StatusBadge tone={toneForStatus(item.syncStatus || "idle")}>
-          {item.syncStatus || "idle"}
+          {getCommerceStatusLabel(t, item.syncStatus || "idle")}
         </StatusBadge>
       ),
     },

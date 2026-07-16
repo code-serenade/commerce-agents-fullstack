@@ -14,12 +14,13 @@ import {
 import type { CommerceColumn } from "../../components/commerce-ui"
 import type { CommerceTranslate } from "../../components/commerce-types"
 import {
+  getCommerceEnumLabel,
   getCommerceStatusLabel,
+  getWorkspaceTypeLabel,
   workspaceRunStatusOptions,
   workspaceRunTaskStatusOptions,
   workspaceTaskStatusOptions,
-} from "../../domain/status-options"
-import { getWorkspaceTypeLabel } from "../../domain/workspace-types"
+} from "../../domain/enum-mappings"
 import type { WorkspacesPageState } from "../use-workspaces-page"
 import { getWorkspaceArtifactDisplay } from "../view-model/workspace-artifact-display-view-model"
 
@@ -110,7 +111,9 @@ export function createTaskColumns(
         <div className="w-full min-w-0">
           <div className="truncate font-medium">{item.title}</div>
           <span className="block truncate text-sm text-muted-foreground">
-            {item.ownerRole || item.description || "-"}
+            {item.ownerRole
+              ? getCommerceEnumLabel(t, "ownerRole", item.ownerRole)
+              : item.description || "-"}
           </span>
         </div>
       ),
@@ -163,7 +166,7 @@ export function createRunColumns(
         <div className="w-full min-w-0">
           <span className="block truncate font-medium">{item.goal}</span>
           <span className="block truncate text-sm text-muted-foreground">
-            {item.source || "manual"}
+            {getCommerceEnumLabel(t, "source", item.source || "manual")}
           </span>
         </div>
       ),
@@ -211,7 +214,9 @@ export function createRunTaskColumns(
         <div className="w-full min-w-0">
           <div className="truncate font-medium">#{item.seq ?? "-"}</div>
           <span className="block truncate text-sm text-muted-foreground">
-            {item.ownerRole || item.workspaceTaskId || "-"}
+            {item.ownerRole
+              ? getCommerceEnumLabel(t, "ownerRole", item.ownerRole)
+              : item.workspaceTaskId || "-"}
           </span>
         </div>
       ),

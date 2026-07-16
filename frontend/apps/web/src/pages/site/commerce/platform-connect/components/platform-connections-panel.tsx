@@ -13,6 +13,7 @@ import {
 } from "../../components/commerce-ui"
 import type { CommerceColumn } from "../../components/commerce-ui"
 import type { CommerceTranslate } from "../../components/commerce-types"
+import { getCommerceStatusLabel } from "../../domain/enum-mappings"
 import type { PlatformConnectPageState } from "../use-platform-connect-page"
 
 export function PlatformConnectionsPanel({ page }: { page: PlatformConnectPageState }) {
@@ -79,7 +80,10 @@ function platformConnectionColumns(
       header: t("commerce.common.status"),
       render: (item) => (
         <StatusBadge tone={toneForStatus(item.status)}>
-          {item.enabled ? item.status : "disabled"}
+          {getCommerceStatusLabel(
+            t,
+            item.enabled ? item.status : "disabled"
+          )}
         </StatusBadge>
       ),
       width: "8rem",
@@ -123,7 +127,10 @@ function channelConnectionColumns(
       header: t("commerce.common.status"),
       render: (item) => (
         <StatusBadge tone={toneForStatus(item.status || (item.enabled ? "active" : "disabled"))}>
-          {item.enabled ? item.status || "active" : "disabled"}
+          {getCommerceStatusLabel(
+            t,
+            item.enabled ? item.status || "active" : "disabled"
+          )}
         </StatusBadge>
       ),
       width: "8rem",

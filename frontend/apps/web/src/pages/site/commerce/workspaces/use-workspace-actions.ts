@@ -20,7 +20,7 @@ import {
   type SimpleFormValues,
 } from "../components/commerce-ui"
 import type { CommerceTranslate } from "../components/commerce-types"
-import { DEFAULT_WORKSPACE_TYPE } from "../domain/workspace-types"
+import { DEFAULT_WORKSPACE_TYPE } from "../domain/enum-mappings"
 import type { WorkspaceDialogName } from "./use-workspaces-page"
 import { workspacesQueryKey } from "./use-workspace-queries"
 import { createRunTaskPayload, createTaskPayload } from "./workspace-payloads"

@@ -13,6 +13,7 @@ import {
 } from "../../components/commerce-ui"
 import type { CommerceColumn } from "../../components/commerce-ui"
 import type { CommerceTranslate } from "../../components/commerce-types"
+import { getCommerceEnumLabel } from "../../domain/enum-mappings"
 import type { PlatformConnectPageState } from "../use-platform-connect-page"
 
 interface PlatformExecutionAdapterRow extends PlatformExecutionAdapterActionResponse {
@@ -98,7 +99,7 @@ function executionAdapterColumns(
       render: (item) => (
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge tone={toneForStatus(item.connectionStatus)}>
-            {item.connectionStatus}
+            {getCommerceEnumLabel(t, "connectionStatus", item.connectionStatus)}
           </StatusBadge>
           <MutedText>
             {item.connected && item.enabled
@@ -115,9 +116,12 @@ function executionAdapterColumns(
       render: (item) => (
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge tone={toneForStatus(item.adapterStatus)}>
-            {item.adapterStatus}
+            {getCommerceEnumLabel(t, "adapterStatus", item.adapterStatus)}
           </StatusBadge>
-          <MutedText>{item.executionMode} / {item.riskLevel}</MutedText>
+          <MutedText>
+            {getCommerceEnumLabel(t, "executionMode", item.executionMode)} /{" "}
+            {getCommerceEnumLabel(t, "riskLevel", item.riskLevel)}
+          </MutedText>
         </div>
       ),
       minWidth: "15rem",
@@ -128,7 +132,7 @@ function executionAdapterColumns(
       render: (item) => (
         <div className="flex max-w-88 flex-wrap items-center gap-2">
           <StatusBadge tone={toneForStatus(item.readiness)}>
-            {item.readiness}
+            {getCommerceEnumLabel(t, "readiness", item.readiness)}
           </StatusBadge>
           <MutedText>{item.readinessMessage}</MutedText>
         </div>

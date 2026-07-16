@@ -10,6 +10,10 @@ import {
 } from "../../components/commerce-ui"
 import type { CommerceColumn } from "../../components/commerce-ui"
 import type { CommerceTranslate } from "../../components/commerce-types"
+import {
+  getCommerceEnumLabel,
+  getCommerceStatusLabel,
+} from "../../domain/enum-mappings"
 import type { OperationsPageState } from "../use-operations-page"
 
 export function AlertsPanel({ page }: { page: OperationsPageState }) {
@@ -53,7 +57,9 @@ function alertColumns(
       header: t("commerce.operations.columns.alert"),
       render: (item) => (
         <div className="min-w-0">
-          <div className="truncate font-medium">{item.alertType}</div>
+          <div className="truncate font-medium">
+            {getCommerceEnumLabel(t, "alertType", item.alertType)}
+          </div>
           <MutedText>{item.message}</MutedText>
         </div>
       ),
@@ -63,7 +69,7 @@ function alertColumns(
       header: t("commerce.operations.columns.severity"),
       render: (item) => (
         <StatusBadge tone={toneForStatus(item.severity)}>
-          {item.severity}
+          {getCommerceEnumLabel(t, "severity", item.severity)}
         </StatusBadge>
       ),
     },
@@ -71,7 +77,9 @@ function alertColumns(
       key: "status",
       header: t("commerce.common.status"),
       render: (item) => (
-        <StatusBadge tone={toneForStatus(item.status)}>{item.status}</StatusBadge>
+        <StatusBadge tone={toneForStatus(item.status)}>
+          {getCommerceStatusLabel(t, item.status)}
+        </StatusBadge>
       ),
     },
     {

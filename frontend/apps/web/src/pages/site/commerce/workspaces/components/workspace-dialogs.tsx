@@ -14,14 +14,13 @@ import {
 } from "../../components/commerce-ui"
 import type { CommerceTranslate } from "../../components/commerce-types"
 import {
+  commerceBooleanOptions,
+  DEFAULT_WORKSPACE_TYPE,
   workspaceRunStatusOptions,
   workspaceRunTaskStatusOptions,
   workspaceTaskStatusOptions,
-} from "../../domain/status-options"
-import {
-  DEFAULT_WORKSPACE_TYPE,
   workspaceTypeOptions,
-} from "../../domain/workspace-types"
+} from "../../domain/enum-mappings"
 import type { WorkspacesPageState } from "../use-workspaces-page"
 
 export function WorkspaceDialogs({ page }: { page: WorkspacesPageState }) {
@@ -348,7 +347,7 @@ function runTaskFields(t: CommerceTranslate): SimpleField[] {
     {
       key: "acceptancePassed",
       label: t("commerce.fields.acceptancePassed"),
-      options: booleanOptions,
+      options: commerceBooleanOptions(t),
       type: "select",
     },
     {
@@ -382,8 +381,3 @@ function executionFields(t: CommerceTranslate): SimpleField[] {
     },
   ]
 }
-
-const booleanOptions = [
-  { label: String("false"), value: "false" },
-  { label: String("true"), value: "true" },
-]

@@ -12,8 +12,11 @@ import {
 } from "../../components/commerce-ui"
 import type { CommerceColumn } from "../../components/commerce-ui"
 import type { CommerceTranslate } from "../../components/commerce-types"
-import { getCommerceStatusLabel } from "../../domain/status-options"
-import { getWorkspaceTypeLabel } from "../../domain/workspace-types"
+import {
+  getCommerceEnumLabel,
+  getCommerceStatusLabel,
+  getWorkspaceTypeLabel,
+} from "../../domain/enum-mappings"
 
 export function productColumns(
   t: CommerceTranslate
@@ -52,7 +55,7 @@ export function campaignColumns(
         <div className="min-w-0">
           <div className="truncate font-medium">{item.name}</div>
           <MutedText>
-            {item.campaignType || t("commerce.common.none")}
+            {getCommerceEnumLabel(t, "campaignType", item.campaignType)}
           </MutedText>
         </div>
       ),

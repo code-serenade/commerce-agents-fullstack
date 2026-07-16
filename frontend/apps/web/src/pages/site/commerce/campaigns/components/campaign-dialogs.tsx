@@ -17,6 +17,10 @@ import {
 } from "../../components/commerce-form-draft-state"
 import { buildFormDraftProcessNotice } from "../../components/commerce-form-draft-process"
 import type { CommerceTranslate } from "../../components/commerce-types"
+import {
+  commerceEnumOptions,
+  commerceStatusOptions,
+} from "../../domain/enum-mappings"
 import type { CampaignsPageState } from "../use-campaigns-page"
 
 export function CampaignDialogs({ page }: { page: CampaignsPageState }) {
@@ -194,11 +198,34 @@ function campaignFields(t: CommerceTranslate): SimpleField[] {
       required: true,
     },
     { key: "productId", label: t("commerce.fields.productId") },
-    { key: "campaignType", label: t("commerce.fields.campaignType") },
+    {
+      key: "campaignType",
+      label: t("commerce.fields.campaignType"),
+      options: commerceEnumOptions(t, "campaignType", [
+        "promotion",
+        "flash_sale",
+        "live",
+        "content",
+        "launch",
+        "seasonal",
+      ]),
+      type: "select",
+    },
     { key: "budget", label: t("commerce.fields.budget"), type: "number" },
     { key: "startDate", label: t("commerce.fields.startDate") },
     { key: "endDate", label: t("commerce.fields.endDate") },
-    { key: "status", label: t("commerce.common.status") },
+    {
+      key: "status",
+      label: t("commerce.common.status"),
+      options: commerceStatusOptions(t, [
+        "draft",
+        "active",
+        "paused",
+        "ended",
+        "archived",
+      ]),
+      type: "select",
+    },
     {
       key: "description",
       label: t("commerce.fields.description"),

@@ -8,6 +8,10 @@ import {
 } from "../../components/commerce-ui"
 import type { CommerceColumn } from "../../components/commerce-ui"
 import type { CommerceTranslate } from "../../components/commerce-types"
+import {
+  commerceStatusOptions,
+  getCommerceEnumLabel,
+} from "../../domain/enum-mappings"
 import type { OperationsPageState } from "../use-operations-page"
 
 export function LongTasksPanel({ page }: { page: OperationsPageState }) {
@@ -45,7 +49,10 @@ function longTaskColumns(
       render: (item) => (
         <div className="min-w-0">
           <div className="truncate font-medium">{item.title}</div>
-          <MutedText>{item.taskType} / {item.currentStep || "-"}</MutedText>
+          <MutedText>
+            {getCommerceEnumLabel(t, "taskType", item.taskType)} /{" "}
+            {item.currentStep || "-"}
+          </MutedText>
         </div>
       ),
     },
@@ -60,7 +67,7 @@ function longTaskColumns(
       render: (item) => (
         <NativeSelect
           value={item.status}
-          options={longTaskStatusOptions}
+          options={longTaskStatusOptions(t)}
           onValueChange={(status) => page.updateLongTaskStatus({ task: item, status })}
         />
       ),
@@ -77,10 +84,12 @@ function longTaskColumns(
   ]
 }
 
-const longTaskStatusOptions = [
-  { label: String("pending"), value: "pending" },
-  { label: String("running"), value: "running" },
-  { label: String("completed"), value: "completed" },
-  { label: String("failed"), value: "failed" },
-  { label: String("cancelled"), value: "cancelled" },
-]
+function longTaskStatusOptions(t: CommerceTranslate) {
+  return commerceStatusOptions(t, [
+    "pending",
+    "running",
+    "completed",
+    "failed",
+    "cancelled",
+  ])
+}

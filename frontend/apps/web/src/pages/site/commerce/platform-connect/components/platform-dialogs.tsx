@@ -7,6 +7,10 @@ import {
   type SimpleFormValues,
 } from "../../components/commerce-ui"
 import type { CommerceTranslate } from "../../components/commerce-types"
+import {
+  commerceBooleanOptions,
+  commerceStatusOptions,
+} from "../../domain/enum-mappings"
 import type { PlatformConnectPageState } from "../use-platform-connect-page"
 
 export function PlatformDialogs({ page }: { page: PlatformConnectPageState }) {
@@ -109,13 +113,13 @@ function platformFields(
     {
       key: "enabled",
       label: t("commerce.fields.enabled"),
-      options: booleanOptions,
+      options: commerceBooleanOptions(t),
       type: "select",
     },
     {
       key: "syncStatus",
       label: t("commerce.fields.syncStatus"),
-      options: syncStatusOptions,
+      options: commerceStatusOptions(t, ["idle", "syncing", "success", "failed"]),
       type: "select",
     },
     { key: "syncMessage", label: t("commerce.fields.syncMessage") },
@@ -141,7 +145,7 @@ function channelFields(
     {
       key: "enabled",
       label: t("commerce.fields.enabled"),
-      options: booleanOptions,
+      options: commerceBooleanOptions(t),
       type: "select",
     },
   ]
@@ -172,18 +176,6 @@ function metricFields(
     { key: "source", label: t("commerce.common.source") },
   ]
 }
-
-const booleanOptions = [
-  { label: String("true"), value: "true" },
-  { label: String("false"), value: "false" },
-]
-
-const syncStatusOptions = [
-  { label: String("idle"), value: "idle" },
-  { label: String("syncing"), value: "syncing" },
-  { label: String("success"), value: "success" },
-  { label: String("failed"), value: "failed" },
-]
 
 function platformOptions(page: PlatformConnectPageState) {
   const options = page.supportedPlatforms.map((item) => ({
