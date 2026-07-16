@@ -7,6 +7,14 @@ export type {
   IconButtonVariant,
 } from "./components/stable/icon-button"
 
+export { ImageViewer } from "./components/stable/image-viewer"
+export type {
+  ImageViewerImage,
+  ImageViewerLabels,
+  ImageViewerProps,
+  ImageViewerThumbnailSize,
+} from "./components/stable/image-viewer"
+
 export {
   Sidebar,
   SidebarContent,
