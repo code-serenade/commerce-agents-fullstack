@@ -44,6 +44,7 @@ describe("useAgentChatSourceActions", () => {
       () =>
         useAgentChatSourceActions({
           conversationId: "conversation-current",
+          ensureConversation: vi.fn(),
           fallbackConversationTitle: "New chat",
           isLoggedIn: true,
           isStreaming: false,
@@ -60,8 +61,6 @@ describe("useAgentChatSourceActions", () => {
           ],
           sessionIdRef: { current: "conversation-current" },
           setAttachments,
-          setConversationId: vi.fn(),
-          setConversations: vi.fn(),
           setError: vi.fn(),
         }),
       {

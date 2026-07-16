@@ -1,43 +1,36 @@
 import { useCallback } from "react"
 import type { Dispatch, MutableRefObject, SetStateAction } from "react"
 import { useQueryClient } from "@tanstack/react-query"
-import { AGENT_ID, agentChatData } from "../agent-chat-data"
+import { agentChatData } from "../agent-chat-data"
 import type { AgentChatSourceContextSelection } from "../domain/agent-chat-context-selection"
-import { mapConversationItem } from "../domain/agent-chat-message-mapping"
-import type {
-  AgentChatAttachmentItem,
-  AgentChatConversationItem,
-} from "../types"
+import type { AgentChatAttachmentItem } from "../types"
 import {
   deleteAgentChatAttachments,
   mergeConversationFileAttachment,
 } from "./agent-chat-attachments"
+import type { EnsureAgentChatConversation } from "./use-agent-chat-conversation-identity"
 
 export function useAgentChatSourceActions({
   conversationId,
+  ensureConversation,
   fallbackConversationTitle,
   isLoggedIn,
   isStreaming,
   selectedSources,
   sessionIdRef,
   setAttachments,
-  setConversationId,
-  setConversations,
   setError,
-  onConversationCreated,
   restoreSelectedSources,
 }: {
   conversationId: string | null
+  ensureConversation: EnsureAgentChatConversation
   fallbackConversationTitle: string
   isLoggedIn: boolean
   isStreaming: boolean
   selectedSources: AgentChatSourceContextSelection[]
   sessionIdRef: MutableRefObject<string>
   setAttachments: Dispatch<SetStateAction<AgentChatAttachmentItem[]>>
-  setConversationId: Dispatch<SetStateAction<string | null>>
-  setConversations: Dispatch<SetStateAction<AgentChatConversationItem[]>>
   setError: Dispatch<SetStateAction<string | null>>
-  onConversationCreated?: (conversationId: string) => void
   restoreSelectedSources: (sourceRefs: string[]) => void
 }) {
   const queryClient = useQueryClient()
@@ -95,19 +88,12 @@ export function useAgentChatSourceActions({
       try {
         let activeConversationId = conversationId
         if (!activeConversationId) {
-          const detail = await agentChatData.createConversation({
+          activeConversationId = await ensureConversation({
             title: fallbackConversationTitle,
-            agentId: AGENT_ID,
           })
-          activeConversationId = detail.conversation.id
-          sessionIdRef.current = activeConversationId
-          setConversationId(activeConversationId)
-          onConversationCreated?.(activeConversationId)
-          setConversations((current) => [
-            mapConversationItem(detail.conversation, fallbackConversationTitle),
-            ...current.filter((item) => item.id !== detail.conversation.id),
-          ])
         }
+        if (!activeConversationId) return
+        sessionIdRef.current = activeConversationId
         const file = await agentChatData.attachConversationFile(fileId, {
           conversationId: activeConversationId,
         })
@@ -125,6 +111,7 @@ export function useAgentChatSourceActions({
     },
     [
       conversationId,
+      ensureConversation,
       fallbackConversationTitle,
       invalidateFileQueries,
       isLoggedIn,
@@ -132,10 +119,7 @@ export function useAgentChatSourceActions({
       restoreSelectedSources,
       selectedSources,
       setAttachments,
-      setConversationId,
-      setConversations,
       setError,
-      onConversationCreated,
       sessionIdRef,
     ]
   )

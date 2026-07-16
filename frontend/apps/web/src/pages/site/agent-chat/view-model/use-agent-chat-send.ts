@@ -11,10 +11,13 @@ import type { AgentChatStrategy } from "../domain/agent-chat-strategy"
 import type { AgentChatRuntimeSelection } from "../domain/agent-runtime-options"
 import type {
   AgentChatAttachmentItem,
-  AgentChatConversationItem,
   AgentChatMessage,
 } from "../types"
 import { sendAgentChatMessage } from "./agent-chat-send-message"
+import type {
+  EnsureAgentChatConversation,
+  PromoteAgentChatConversationTitle,
+} from "./use-agent-chat-conversation-identity"
 
 export function useAgentChatSend(input: {
   abortRef: MutableRefObject<AbortController | null>
@@ -26,14 +29,13 @@ export function useAgentChatSend(input: {
   isStreaming: boolean
   loginRequiredMessage: string
   messageFormatCopy: AgentChatMessageFormatCopy
-  onConversationCreated?: (conversationId: string) => void
+  ensureConversation: EnsureAgentChatConversation
+  promoteConversationTitle: PromoteAgentChatConversationTitle
   runtimeSelection: AgentChatRuntimeSelection
   selectedCampaigns: AgentChatCampaignContextSelection[]
   selectedProducts: AgentChatProductContextSelection[]
   selectedSources: AgentChatSourceContextSelection[]
   sessionIdRef: MutableRefObject<string>
-  setConversationId: Dispatch<SetStateAction<string | null>>
-  setConversations: Dispatch<SetStateAction<AgentChatConversationItem[]>>
   setError: Dispatch<SetStateAction<string | null>>
   setInput: Dispatch<SetStateAction<string>>
   setIsStreaming: Dispatch<SetStateAction<boolean>>
@@ -52,14 +54,13 @@ export function useAgentChatSend(input: {
     isStreaming,
     loginRequiredMessage,
     messageFormatCopy,
-    onConversationCreated,
+    ensureConversation,
+    promoteConversationTitle,
     runtimeSelection,
     selectedCampaigns,
     selectedProducts,
     selectedSources,
     sessionIdRef,
-    setConversationId,
-    setConversations,
     setError,
     setInput,
     setIsStreaming,
@@ -80,20 +81,19 @@ export function useAgentChatSend(input: {
     const controller = await sendAgentChatMessage({
       content,
       conversationId,
+      ensureConversation,
       fallbackConversationTitle,
       messageFormatCopy,
       onController: (controller) => {
         abortRef.current = controller
       },
-      onConversationCreated,
+      promoteConversationTitle,
       attachments,
       runtimeSelection,
       selectedCampaigns,
       selectedProducts,
       selectedSources,
       sessionIdRef,
-      setConversationId,
-      setConversations,
       setError,
       setInput,
       setIsStreaming,
@@ -110,20 +110,19 @@ export function useAgentChatSend(input: {
     abortRef,
     attachments,
     conversationId,
+    ensureConversation,
     fallbackConversationTitle,
     inputValue,
     isLoggedIn,
     isStreaming,
     loginRequiredMessage,
     messageFormatCopy,
-    onConversationCreated,
+    promoteConversationTitle,
     runtimeSelection,
     selectedCampaigns,
     selectedProducts,
     selectedSources,
     sessionIdRef,
-    setConversationId,
-    setConversations,
     setError,
     setInput,
     setIsStreaming,

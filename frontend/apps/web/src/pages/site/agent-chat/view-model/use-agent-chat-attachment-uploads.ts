@@ -8,7 +8,6 @@ import {
 } from "../domain/agent-chat-message-mapping"
 import type {
   AgentChatAttachmentItem,
-  AgentChatConversationItem,
 } from "../types"
 import type { AgentChatSourceContextSelection } from "../domain/agent-chat-context-selection"
 import {
@@ -17,37 +16,34 @@ import {
   type UploadValidationError,
 } from "../domain/agent-chat-upload-validation"
 import { uploadAgentChatAttachments } from "./agent-chat-attachments"
+import type { EnsureAgentChatConversation } from "./use-agent-chat-conversation-identity"
 
 export function useAgentChatAttachmentUploads(input: {
   conversationId: string | null
+  ensureConversation: EnsureAgentChatConversation
   fallbackConversationTitle: string
   isLoggedIn: boolean
   isStreaming: boolean
   messageFormatCopy: AgentChatMessageFormatCopy
-  onConversationCreated?: (conversationId: string) => void
   sessionIdRef: MutableRefObject<string>
   restoreSelectedSources: (sourceRefs: string[]) => void
   selectedSources: AgentChatSourceContextSelection[]
   setAttachments: Dispatch<SetStateAction<AgentChatAttachmentItem[]>>
-  setConversationId: Dispatch<SetStateAction<string | null>>
-  setConversations: Dispatch<SetStateAction<AgentChatConversationItem[]>>
   setError: Dispatch<SetStateAction<string | null>>
   tError: string
 }) {
   const { t } = useTranslation()
   const {
     conversationId,
+    ensureConversation,
     fallbackConversationTitle,
     isLoggedIn,
     isStreaming,
     messageFormatCopy,
-    onConversationCreated,
     restoreSelectedSources,
     selectedSources,
     sessionIdRef,
     setAttachments,
-    setConversationId,
-    setConversations,
     setError,
     tError,
   } = input
@@ -64,17 +60,13 @@ export function useAgentChatAttachmentUploads(input: {
       try {
         const result = await uploadAgentChatAttachments({
           conversationId,
+          ensureConversation,
           fallbackConversationTitle,
           files: validation.acceptedFiles,
           setAttachments,
-          setConversationId,
-          setConversations,
         })
         if (result.conversationId) {
           sessionIdRef.current = result.conversationId
-          if (!conversationId) {
-            onConversationCreated?.(result.conversationId)
-          }
         }
         if (result.fileIds.length) {
           const sourceRefs = [
@@ -94,17 +86,15 @@ export function useAgentChatAttachmentUploads(input: {
     },
     [
       conversationId,
+      ensureConversation,
       fallbackConversationTitle,
       isLoggedIn,
       isStreaming,
       messageFormatCopy,
-      onConversationCreated,
       restoreSelectedSources,
       selectedSources,
       sessionIdRef,
       setAttachments,
-      setConversationId,
-      setConversations,
       setError,
       tError,
       t,

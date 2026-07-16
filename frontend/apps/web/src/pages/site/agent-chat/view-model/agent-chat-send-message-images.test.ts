@@ -4,6 +4,7 @@ import { getAgentChatStrategy } from "../domain/agent-chat-strategy"
 import { sendAgentChatMessage } from "./agent-chat-send-message"
 
 const imageTitle = "shelf.png"
+const titleKey = "title"
 
 vi.mock("../agent-chat-data", () => ({
   AGENT_ID: "web-agent",
@@ -50,6 +51,9 @@ describe("sendAgentChatMessage image attachments", () => {
       ],
       content: "Read this shelf image.",
       conversationId: null,
+      ensureConversation: async () =>
+        (await createConversation({ [titleKey]: "New chat", agentId: "web-agent" }))
+          .conversation.id,
       fallbackConversationTitle: "New chat",
       messageFormatCopy: {
         boundaryNotice: "boundary notice",
@@ -57,6 +61,7 @@ describe("sendAgentChatMessage image attachments", () => {
         streamTimedOut: "stream timed out",
       },
       onController: vi.fn(),
+      promoteConversationTitle: vi.fn(),
       runtimeSelection: {
         collaborationMode: "manual",
         learningLevel: "higher_vocational",
@@ -78,8 +83,6 @@ describe("sendAgentChatMessage image attachments", () => {
         },
       ],
       sessionIdRef: { current: "session-image" },
-      setConversationId: vi.fn(),
-      setConversations: vi.fn(),
       setError: vi.fn(),
       setInput: vi.fn(),
       setIsStreaming: vi.fn(),
@@ -145,6 +148,9 @@ describe("sendAgentChatMessage image attachments", () => {
       ],
       content: "Answer without reading the image.",
       conversationId: null,
+      ensureConversation: async () =>
+        (await createConversation({ [titleKey]: "New chat", agentId: "web-agent" }))
+          .conversation.id,
       fallbackConversationTitle: "New chat",
       messageFormatCopy: {
         boundaryNotice: "boundary notice",
@@ -152,6 +158,7 @@ describe("sendAgentChatMessage image attachments", () => {
         streamTimedOut: "stream timed out",
       },
       onController: vi.fn(),
+      promoteConversationTitle: vi.fn(),
       runtimeSelection: {
         collaborationMode: "manual",
         learningLevel: "higher_vocational",
@@ -163,8 +170,6 @@ describe("sendAgentChatMessage image attachments", () => {
       selectedCampaigns: [],
       selectedSources: [],
       sessionIdRef: { current: "session-image-unselected" },
-      setConversationId: vi.fn(),
-      setConversations: vi.fn(),
       setError: vi.fn(),
       setInput: vi.fn(),
       setIsStreaming: vi.fn(),

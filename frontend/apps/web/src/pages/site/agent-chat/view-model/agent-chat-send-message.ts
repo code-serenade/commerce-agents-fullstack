@@ -3,7 +3,6 @@ import {
   createConversationTitle,
   createMessageId,
   formatAgentUiMessage,
-  mapConversationItem,
 } from "../domain/agent-chat-message-mapping"
 import { createMessageContextSummary } from "../domain/agent-chat-message-context-summary"
 import { sourceReadinessKey } from "../domain/agent-chat-source-readiness"
@@ -192,18 +191,15 @@ export async function sendAgentChatMessage(
 
   try {
     if (!activeConversationId) {
-      const detail = await agentChatData.createConversation({
+      activeConversationId = await input.ensureConversation({
         title: createConversationTitle(input.content),
-        agentId: AGENT_ID,
       })
-      activeConversationId = detail.conversation.id
-      input.setConversationId(activeConversationId)
-      input.onConversationCreated?.(activeConversationId)
-      input.setConversations((current) => [
-        mapConversationItem(detail.conversation, input.fallbackConversationTitle),
-        ...current.filter((item) => item.id !== detail.conversation.id),
-      ])
+      await input.promoteConversationTitle({
+        conversationId: activeConversationId,
+        title: createConversationTitle(input.content),
+      })
     }
+    if (!activeConversationId) return controller
     input.sessionIdRef.current = activeConversationId
     await agentChatData.addConversationMessage(activeConversationId, {
       role: "user",

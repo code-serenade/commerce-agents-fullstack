@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import type { Dispatch, SetStateAction } from "react"
 import { useTranslation } from "react-i18next"
 import { useSelector } from "react-redux"
 import { useLocation, useNavigate, useParams } from "react-router"
@@ -32,6 +33,7 @@ import { useAgentChatProductContext } from "./view-model/use-agent-chat-product-
 import { useAgentRuntimeOptions } from "./view-model/use-agent-runtime-options"
 import { useAgentRunFeedback } from "./view-model/use-agent-run-feedback"
 import { useAgentChatContextPreview } from "./view-model/use-agent-chat-context-preview"
+import { useAgentChatConversationIdentity } from "./view-model/use-agent-chat-conversation-identity"
 import { useAgentChatSend } from "./view-model/use-agent-chat-send"
 import { useAgentChatSourceContext } from "./view-model/use-agent-chat-source-context"
 import { useAgentChatSourceActions } from "./view-model/use-agent-chat-source-actions"
@@ -80,6 +82,16 @@ export function useAgentChatPage() {
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const sessionIdRef = useRef(createSessionId())
+  const conversationIdRef = useRef(conversationId)
+  const setActiveConversationId = useCallback<
+    Dispatch<SetStateAction<string | null>>
+  >((value) => {
+    setConversationId((current) => {
+      const next = typeof value === "function" ? value(current) : value
+      conversationIdRef.current = next
+      return next
+    })
+  }, [])
   const isLoggedIn = Boolean(user)
   const productContext = useAgentChatProductContext({
     enabled: isLoggedIn,
@@ -117,7 +129,7 @@ export function useAgentChatPage() {
     restoreSelectedSources: sourceContext.restoreSelectedSources,
     sessionIdRef,
     setAttachments,
-    setConversationId,
+    setConversationId: setActiveConversationId,
     setConversations,
     setError,
     setInput,
@@ -129,7 +141,6 @@ export function useAgentChatPage() {
     welcomeMessage: t("agentChat.welcomeMessage"),
   })
   const actionStateRef = useRef(actionState)
-  const conversationIdRef = useRef(conversationId)
   const userBootstrapKey = user?.id ?? null
   const isAgentChatRoute = isAgentChatPath(location.pathname)
 
@@ -206,6 +217,14 @@ export function useAgentChatPage() {
     if (!isAgentChatRoute) return
     navigate("/commerce", { replace: true })
   }, [isAgentChatRoute, navigate])
+  const { ensureConversation, promoteConversationTitle } =
+    useAgentChatConversationIdentity({
+      conversationIdRef,
+      fallbackConversationTitle,
+      onConversationCreated: syncConversationRoute,
+      setConversationId: setActiveConversationId,
+      setConversations,
+    })
 
   const canSend = input.trim().length > 0 && !isStreaming
   const selectedStrategy = useMemo(
@@ -232,32 +251,28 @@ export function useAgentChatPage() {
   })
   const uploadAttachments = useAgentChatAttachmentUploads({
     conversationId,
+    ensureConversation,
     fallbackConversationTitle,
     isLoggedIn,
     isStreaming,
     messageFormatCopy,
-    onConversationCreated: syncConversationRoute,
     restoreSelectedSources: sourceContext.restoreSelectedSources,
     selectedSources: sourceContext.selectedSources,
     sessionIdRef,
     setAttachments,
-    setConversationId,
-    setConversations,
     setError,
     tError: t("agentChat.error"),
   })
   const sourceActions = useAgentChatSourceActions({
     conversationId,
+    ensureConversation,
     fallbackConversationTitle,
     isLoggedIn,
     isStreaming,
     restoreSelectedSources: sourceContext.restoreSelectedSources,
-    onConversationCreated: syncConversationRoute,
     selectedSources: sourceContext.selectedSources,
     sessionIdRef,
     setAttachments,
-    setConversationId,
-    setConversations,
     setError,
   })
   const contextPreview = useAgentChatContextPreview({
@@ -281,14 +296,13 @@ export function useAgentChatPage() {
     isStreaming,
     loginRequiredMessage,
     messageFormatCopy,
-    onConversationCreated: syncConversationRoute,
+    ensureConversation,
+    promoteConversationTitle,
     runtimeSelection: selectedRuntime,
     selectedCampaigns: campaignContext.selectedCampaigns,
     selectedProducts: productContext.selectedProducts,
     selectedSources: sourceContext.selectedSources,
     sessionIdRef,
-    setConversationId,
-    setConversations,
     setError,
     setInput,
     setIsStreaming,

@@ -66,7 +66,7 @@ export function AgentChatThreadMessage({
         <div
           className={`min-w-0 text-sm/6 ${
             isUser
-              ? "rounded-2xl bg-(--agent-chat-user-message-background) px-4 py-3 text-(--agent-chat-user-message-foreground) shadow-[var(--agent-chat-button-shadow)]"
+              ? "rounded-2xl rounded-tr-[2px] bg-(--agent-chat-user-message-background) px-4 py-3 text-(--agent-chat-user-message-foreground) shadow-[var(--agent-chat-button-shadow)]"
               : "text-foreground"
           }`}
         >

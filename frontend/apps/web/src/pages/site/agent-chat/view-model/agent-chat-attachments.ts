@@ -3,15 +3,14 @@ import type {
   ConversationFileResponse,
   UpdateConversationFileExtractionRequest,
 } from "@/api"
-import { AGENT_ID, agentChatData } from "../agent-chat-data"
+import { agentChatData } from "../agent-chat-data"
 import {
   mapConversationFile,
-  mapConversationItem,
 } from "../domain/agent-chat-message-mapping"
 import type {
   AgentChatAttachmentItem,
-  AgentChatConversationItem,
 } from "../types"
+import type { EnsureAgentChatConversation } from "./use-agent-chat-conversation-identity"
 import { resolveAttachmentExtractionState } from "./agent-chat-attachment-extraction-state"
 import {
   createAttachmentId,
@@ -29,20 +28,18 @@ import {
 
 export interface UploadAgentChatAttachmentsInput {
   conversationId: string | null
+  ensureConversation: EnsureAgentChatConversation
   fallbackConversationTitle: string
   files: File[]
   setAttachments: Dispatch<SetStateAction<AgentChatAttachmentItem[]>>
-  setConversationId: Dispatch<SetStateAction<string | null>>
-  setConversations: Dispatch<SetStateAction<AgentChatConversationItem[]>>
 }
 
 export async function uploadAgentChatAttachments({
   conversationId,
+  ensureConversation,
   fallbackConversationTitle,
   files,
   setAttachments,
-  setConversationId,
-  setConversations,
 }: UploadAgentChatAttachmentsInput): Promise<{
   conversationId: string | null
   fileIds: string[]
@@ -50,17 +47,11 @@ export async function uploadAgentChatAttachments({
   if (!files.length) return { conversationId, fileIds: [] }
   let activeConversationId = conversationId
   if (!activeConversationId) {
-    const detail = await agentChatData.createConversation({
+    activeConversationId = await ensureConversation({
       title: fallbackConversationTitle,
-      agentId: AGENT_ID,
     })
-    activeConversationId = detail.conversation.id
-    setConversationId(activeConversationId)
-    setConversations((current) => [
-      mapConversationItem(detail.conversation, fallbackConversationTitle),
-      ...current.filter((item) => item.id !== detail.conversation.id),
-    ])
   }
+  if (!activeConversationId) return { conversationId: null, fileIds: [] }
 
   const pendingItems = files.map((file) => ({
     id: createAttachmentId(file),
@@ -74,7 +65,7 @@ export async function uploadAgentChatAttachments({
   const fileIds = (
     await Promise.all(
     files.map((file, index) =>
-      uploadOneAttachment(activeConversationId!, file, pendingItems[index].id, {
+      uploadOneAttachment(activeConversationId, file, pendingItems[index].id, {
         setAttachments,
       })
     )
