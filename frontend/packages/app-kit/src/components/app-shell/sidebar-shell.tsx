@@ -118,6 +118,9 @@ export interface SidebarShellProps {
 
 const sidebarMenuSpacingClassName = "[&_[data-sidebar=menu]]:gap-0"
 
+const collapsedSidebarIconLayoutClassName =
+  "contents group-data-[collapsible=icon]:[&_[data-sidebar=group]]:items-center group-data-[collapsible=icon]:[&_[data-sidebar=group]]:p-0 group-data-[collapsible=icon]:[&_[data-sidebar=group-content]]:flex group-data-[collapsible=icon]:[&_[data-sidebar=group-content]]:justify-center group-data-[collapsible=icon]:[&_[data-sidebar=menu]]:w-10 group-data-[collapsible=icon]:[&_[data-sidebar=menu]]:items-center group-data-[collapsible=icon]:[&_[data-sidebar=menu-item]]:flex group-data-[collapsible=icon]:[&_[data-sidebar=menu-item]]:h-10 group-data-[collapsible=icon]:[&_[data-sidebar=menu-item]]:items-center group-data-[collapsible=icon]:[&_[data-sidebar=menu-item]]:justify-center group-data-[collapsible=icon]:[&_[data-sidebar=menu-button]]:mx-auto group-data-[collapsible=icon]:[&_[data-sidebar=menu-button]]:justify-center"
+
 const sidebarMenuButtonBaseClassName =
   "[&_[data-sidebar=menu-button]]:h-10 [&_[data-sidebar=menu-button]]:cursor-pointer [&_[data-sidebar=menu-button]]:rounded-lg [&_[data-sidebar=menu-button]]:px-3 [&_[data-sidebar=menu-button]]:shadow-none [&_[data-sidebar=menu-button]]:hover:bg-(--shell-sidebar-item-hover-background) [&_[data-sidebar=menu-button]]:hover:text-sidebar-foreground [&_[data-sidebar=menu-button]]:active:bg-(--shell-sidebar-item-hover-background) [&_[data-sidebar=menu-button]]:active:text-sidebar-foreground [&_[data-sidebar=menu-button][data-active=true]]:bg-white [&_[data-sidebar=menu-button][data-active=true]]:shadow-[0_1px_2px_rgba(15,23,42,0.04)] [&_[data-sidebar=menu-button][data-active=true]]:hover:bg-white dark:[&_[data-sidebar=menu-button][data-active=true]]:bg-black dark:[&_[data-sidebar=menu-button][data-active=true]]:shadow-[0_1px_2px_rgba(0,0,0,0.12)] dark:[&_[data-sidebar=menu-button][data-active=true]]:hover:bg-black"
 
@@ -125,7 +128,7 @@ const sidebarPrimaryActionButtonClassName =
   "[&_[data-sidebar=menu-button]]:h-10 [&_[data-sidebar=menu-button]]:cursor-pointer [&_[data-sidebar=menu-button]]:rounded-lg [&_[data-sidebar=menu-button]]:border [&_[data-sidebar=menu-button]]:border-primary [&_[data-sidebar=menu-button]]:bg-primary/10 [&_[data-sidebar=menu-button]]:text-sm [&_[data-sidebar=menu-button]]:font-bold [&_[data-sidebar=menu-button]]:text-primary [&_[data-sidebar=menu-button]]:shadow-none [&_[data-sidebar=menu-button]]:hover:border-primary [&_[data-sidebar=menu-button]]:hover:bg-primary/15 [&_[data-sidebar=menu-button]]:hover:text-primary [&_[data-sidebar=menu-button][data-active=true]]:border-primary [&_[data-sidebar=menu-button][data-active=true]]:bg-primary/10 [&_[data-sidebar=menu-button][data-active=true]]:text-primary [&_[data-sidebar=menu-button][data-active=true]]:shadow-[0_1px_2px_rgba(15,23,42,0.04)] [&_[data-sidebar=menu-button][data-active=true]]:hover:bg-primary/10 [&_[data-sidebar=menu-button][data-active=true]]:hover:text-primary"
 
 const sidebarProminentActionButtonClassName =
-  "[&_[data-sidebar=menu-button]]:!h-10 [&_[data-sidebar=menu-button]]:!rounded-lg [&_[data-sidebar=menu-button]]:border [&_[data-sidebar=menu-button]]:border-sidebar-border [&_[data-sidebar=menu-button]]:bg-background [&_[data-sidebar=menu-button]]:!px-3 [&_[data-sidebar=menu-button]]:text-sm [&_[data-sidebar=menu-button]]:font-medium [&_[data-sidebar=menu-button]]:text-sidebar-foreground [&_[data-sidebar=menu-button]]:shadow-[0_1px_3px_rgba(100,116,139,0.18)] [&_[data-sidebar=menu-button]]:hover:border-sidebar-primary/35 [&_[data-sidebar=menu-button]]:hover:bg-background [&_[data-sidebar=menu-button]]:hover:text-sidebar-foreground dark:[&_[data-sidebar=menu-button]]:border-sidebar-border/80 dark:[&_[data-sidebar=menu-button]]:bg-sidebar-accent/55 dark:[&_[data-sidebar=menu-button]]:text-sidebar-foreground dark:[&_[data-sidebar=menu-button]]:shadow-[0_1px_3px_rgba(148,163,184,0.12)] dark:[&_[data-sidebar=menu-button]]:hover:border-sidebar-primary/45 dark:[&_[data-sidebar=menu-button]]:hover:bg-sidebar-accent/75 dark:[&_[data-sidebar=menu-button][data-active=true]]:border-sidebar-primary/50 dark:[&_[data-sidebar=menu-button][data-active=true]]:bg-sidebar-accent/65 dark:[&_[data-sidebar=menu-button][data-active=true]]:text-sidebar-foreground dark:[&_[data-sidebar=menu-button][data-active=true]]:shadow-[0_1px_3px_rgba(148,163,184,0.12)] dark:[&_[data-sidebar=menu-button][data-active=true]]:hover:bg-sidebar-accent/65 [&_[data-sidebar=menu-button][data-active=true]]:border-sidebar-primary/40 [&_[data-sidebar=menu-button][data-active=true]]:bg-background [&_[data-sidebar=menu-button][data-active=true]]:text-sidebar-foreground [&_[data-sidebar=menu-button][data-active=true]]:shadow-[0_1px_3px_rgba(100,116,139,0.18)] [&_[data-sidebar=menu-button][data-active=true]]:hover:bg-background [&_[data-sidebar=menu-button][data-active=true]]:hover:text-sidebar-foreground [&_[data-sidebar=menu-button]_svg]:text-sidebar-foreground"
+  "[&_[data-sidebar=menu-button]]:!h-10 [&_[data-sidebar=menu-button]]:!rounded-lg [&_[data-sidebar=menu-button]]:border [&_[data-sidebar=menu-button]]:border-sidebar-border [&_[data-sidebar=menu-button]]:bg-background [&_[data-sidebar=menu-button]]:!px-3 [&_[data-sidebar=menu-button]]:text-sm [&_[data-sidebar=menu-button]]:font-medium [&_[data-sidebar=menu-button]]:text-sidebar-foreground [&_[data-sidebar=menu-button]]:shadow-[0_1px_3px_rgba(100,116,139,0.18)] [&_[data-sidebar=menu-button]]:hover:border-sidebar-primary/35 [&_[data-sidebar=menu-button]]:hover:bg-background [&_[data-sidebar=menu-button]]:hover:text-sidebar-foreground group-data-[collapsible=icon]:[&_[data-sidebar=menu-button]]:justify-center group-data-[collapsible=icon]:[&_[data-sidebar=menu-button]]:!border-transparent group-data-[collapsible=icon]:[&_[data-sidebar=menu-button]]:!bg-transparent group-data-[collapsible=icon]:[&_[data-sidebar=menu-button]]:!px-2 group-data-[collapsible=icon]:[&_[data-sidebar=menu-button]]:!shadow-none group-data-[collapsible=icon]:[&_[data-sidebar=menu-button][data-active=true]]:!border-transparent group-data-[collapsible=icon]:[&_[data-sidebar=menu-button][data-active=true]]:!bg-transparent group-data-[collapsible=icon]:[&_[data-sidebar=menu-button][data-active=true]]:!shadow-none dark:[&_[data-sidebar=menu-button]]:border-sidebar-border/80 dark:[&_[data-sidebar=menu-button]]:bg-sidebar-accent/55 dark:[&_[data-sidebar=menu-button]]:text-sidebar-foreground dark:[&_[data-sidebar=menu-button]]:shadow-[0_1px_3px_rgba(148,163,184,0.12)] dark:[&_[data-sidebar=menu-button]]:hover:border-sidebar-primary/45 dark:[&_[data-sidebar=menu-button]]:hover:bg-sidebar-accent/75 dark:[&_[data-sidebar=menu-button][data-active=true]]:border-sidebar-primary/50 dark:[&_[data-sidebar=menu-button][data-active=true]]:bg-sidebar-accent/65 dark:[&_[data-sidebar=menu-button][data-active=true]]:text-sidebar-foreground dark:[&_[data-sidebar=menu-button][data-active=true]]:shadow-[0_1px_3px_rgba(148,163,184,0.12)] dark:[&_[data-sidebar=menu-button][data-active=true]]:hover:bg-sidebar-accent/65 [&_[data-sidebar=menu-button][data-active=true]]:border-sidebar-primary/40 [&_[data-sidebar=menu-button][data-active=true]]:bg-background [&_[data-sidebar=menu-button][data-active=true]]:text-sidebar-foreground [&_[data-sidebar=menu-button][data-active=true]]:shadow-[0_1px_3px_rgba(100,116,139,0.18)] [&_[data-sidebar=menu-button][data-active=true]]:hover:bg-background [&_[data-sidebar=menu-button][data-active=true]]:hover:text-sidebar-foreground group-data-[collapsible=icon]:[&_[data-sidebar=menu-button]]:!border-transparent group-data-[collapsible=icon]:[&_[data-sidebar=menu-button]]:!bg-transparent group-data-[collapsible=icon]:[&_[data-sidebar=menu-button]]:!shadow-none group-data-[collapsible=icon]:[&_[data-sidebar=menu-button][data-active=true]]:!border-transparent group-data-[collapsible=icon]:[&_[data-sidebar=menu-button][data-active=true]]:!bg-transparent group-data-[collapsible=icon]:[&_[data-sidebar=menu-button][data-active=true]]:!shadow-none [&_[data-sidebar=menu-button]_svg]:text-sidebar-foreground"
 
 export function SidebarShell({
   brandEyebrow,
@@ -166,85 +169,90 @@ export function SidebarShell({
         <SidebarProvider defaultOpen={defaultSidebarOpen}>
           <div className="hidden md:contents">
             <Sidebar collapsible="icon">
-              <SidebarHeader>
-                <div className="flex h-12 items-center gap-2 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:justify-center">
-                  {onBrandSelect ? (
-                    <button
-                      type="button"
-                      className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-lg text-left outline-hidden transition-colors group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:justify-center focus-visible:ring-2 focus-visible:ring-(--app-primary)"
-                      onClick={onBrandSelect}
-                    >
-                      <BrandContent
-                        brandLogo={brandLogo}
-                        brandSecondaryText={brandSecondaryText}
-                        brandTitle={brandTitle}
-                      />
-                    </button>
-                  ) : (
-                    <div className="flex min-w-0 flex-1 items-center gap-2 group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:justify-center">
-                      <BrandContent
-                        brandLogo={brandLogo}
-                        brandSecondaryText={brandSecondaryText}
-                        brandTitle={brandTitle}
+              <div className={collapsedSidebarIconLayoutClassName}>
+                <SidebarHeader>
+                  <div className="flex h-12 items-center gap-2 group-data-[collapsible=icon]:h-[4.75rem] group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:gap-1.5 group-data-[collapsible=icon]:pt-1">
+                    {onBrandSelect ? (
+                      <button
+                        type="button"
+                        className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-lg text-left outline-hidden transition-colors group-data-[collapsible=icon]:mt-0.5 group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:justify-center focus-visible:ring-2 focus-visible:ring-(--app-primary)"
+                        onClick={onBrandSelect}
+                      >
+                        <BrandContent
+                          brandLogo={brandLogo}
+                          brandSecondaryText={brandSecondaryText}
+                          brandTitle={brandTitle}
+                        />
+                      </button>
+                    ) : (
+                      <div className="flex min-w-0 flex-1 items-center gap-2 group-data-[collapsible=icon]:mt-0.5 group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:justify-center">
+                        <BrandContent
+                          brandLogo={brandLogo}
+                          brandSecondaryText={brandSecondaryText}
+                          brandTitle={brandTitle}
+                        />
+                      </div>
+                    )}
+                    <div className="shrink-0 rounded-lg border border-sidebar-border bg-(--shell-sidebar-trigger-background) shadow-sm transition-colors hover:bg-sidebar-accent [&_[data-sidebar=trigger]]:size-8">
+                      <SidebarTrigger
+                        ariaLabel={t("header.common.toggleSidebar")}
                       />
                     </div>
-                  )}
-                  <div className="shrink-0 rounded-lg border border-sidebar-border bg-(--shell-sidebar-trigger-background) shadow-sm transition-colors hover:bg-sidebar-accent [&_[data-sidebar=trigger]]:size-8">
-                    <SidebarTrigger
-                      ariaLabel={t("header.common.toggleSidebar")}
-                    />
                   </div>
-                </div>
-              </SidebarHeader>
+                </SidebarHeader>
 
-              <SidebarContent>
-                {navigationHeader ? (
-                  <div className="px-2 pt-1 group-data-[collapsible=icon]:hidden">
-                    {navigationHeader}
+                <SidebarContent>
+                  {navigationHeader ? (
+                    <div className="px-2 pt-1 group-data-[collapsible=icon]:hidden">
+                      {navigationHeader}
+                    </div>
+                  ) : null}
+                  <FixedLeadingItems sections={sections} />
+                  <div className="no-scrollbar flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto group-data-[collapsible=icon]:overflow-hidden">
+                    {sections.map((section) => (
+                      <SidebarSectionGroup
+                        key={section.key ?? String(section.label)}
+                        section={section}
+                        showLeadingItems={!section.leadingItemsFixed}
+                      />
+                    ))}
                   </div>
+                </SidebarContent>
+
+                {footerAccount ? (
+                  <>
+                    <div
+                      aria-hidden="true"
+                      className="h-px bg-sidebar-border"
+                    />
+                    <SidebarFooter>
+                      <AvatarDropdown
+                        triggerVariant="sidebar"
+                        avatarAlt={footerAccount.avatarAlt}
+                        avatarSrc={footerAccount.avatarSrc}
+                        avatarFallback={footerAccount.avatarFallback}
+                        displayName={footerAccount.displayName}
+                        displayId={footerAccount.displayId}
+                        onTriggerSelect={footerAccount.onSelect}
+                        logout={footerAccount.logout}
+                      >
+                        {footerAccount.actions?.map((action, index) => (
+                          <AvatarDropdownItem
+                            key={index}
+                            icon={action.icon}
+                            label={action.label}
+                            onSelect={action.onSelect}
+                            href={action.href}
+                            disabled={action.disabled}
+                          />
+                        ))}
+                      </AvatarDropdown>
+                    </SidebarFooter>
+                  </>
                 ) : null}
-                <FixedLeadingItems sections={sections} />
-                <div className="no-scrollbar flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto group-data-[collapsible=icon]:overflow-hidden">
-                  {sections.map((section) => (
-                    <SidebarSectionGroup
-                      key={section.key ?? String(section.label)}
-                      section={section}
-                      showLeadingItems={!section.leadingItemsFixed}
-                    />
-                  ))}
-                </div>
-              </SidebarContent>
 
-              {footerAccount ? (
-                <>
-                  <div aria-hidden="true" className="h-px bg-sidebar-border" />
-                  <SidebarFooter>
-                    <AvatarDropdown
-                      triggerVariant="sidebar"
-                      avatarAlt={footerAccount.avatarAlt}
-                      avatarSrc={footerAccount.avatarSrc}
-                      avatarFallback={footerAccount.avatarFallback}
-                      displayName={footerAccount.displayName}
-                      displayId={footerAccount.displayId}
-                      onTriggerSelect={footerAccount.onSelect}
-                      logout={footerAccount.logout}
-                    >
-                      {footerAccount.actions?.map((action, index) => (
-                        <AvatarDropdownItem
-                          key={index}
-                          icon={action.icon}
-                          label={action.label}
-                          onSelect={action.onSelect}
-                          href={action.href}
-                          disabled={action.disabled}
-                        />
-                      ))}
-                    </AvatarDropdown>
-                  </SidebarFooter>
-                </>
-              ) : null}
-
-              {showSidebarRail ? <SidebarRail /> : null}
+                {showSidebarRail ? <SidebarRail /> : null}
+              </div>
             </Sidebar>
           </div>
 
@@ -311,20 +319,22 @@ function FixedLeadingItems({ sections }: { sections: SidebarShellSection[] }) {
   if (!fixedItems.length) return null
 
   return (
-    <SidebarGroup>
-      <SidebarGroupContent>
-        <div className={sidebarMenuSpacingClassName}>
-          <SidebarMenu>
-            {fixedItems.map((item) => (
-              <SidebarNavRow
-                key={item.key ?? item.href ?? String(item.label)}
-                item={item}
-              />
-            ))}
-          </SidebarMenu>
-        </div>
-      </SidebarGroupContent>
-    </SidebarGroup>
+    <div className="group-data-[collapsible=icon]:pt-0">
+      <SidebarGroup>
+        <SidebarGroupContent>
+          <div className={sidebarMenuSpacingClassName}>
+            <SidebarMenu>
+              {fixedItems.map((item) => (
+                <SidebarNavRow
+                  key={item.key ?? item.href ?? String(item.label)}
+                  item={item}
+                />
+              ))}
+            </SidebarMenu>
+          </div>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    </div>
   )
 }
 
@@ -638,9 +648,7 @@ function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
     item.iconTone === "muted"
       ? "[&_[data-sidebar=menu-button]_svg]:text-sidebar-foreground/55"
       : "",
-    item.iconSize === "xs"
-      ? "[&_[data-sidebar=menu-button]_svg]:size-3"
-      : "",
+    item.iconSize === "xs" ? "[&_[data-sidebar=menu-button]_svg]:size-3" : "",
     item.textSize === "lg" ? "[&_[data-sidebar=menu-button]]:text-sm" : "",
   ]
     .filter(Boolean)
@@ -665,7 +673,7 @@ function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
               className={[
                 "group/item relative flex min-w-0 items-center rounded-lg transition-colors",
                 isExpandedActionRow
-                  ? "hover:bg-(--shell-sidebar-item-hover-background) [&_[data-sidebar=menu-button]]:hover:bg-transparent [&_[data-sidebar=menu-button]]:hover:text-sidebar-foreground [&_[data-sidebar=menu-button]]:active:bg-transparent [&_[data-sidebar=menu-button]]:active:text-sidebar-foreground [&_[data-sidebar=menu-button][data-active=true]]:bg-transparent [&_[data-sidebar=menu-button][data-active=true]]:shadow-none [&_[data-sidebar=menu-button]]:group-hover/item:pr-10 [&_[data-sidebar=menu-button]]:group-focus-within/item:pr-10 [&_[data-sidebar=menu-button][data-active=true]]:pr-10"
+                  ? "hover:bg-(--shell-sidebar-item-hover-background) [&_[data-sidebar=menu-button]]:group-focus-within/item:pr-10 [&_[data-sidebar=menu-button]]:group-hover/item:pr-10 [&_[data-sidebar=menu-button]]:hover:bg-transparent [&_[data-sidebar=menu-button]]:hover:text-sidebar-foreground [&_[data-sidebar=menu-button]]:active:bg-transparent [&_[data-sidebar=menu-button]]:active:text-sidebar-foreground [&_[data-sidebar=menu-button][data-active=true]]:bg-transparent [&_[data-sidebar=menu-button][data-active=true]]:pr-10 [&_[data-sidebar=menu-button][data-active=true]]:shadow-none"
                   : "",
                 shouldHighlightActionRow
                   ? "bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:bg-white dark:bg-black dark:shadow-[0_1px_2px_rgba(0,0,0,0.12)] dark:hover:bg-black"
@@ -691,7 +699,7 @@ function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
               </div>
               <div
                 className={[
-                  "absolute top-1/2 right-1.5 -translate-y-1/2 bg-transparent transition-opacity group-hover/item:opacity-100 group-data-[collapsible=icon]:hidden group-focus-within/item:opacity-100",
+                  "absolute top-1/2 right-1.5 -translate-y-1/2 bg-transparent transition-opacity group-focus-within/item:opacity-100 group-hover/item:opacity-100 group-data-[collapsible=icon]:hidden",
                   shouldHighlightActionRow ? "opacity-100" : "opacity-0",
                 ]
                   .filter(Boolean)

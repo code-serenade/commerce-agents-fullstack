@@ -47,7 +47,7 @@ export function LanguageSwitch({ className }: LanguageSwitchProps) {
         mode="primitive"
         align="end"
         sideOffset={8}
-        className="z-[2000] min-w-40 overflow-hidden rounded-lg border border-[var(--select-border)] bg-[var(--select)] p-1 text-[var(--select-foreground)] shadow-lg outline-hidden"
+        className="z-[2000] min-w-40 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] p-1 text-[var(--surface-foreground)] shadow-lg outline-hidden"
       >
         <DropdownMenuLabel
           mode="primitive"
@@ -57,7 +57,7 @@ export function LanguageSwitch({ className }: LanguageSwitchProps) {
         </DropdownMenuLabel>
         <DropdownMenuSeparator
           mode="primitive"
-          className="my-1 bg-[var(--select-border)]"
+          className="my-1 bg-[var(--border)]"
         />
         <DropdownMenuRadioGroup
           className="space-y-1"

@@ -30,7 +30,7 @@ export function ProfileNameSection({
   }, [hasNameChange, profile])
 
   return (
-    <section className="min-w-0 space-y-5 rounded-xl border border-(--document-card-border) bg-(image:--document-card-background) p-4 shadow-(--document-card-shadow) backdrop-blur-md">
+    <section className="min-w-0 space-y-5 rounded-xl border border-(--document-card-border) bg-(image:--document-card-background) p-4 shadow-(--document-card-shadow) backdrop-blur-md lg:h-full">
       <FieldGroup>
         <Field>
           <FieldLabel>{labels.name}</FieldLabel>

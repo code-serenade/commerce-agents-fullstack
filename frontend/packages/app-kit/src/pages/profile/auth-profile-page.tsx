@@ -52,7 +52,7 @@ export function AuthProfileView({
         </header>
 
         <div className="grid gap-6 py-6 lg:grid-cols-[minmax(0,1fr)_17rem] lg:items-stretch">
-          <div className="min-w-0">
+          <div className="min-w-0 lg:h-full">
             <ProfileNameSection profile={profile} labels={labels} />
           </div>
           <ProfileAvatarSection profile={profile} labels={labels} />
