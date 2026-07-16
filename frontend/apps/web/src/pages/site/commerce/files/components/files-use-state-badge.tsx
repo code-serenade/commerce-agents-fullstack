@@ -1,4 +1,4 @@
-import { Badge } from "@workspace/ui-components"
+import { StatusBadge, type StatusTone } from "../../components/commerce-ui"
 import type { FileConversationUseState } from "../domain/logic"
 
 interface FilesUseStateBadgeProps {
@@ -7,11 +7,16 @@ interface FilesUseStateBadgeProps {
 }
 
 export function FilesUseStateBadge({ state, t }: FilesUseStateBadgeProps) {
-  const variant = state === "selectedForTurn" ? "default" : "outline"
+  const tone: StatusTone =
+    state === "selectedForTurn"
+      ? "success"
+      : state === "available"
+        ? "muted"
+        : "default"
 
   return (
-    <Badge variant={variant}>
+    <StatusBadge tone={tone}>
       {t(`commerce.files.detailDialog.usageState.${state}`)}
-    </Badge>
+    </StatusBadge>
   )
 }

@@ -1,4 +1,3 @@
-import { Filter } from "lucide-react"
 import type { TrainingFilesFilterSummary } from "../domain/logic"
 
 interface FilesFilterSummaryProps {
@@ -10,9 +9,8 @@ export function FilesFilterSummary({ summary, t }: FilesFilterSummaryProps) {
   if (summary.total === 0) return null
 
   return (
-    <div className="flex min-w-0 items-center gap-2 rounded-lg border border-(--app-border) bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-      <Filter className="size-4 shrink-0" />
-      <span className="truncate">
+    <div className="min-w-0 text-sm text-muted-foreground">
+      <span className="whitespace-nowrap">
         {t(
           summary.active
             ? "commerce.files.filterSummary.filtered"
