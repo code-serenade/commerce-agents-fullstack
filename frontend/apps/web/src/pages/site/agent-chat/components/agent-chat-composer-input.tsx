@@ -1,6 +1,7 @@
 import type { ChangeEvent, KeyboardEvent } from "react"
 import type { RefObject } from "react"
 import { useTranslation } from "react-i18next"
+import { AI_READABLE_FILE_ACCEPT } from "../domain/agent-chat-upload-validation"
 import { AgentChatComposerSendButton } from "./agent-chat-composer-toolbar"
 
 export function AgentChatComposerInput({
@@ -47,6 +48,7 @@ export function AgentChatComposerInput({
     <>
       <input
         ref={fileInputRef}
+        accept={AI_READABLE_FILE_ACCEPT}
         className="hidden"
         multiple
         type="file"

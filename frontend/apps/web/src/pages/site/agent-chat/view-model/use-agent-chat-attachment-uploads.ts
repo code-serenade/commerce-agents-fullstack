@@ -1,5 +1,7 @@
 import { useCallback, type MutableRefObject } from "react"
 import type { Dispatch, SetStateAction } from "react"
+import { useTranslation } from "react-i18next"
+import { toast } from "@workspace/ui-components"
 import {
   formatAgentUiMessage,
   type AgentChatMessageFormatCopy,
@@ -9,6 +11,11 @@ import type {
   AgentChatConversationItem,
 } from "../types"
 import type { AgentChatSourceContextSelection } from "../domain/agent-chat-context-selection"
+import {
+  MAX_AI_READABLE_UPLOAD_BYTES,
+  validateAiReadableUploads,
+  type UploadValidationError,
+} from "../domain/agent-chat-upload-validation"
 import { uploadAgentChatAttachments } from "./agent-chat-attachments"
 
 export function useAgentChatAttachmentUploads(input: {
@@ -27,6 +34,7 @@ export function useAgentChatAttachmentUploads(input: {
   setError: Dispatch<SetStateAction<string | null>>
   tError: string
 }) {
+  const { t } = useTranslation()
   const {
     conversationId,
     fallbackConversationTitle,
@@ -48,11 +56,16 @@ export function useAgentChatAttachmentUploads(input: {
     async (files: File[]) => {
       if (!isLoggedIn || isStreaming || files.length === 0) return
       setError(null)
+      const validation = validateAiReadableUploads(files)
+      validation.errors.forEach((error) =>
+        toast.error(uploadValidationMessage(error, t))
+      )
+      if (validation.acceptedFiles.length === 0) return
       try {
         const result = await uploadAgentChatAttachments({
           conversationId,
           fallbackConversationTitle,
-          files,
+          files: validation.acceptedFiles,
           setAttachments,
           setConversationId,
           setConversations,
@@ -94,6 +107,22 @@ export function useAgentChatAttachmentUploads(input: {
       setConversations,
       setError,
       tError,
+      t,
     ]
   )
+}
+
+function uploadValidationMessage(
+  error: UploadValidationError,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  const options = {
+    fileName: error.file.name,
+    maxSize: formatUploadSize(MAX_AI_READABLE_UPLOAD_BYTES),
+  }
+  return t(`agentChat.composer.uploadValidation.${error.code}`, options)
+}
+
+function formatUploadSize(bytes: number) {
+  return `${bytes / (1024 * 1024)} MB`
 }
