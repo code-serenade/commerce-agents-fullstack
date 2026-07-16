@@ -55,6 +55,7 @@ const messages = {
       approve: "Approve",
       reject: "Reject",
       edit: "Edit",
+      view: "View",
       save: "Save",
       cancel: "Cancel",
       download: "Download",
@@ -403,7 +404,7 @@ const messages = {
       panels: {
         list: "Products to analyze",
         listDesc:
-          "Choose one product, then review selling points, assets, price band, and competitors to form a product-selection judgment.",
+          "Manage products for selection analysis and review their details, materials, and competitors.",
         create: "Add training product",
         search: "Search products, platform, category, or brand",
         empty:
@@ -415,6 +416,7 @@ const messages = {
         selectedDesc:
           "Organize knowledge, assets, competitors, and changes around this product.",
         edit: "Edit product",
+        moreDetails: "More details",
         archive: "Archive product",
         knowledgeTab: "Knowledge",
         assetsTab: "Assets",
@@ -898,6 +900,19 @@ const messages = {
       panelTitle: "Upload file library",
       panelDescription:
         "Check upload read status and usage state, then choose which files should support this AI turn.",
+      imageViewer: {
+        preview: "Preview image",
+        close: "Close image viewer",
+        previous: "Previous image",
+        next: "Next image",
+        mirror: "Mirror image",
+        rotate: "Rotate image",
+        zoomOut: "Zoom out",
+        zoomIn: "Zoom in",
+        reset: "Reset image",
+        download: "Download image",
+        loadError: "Image could not be displayed",
+      },
       searchPlaceholder: "Search file name, type, object key, or status",
       deleteSelected: "Delete {{count}} file(s)",
       clearSelection: "Clear selection",
@@ -935,12 +950,12 @@ const messages = {
         },
       },
       turnSelection: {
-        title: "AI will read {{count}} material file(s) this turn",
+        title: "{{count}} file(s) selected this turn",
         files: "{{names}}{{hiddenText}}",
         hiddenSuffix: " and {{count}} more",
-        empty: "No material files are selected for this turn.",
-        action: "Show turn materials",
-        clearAction: "Clear turn selection",
+        empty: "No materials selected this turn",
+        action: "View selected",
+        clearAction: "Clear",
       },
       filters: {
         kind: {
@@ -972,8 +987,8 @@ const messages = {
       },
       table: {
         name: "File",
-        status: "Read status",
-        useStateHeader: "Usage state",
+        status: "AI read",
+        useStateHeader: "Turn status",
         size: "Size",
         createdAt: "Uploaded at",
         actions: "Actions",
@@ -1316,6 +1331,14 @@ const messages = {
       attachShort: "Upload",
       attachPrompt:
         "Add the file or data constraints here, for example: product price, budget, inventory, target audience, current conversion rate, and platform account status.",
+      uploadValidation: {
+        empty: 'File "{{fileName}}" is empty and cannot be read by AI.',
+        mimeMismatch:
+          'File "{{fileName}}" does not match its extension. Check the file and try again.',
+        tooLarge: 'File "{{fileName}}" exceeds the {{maxSize}} size limit.',
+        unsupportedFormat:
+          'File "{{fileName}}" is unsupported. Upload PNG, JPG, JPEG, WebP, PDF, DOCX, XLS, XLSX, CSV, TXT, MD, Markdown, JSON, TSV, HTML, or HTM.',
+      },
       agentTitle: "References for this turn",
       agentName: "Commerce Multi-Agent Platform",
       contextPreview: {
@@ -3029,13 +3052,6 @@ const messages = {
     prompt:
       "I run coffee operations. My main marketing platform is Douyin, and May Day is coming soon. Can you help me write an operations plan to improve conversion rate?",
     sectionsNavigation: "Reading guide",
-    structured: {
-      badge: "Selected report",
-      defaultDescription: "Automatically organized from the selected conversation report without inventing missing details.",
-      defaultCollaboration: "Content comes from the selected conversation report.",
-      emptyTitle: "Select a readable conversation report",
-      emptyDescription: "After a report is generated or selected, its title, metrics, execution steps, and sections will be organized here.",
-    },
     backend: {
       eyebrow: "Conversation archive",
       title: "Conversation reports",
@@ -3044,6 +3060,7 @@ const messages = {
       refresh: "Refresh",
       loading: "Loading conversation reports",
       listTitle: "Conversation report list",
+      backToList: "Back to report list",
       listDesc: "{{artifacts}} report(s) / {{workspaces}} training task(s)",
       emptyTitle: "No conversation reports yet",
       emptyDescription:
@@ -3267,9 +3284,36 @@ const messages = {
   agentCapabilities: {
     final: {
       intro: {
-        title: "How students use the platform",
+        title: "What problems can this system help you solve?",
         description:
-          "Prepare materials around a real ecommerce task, ask a question, let AI roles collaborate, and store the result as a task and review record.",
+          "This is not just a chat tool. It is an AI workspace that helps you complete an ecommerce task, produce usable work, and retain the process.",
+        columns: {
+          problem: "Your problem",
+          action: "What the system does",
+          result: "What you get",
+        },
+        items: [
+          {
+            problem: "You do not know where to start",
+            action: "State the task. The system asks for missing details and organizes the key points.",
+            result: "A clear analysis direction and next steps.",
+          },
+          {
+            problem: "You have materials but do not know how to use them",
+            action: "Select the products, files, or campaigns needed for this task, and the system analyzes them.",
+            result: "Judgments and suggestions grounded in the current task.",
+          },
+          {
+            problem: "A general AI answer is difficult to use directly",
+            action: "AI roles analyze the task from operations, data, and creative perspectives, then organize the content.",
+            result: "Plans, checklists, copy, and reports ready for execution or submission.",
+          },
+          {
+            problem: "Task history and results are easily lost",
+            action: "The system retains conversations, revisions, and final results.",
+            result: "A task record that can be continued, submitted, reviewed, and reused.",
+          },
+        ],
       },
       flow: {
         title: "The complete task workflow",

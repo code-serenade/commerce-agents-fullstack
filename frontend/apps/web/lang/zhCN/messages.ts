@@ -55,6 +55,7 @@ const messages = {
       approve: "通过",
       reject: "拒绝",
       edit: "编辑",
+      view: "查看",
       save: "保存",
       cancel: "取消",
       download: "下载",
@@ -394,8 +395,7 @@ const messages = {
       },
       panels: {
         list: "可分析商品",
-        listDesc:
-          "先选一个商品，再查看卖点、素材、价格带和竞品，形成选品判断。",
+        listDesc: "集中管理用于选品分析的商品，查看商品资料、素材和竞品信息。",
         create: "添加实训商品",
         search: "搜索商品、平台、类目、品牌",
         empty: "还没有商品资料，先添加一个用于实训分析的商品。",
@@ -404,6 +404,7 @@ const messages = {
         noProduct: "暂无可分析商品",
         selectedDesc: "围绕这个商品整理知识、素材、竞品和变化记录。",
         edit: "编辑商品资料",
+        moreDetails: "更多详情",
         archive: "归档商品",
         knowledgeTab: "商品知识",
         assetsTab: "文件资料",
@@ -867,6 +868,19 @@ const messages = {
       panelTitle: "上传文件资料库",
       panelDescription:
         "查看上传文件的读取状态、使用状态，并选择哪些资料参与本轮 AI 问答。",
+      imageViewer: {
+        preview: "预览图片",
+        close: "关闭图片预览",
+        previous: "上一张图片",
+        next: "下一张图片",
+        mirror: "镜像翻转",
+        rotate: "旋转图片",
+        zoomOut: "缩小",
+        zoomIn: "放大",
+        reset: "重置图片",
+        download: "下载图片",
+        loadError: "图片无法显示",
+      },
       searchPlaceholder: "搜索文件名、类型、对象 Key 或状态",
       deleteSelected: "删除 {{count}} 个文件",
       clearSelection: "清空勾选",
@@ -903,12 +917,12 @@ const messages = {
         },
       },
       turnSelection: {
-        title: "本轮 AI 将读取 {{count}} 个资料文件",
+        title: "本轮已选 {{count}} 个文件",
         files: "{{names}}{{hiddenText}}",
         hiddenSuffix: "，另有 {{count}} 个",
-        empty: "当前还没有为本轮问答选择资料。",
-        action: "只看本轮资料",
-        clearAction: "清空本轮选择",
+        empty: "本轮未选择资料",
+        action: "查看已选",
+        clearAction: "清空",
       },
       filters: {
         kind: {
@@ -940,8 +954,8 @@ const messages = {
       },
       table: {
         name: "文件",
-        status: "读取状态",
-        useStateHeader: "使用状态",
+        status: "AI 读取",
+        useStateHeader: "本轮状态",
         size: "大小",
         createdAt: "上传时间",
         actions: "操作",
@@ -1269,6 +1283,13 @@ const messages = {
       attachShort: "上传",
       attachPrompt:
         "请在这里补充文件或数据约束，例如商品价格、预算、库存、目标人群、当前转化率和平台账号状态。",
+      uploadValidation: {
+        empty: "文件“{{fileName}}”为空，无法提供给 AI 读取。",
+        mimeMismatch: "文件“{{fileName}}”的实际类型与扩展名不一致，请检查文件后重试。",
+        tooLarge: "文件“{{fileName}}”超过 {{maxSize}} 的大小限制。",
+        unsupportedFormat:
+          "文件“{{fileName}}”格式不支持。仅可上传 PNG、JPG、JPEG、WebP、PDF、DOCX、XLS、XLSX、CSV、TXT、MD、Markdown、JSON、TSV、HTML 和 HTM。",
+      },
       agentTitle: "本轮参考",
       agentName: "电商多智能体平台",
       contextPreview: {
@@ -2859,13 +2880,6 @@ const messages = {
     prompt:
       "我是做咖啡运营的，主要营销平台是抖音，现在马上就五一了，可以帮我像一个运营方案吗提升我的转化率",
     sectionsNavigation: "阅读导航",
-    structured: {
-      badge: "当前报告",
-      defaultDescription: "根据当前选中的对话报告自动整理，未提及的信息不会补写。",
-      defaultCollaboration: "内容来自当前选中的对话报告。",
-      emptyTitle: "请选择一份可读取的对话报告",
-      emptyDescription: "生成或选择报告后，这里会根据报告正文动态整理标题、指标、执行步骤和章节。",
-    },
     backend: {
       eyebrow: "对话整理",
       title: "对话整理报告",
@@ -2874,6 +2888,7 @@ const messages = {
       refresh: "刷新",
       loading: "正在读取对话整理报告",
       listTitle: "对话报告列表",
+      backToList: "返回报告列表",
       listDesc: "{{artifacts}} 份报告 / {{workspaces}} 个实训任务",
       emptyTitle: "还没有对话整理报告",
       emptyDescription:
@@ -3094,9 +3109,36 @@ const messages = {
   agentCapabilities: {
     final: {
       intro: {
-        title: "学生怎么使用",
+        title: "这个系统能帮你解决什么问题？",
         description:
-          "围绕一次真实电商任务准备资料、提出问题，让 AI 岗位协作完成分析，再把结果沉淀为任务和复盘材料。",
+          "它不是一个只回答问题的聊天工具，而是帮助你把电商任务做完、形成成果并保留过程的 AI 工作台。",
+        columns: {
+          problem: "你遇到的问题",
+          action: "系统怎么处理",
+          result: "最后得到什么",
+        },
+        items: [
+          {
+            problem: "不知道任务从哪里开始",
+            action: "说出任务目标，系统补问缺少的信息并整理重点。",
+            result: "明确分析方向和下一步执行步骤。",
+          },
+          {
+            problem: "有商品和资料，但不知道怎么结合使用",
+            action: "选择本轮需要的商品、文件或活动，系统根据这些资料进行分析。",
+            result: "获得贴合当前任务的判断和建议。",
+          },
+          {
+            problem: "普通 AI 只给一段文字，难以直接使用",
+            action: "系统从运营、数据、创意等岗位视角协同分析并整理内容。",
+            result: "获得可执行或提交的方案、清单、文案和报告。",
+          },
+          {
+            problem: "任务完成后，过程和成果容易丢失",
+            action: "系统保留对话、修改过程和最终成果。",
+            result: "任务可以继续执行、提交审核和复盘复用。",
+          },
+        ],
       },
       flow: {
         title: "一次任务的完整流程",
