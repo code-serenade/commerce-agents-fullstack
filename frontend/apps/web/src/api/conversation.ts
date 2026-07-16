@@ -45,6 +45,13 @@ export interface ConversationFileResponse {
   createdAt: string
 }
 
+export interface ConversationFileAccessResponse {
+  file: ConversationFileResponse
+  method: string
+  downloadUrl: string
+  expiresSecs: number
+}
+
 export interface RegisterConversationFileRequest {
   messageId?: string | null
   objectKey: string
@@ -213,6 +220,16 @@ export const listUserFilesApi = async (
     method: "GET",
     url: "/api/app/files",
     body: query,
+    suppressGlobalError: true,
+  })
+}
+
+export const getConversationFileAccessApi = async (
+  fileId: string
+): Promise<ConversationFileAccessResponse> => {
+  return request<undefined, ConversationFileAccessResponse>({
+    method: "GET",
+    url: `/api/app/conversation-files/${fileId}/access`,
     suppressGlobalError: true,
   })
 }
