@@ -115,6 +115,20 @@ export function getUsageGuideContent(
     intro: {
       title: t("agentCapabilities.final.intro.title"),
       description: t("agentCapabilities.final.intro.description"),
+      columns: t("agentCapabilities.final.intro.columns", {
+        returnObjects: true,
+      }) as {
+        problem: string
+        action: string
+        result: string
+      },
+      items: t("agentCapabilities.final.intro.items", {
+        returnObjects: true,
+      }) as Array<{
+        problem: string
+        action: string
+        result: string
+      }>,
     },
     flow: {
       title: t("agentCapabilities.final.flow.title"),

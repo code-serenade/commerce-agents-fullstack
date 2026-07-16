@@ -1,6 +1,12 @@
-import { GraduationCap, Route } from "lucide-react"
+import {
+  ArrowRight,
+  CheckCircle2,
+  CircleHelp,
+  Route,
+  Settings2,
+} from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { DocumentIntroCard, DocumentSection } from "../../commerce/components/document-section"
+import { DocumentSection } from "../../commerce/components/document-section"
 import { homeStudentPathImageSources } from "../../home/components/home-student-path-presentation"
 import flowCollaborationIllustration from "../assets/usage-guide/flow-collaboration.webp"
 import flowPrepareIllustration from "../assets/usage-guide/flow-prepare.webp"
@@ -20,12 +26,69 @@ export function UsageGuideOverview() {
 
   return (
     <>
-      <DocumentIntroCard
-        className="border-(--app-border) bg-background bg-none shadow-none backdrop-blur-none before:hidden"
+      <DocumentSection
         title={content.intro.title}
         description={content.intro.description}
-        icon={<GraduationCap />}
-      />
+        icon={<CircleHelp className="size-4" />}
+        contentClassName="pl-0 sm:pl-9"
+      >
+        <div className="overflow-hidden rounded-lg border border-(--app-border) bg-background">
+          <div className="hidden grid-cols-[minmax(0,0.9fr)_2rem_minmax(0,1.25fr)_2rem_minmax(0,1fr)] items-center border-b border-(--app-border) bg-muted/15 px-4 py-2.5 text-xs font-semibold text-muted-foreground md:grid">
+            <span>{content.intro.columns.problem}</span>
+            <span aria-hidden="true" />
+            <span>{content.intro.columns.action}</span>
+            <span aria-hidden="true" />
+            <span>{content.intro.columns.result}</span>
+          </div>
+
+          <ol className="divide-y divide-(--app-border)">
+            {content.intro.items.map((item, index) => (
+              <li
+                key={item.problem}
+                className="grid min-w-0 gap-3 px-4 py-4 md:grid-cols-[minmax(0,0.9fr)_2rem_minmax(0,1.25fr)_2rem_minmax(0,1fr)] md:items-center md:gap-0"
+              >
+                <div className="flex min-w-0 items-start gap-3">
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-foreground">
+                    {index + 1}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-muted-foreground md:hidden">
+                      {content.intro.columns.problem}
+                    </p>
+                    <p className="mt-1 text-sm/6 font-semibold text-foreground md:mt-0">
+                      {item.problem}
+                    </p>
+                  </div>
+                </div>
+
+                <ArrowRight className="hidden size-4 justify-self-center text-muted-foreground/60 md:block" />
+
+                <div className="min-w-0 border-l-2 border-(--app-border) pl-4 md:border-l-0 md:pl-0">
+                  <p className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground md:hidden">
+                    <Settings2 className="size-3.5" />
+                    {content.intro.columns.action}
+                  </p>
+                  <p className="mt-1 text-sm/6 text-foreground md:mt-0">
+                    {item.action}
+                  </p>
+                </div>
+
+                <ArrowRight className="hidden size-4 justify-self-center text-muted-foreground/60 md:block" />
+
+                <div className="min-w-0 border-l-2 border-primary/30 pl-4 md:border-l-0 md:pl-0">
+                  <p className="flex items-center gap-1.5 text-xs font-semibold text-primary md:hidden">
+                    <CheckCircle2 className="size-3.5" />
+                    {content.intro.columns.result}
+                  </p>
+                  <p className="mt-1 text-sm/6 font-medium text-foreground md:mt-0">
+                    {item.result}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </DocumentSection>
 
       <DocumentSection
         title={content.flow.title}
@@ -70,7 +133,6 @@ export function UsageGuideOverview() {
           </div>
         </div>
       </DocumentSection>
-
     </>
   )
 }
