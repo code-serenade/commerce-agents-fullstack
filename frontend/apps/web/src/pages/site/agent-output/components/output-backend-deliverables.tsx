@@ -59,7 +59,7 @@ export function OutputBackendDeliverables({
       }`}
     >
       <div
-        className={`grid min-h-0 flex-1 grid-cols-1 grid-rows-1 overflow-hidden border border-(--app-border) bg-white md:grid-cols-[21rem_minmax(0,1fr)] xl:grid-cols-[23rem_minmax(0,1fr)] dark:bg-background ${
+        className={`grid min-h-0 flex-1 grid-cols-1 grid-rows-1 overflow-hidden border border-(--app-border) bg-white md:grid-cols-[19rem_minmax(0,1fr)] xl:grid-cols-[20rem_minmax(0,1fr)] dark:bg-background ${
           mobileView === "detail"
             ? "rounded-none border-x-0 border-b-0 md:rounded-lg md:border"
             : "rounded-lg"

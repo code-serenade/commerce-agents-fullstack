@@ -2,16 +2,37 @@ import { StatusBadge } from "@/pages/site/commerce/components/commerce-ui"
 
 export function OutputValidationBadge({
   label,
+  quietOnDesktop = false,
   status,
 }: {
   label: string
+  quietOnDesktop?: boolean
   status?: string | null
 }) {
   return (
-    <span className={`inline-flex ${validationColor(status)}`}>
+    <span
+      className={`inline-flex ${validationColor(status)} ${
+        quietOnDesktop
+          ? `md:items-center md:gap-1.5 md:before:size-1.5 md:before:shrink-0 md:before:rounded-full ${validationDotColor(status)} md:[&_[data-slot=badge]]:border-transparent md:[&_[data-slot=badge]]:bg-transparent md:[&_[data-slot=badge]]:px-0 md:[&_[data-slot=badge]]:text-muted-foreground/80`
+          : ""
+      }`}
+    >
       <StatusBadge>{label}</StatusBadge>
     </span>
   )
+}
+
+function validationDotColor(status?: string | null) {
+  switch (status?.trim().toLowerCase()) {
+    case "passed":
+      return "md:before:bg-emerald-500/60"
+    case "unchecked":
+      return "md:before:bg-amber-500/60"
+    case "failed":
+      return "md:before:bg-red-500/60"
+    default:
+      return "md:before:bg-muted-foreground/40"
+  }
 }
 
 function validationColor(status?: string | null) {

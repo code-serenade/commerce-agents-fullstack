@@ -27,13 +27,13 @@ export function OutputReportList({
 
   return (
     <aside
-      className={`min-h-0 min-w-0 flex-col overflow-hidden border-b border-(--app-border) bg-white md:flex md:border-r md:border-b-0 dark:bg-background ${
+      className={`min-h-0 min-w-0 flex-col overflow-hidden border-b border-(--app-border) bg-white md:flex md:border-r md:border-b-0 md:border-border/50 dark:bg-background ${
         mobileHidden ? "hidden" : "flex"
       }`}
     >
-      <div className="flex min-w-0 shrink-0 items-center justify-between gap-3 border-b border-(--app-border) px-4 py-3">
+      <div className="flex min-w-0 shrink-0 items-center justify-between gap-3 border-b border-(--app-border) px-4 py-3 md:border-border/60 md:bg-muted/10 md:px-3">
         <div className="min-w-0">
-          <h2 className="truncate text-base font-semibold">
+          <h2 className="truncate text-base font-semibold md:text-sm md:font-medium md:text-muted-foreground">
             {t("agentOutput.backend.listTitle")}
           </h2>
           <MutedText>
@@ -74,33 +74,40 @@ export function OutputReportList({
               <button
                 key={artifact.id}
                 type="button"
-                className={`group block min-h-20 w-full min-w-0 cursor-pointer border-b border-(--app-border) px-4 py-3.5 text-left transition-colors md:min-h-17 md:py-3 ${
+                className={`group block min-h-20 w-full min-w-0 cursor-pointer border-b border-(--app-border) px-4 py-3.5 text-left transition-colors md:min-h-15 md:border-border/40 md:px-3 md:py-2.5 ${
                   active
-                    ? "bg-white md:bg-primary/5 md:shadow-[inset_3px_0_0_var(--primary)] dark:bg-background"
+                    ? "bg-white md:bg-muted/35 md:shadow-[inset_2px_0_0_var(--primary)] dark:bg-background"
                     : "bg-white hover:bg-(--shell-sidebar-item-hover-background) dark:bg-background"
                 }`}
                 onClick={() => onSelectArtifact(artifact.id)}
               >
                 <span className="flex min-w-0 items-center gap-3">
                   <span
-                    className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground group-hover:text-foreground ${
+                    className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground group-hover:text-foreground md:hidden ${
                       active
-                        ? "md:bg-muted md:text-primary"
+                        ? "md:text-muted-foreground"
                         : ""
                     }`}
                   >
                     <FileText className="size-4" />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="line-clamp-2 text-sm/5 font-semibold text-foreground md:block md:truncate">
+                    <span
+                      className={`line-clamp-2 text-sm/5 font-semibold text-foreground md:block md:truncate md:font-medium ${
+                        active
+                          ? "md:text-foreground"
+                          : "md:text-muted-foreground group-hover:text-foreground"
+                      }`}
+                    >
                       {display.title}
                     </span>
                     <span className="mt-1 flex min-w-0 items-center justify-between gap-2">
-                      <span className="truncate text-xs text-muted-foreground">
+                      <span className="truncate text-xs text-muted-foreground md:text-muted-foreground/70">
                         {artifact.workspace.title}
                       </span>
                       <OutputValidationBadge
                         label={display.validationStatus}
+                        quietOnDesktop
                         status={artifact.validationStatus}
                       />
                     </span>

@@ -14,4 +14,22 @@ describe("OutputValidationBadge", () => {
 
     expect(screen.getByText(label).parentElement).toHaveClass(colorClass)
   })
+
+  it("can render a quieter desktop treatment for report lists", () => {
+    const label = ["Status", "passed"].join(" ")
+
+    render(
+      <OutputValidationBadge label={label} quietOnDesktop status="passed" />
+    )
+
+    expect(screen.getByText(label).parentElement).toHaveClass(
+      "md:[&_[data-slot=badge]]:bg-transparent"
+    )
+    expect(screen.getByText(label).parentElement).toHaveClass(
+      "md:[&_[data-slot=badge]]:text-muted-foreground/80"
+    )
+    expect(screen.getByText(label).parentElement).toHaveClass(
+      "md:before:bg-emerald-500/60"
+    )
+  })
 })
