@@ -355,14 +355,14 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       subItems: mobileConversationItems.length
         ? mobileConversationItems
         : [
-                  {
-                    key: "empty-recents",
-                    label: user
-                      ? t("agentChat.sidebar.empty")
-                      : t("agentChat.sidebar.guestEmpty"),
-                    href: "/commerce",
-                    onSelect: () => navigateTo("/commerce"),
-                  },
+            {
+              key: "empty-recents",
+              label: user
+                ? t("agentChat.sidebar.empty")
+                : t("agentChat.sidebar.guestEmpty"),
+              href: "/commerce",
+              onSelect: () => navigateTo("/commerce"),
+            },
           ],
     },
   ]
@@ -373,7 +373,9 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
         defaultSidebarOpen
         contentScroll={useFixedContentViewport ? "hidden" : "auto"}
         contentPadding="none"
-        brandLogo={<CommerceAgentLogo />}
+        brandLogo={
+          <CommerceAgentLogo className="size-7 rounded-md" size="sm" />
+        }
         brandTitle={t("agentChat.shell.brandTitle")}
         sections={sections}
         mobileNavigation={{
@@ -672,7 +674,7 @@ function ConversationActionMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className="bg-transparent! hover:bg-transparent! hover:text-sidebar-foreground! active:bg-transparent! focus:bg-transparent! data-[state=open]:bg-transparent! data-[state=open]:text-sidebar-foreground!"
+        className="bg-transparent! hover:bg-transparent! hover:text-sidebar-foreground! focus:bg-transparent! active:bg-transparent! data-[state=open]:bg-transparent! data-[state=open]:text-sidebar-foreground!"
         disabled={disabled}
         label={actionLabel}
         size="compactIcon"

@@ -30,13 +30,16 @@ export function WebAppShell({ children }: WebAppShellProps) {
   const { t } = useTranslation()
   const user = useSelector((state: RootState) => state.auth.user)
   const { requestLogin } = useAuthDialog()
-  const navigateTo = useCallback((path: string) => {
-    if (!user && path !== "/commerce" && path !== "/home") {
-      requestLogin({ pathname: path })
-      return
-    }
-    navigate(path)
-  }, [navigate, requestLogin, user])
+  const navigateTo = useCallback(
+    (path: string) => {
+      if (!user && path !== "/commerce" && path !== "/home") {
+        requestLogin({ pathname: path })
+        return
+      }
+      navigate(path)
+    },
+    [navigate, requestLogin, user]
+  )
 
   const sections = useMemo(
     () =>
@@ -88,10 +91,9 @@ export function WebAppShell({ children }: WebAppShellProps) {
         ? item.matcher(location.pathname)
         : location.pathname === item.path
     )
-  const topBarTitle =
-    location.pathname.startsWith("/team-school")
-      ? t("profile.teamSchoolPage.title")
-      : location.pathname.startsWith("/profile")
+  const topBarTitle = location.pathname.startsWith("/team-school")
+    ? t("profile.teamSchoolPage.title")
+    : location.pathname.startsWith("/profile")
       ? t("pages:profile.title")
       : currentItem
         ? t(currentItem.labelKey)
@@ -115,7 +117,12 @@ export function WebAppShell({ children }: WebAppShellProps) {
     <LanguageSwitch key="lang" />,
     <ThemeToggle key="theme" />,
     user ? null : (
-      <Button key="login" variant="outline" size="sm" onClick={() => requestLogin()}>
+      <Button
+        key="login"
+        variant="outline"
+        size="sm"
+        onClick={() => requestLogin()}
+      >
         {t("web.shell.account.login")}
       </Button>
     ),
@@ -128,7 +135,7 @@ export function WebAppShell({ children }: WebAppShellProps) {
 
   return (
     <SidebarShell
-      brandLogo={<CommerceAgentLogo />}
+      brandLogo={<CommerceAgentLogo className="size-7 rounded-md" size="sm" />}
       brandEyebrow={t("web.shell.brand.eyebrow")}
       brandTitle={t("web.shell.brand.title")}
       brandDescription={t("web.shell.brand.description")}
@@ -137,9 +144,7 @@ export function WebAppShell({ children }: WebAppShellProps) {
       mobileNavigation={
         mobileNavigationItems.length
           ? {
-              label: t(
-                "web.shell.navigation.mobileLabel"
-              ),
+              label: t("web.shell.navigation.mobileLabel"),
               items: mobileNavigationItems,
             }
           : undefined
@@ -152,54 +157,52 @@ export function WebAppShell({ children }: WebAppShellProps) {
           trailing={trailing}
         />
       }
-      footerAccount={
-        {
-          avatarAlt: displayName,
-          avatarSrc: user?.avatar,
-          avatarFallback: isGuest
-            ? t("web.shell.account.guestFallback")
-            : displayName.charAt(0).toUpperCase(),
-          displayName,
-          displayId: user ? (
-            <CopyableText value={displayId} textClassName="block truncate">
-              {displayId}
-            </CopyableText>
-          ) : (
-            <span className="block truncate">{displayId}</span>
-          ),
-          logout: user
-            ? {
-                label: t("web.shell.account.logout"),
-                onSelect: handleLogout,
-              }
-            : undefined,
-          actions: user
-            ? [
-                {
-                  icon: <UserRound />,
-                  label: t("web.shell.account.actions.profile"),
-                  onSelect: () => navigate("/profile"),
-                },
-                {
-                  icon: <School />,
-                  label: t("web.shell.account.actions.teamSchool"),
-                  onSelect: () => navigate("/team-school"),
-                },
-              ]
-            : [
-                {
-                  icon: <LogIn />,
-                  label: t("web.shell.account.login"),
-                  onSelect: () => requestLogin(),
-                },
-                {
-                  icon: <UserPlus />,
-                  label: t("web.shell.account.register"),
-                  onSelect: () => navigate("/register"),
-                },
-              ],
-        }
-      }
+      footerAccount={{
+        avatarAlt: displayName,
+        avatarSrc: user?.avatar,
+        avatarFallback: isGuest
+          ? t("web.shell.account.guestFallback")
+          : displayName.charAt(0).toUpperCase(),
+        displayName,
+        displayId: user ? (
+          <CopyableText value={displayId} textClassName="block truncate">
+            {displayId}
+          </CopyableText>
+        ) : (
+          <span className="block truncate">{displayId}</span>
+        ),
+        logout: user
+          ? {
+              label: t("web.shell.account.logout"),
+              onSelect: handleLogout,
+            }
+          : undefined,
+        actions: user
+          ? [
+              {
+                icon: <UserRound />,
+                label: t("web.shell.account.actions.profile"),
+                onSelect: () => navigate("/profile"),
+              },
+              {
+                icon: <School />,
+                label: t("web.shell.account.actions.teamSchool"),
+                onSelect: () => navigate("/team-school"),
+              },
+            ]
+          : [
+              {
+                icon: <LogIn />,
+                label: t("web.shell.account.login"),
+                onSelect: () => requestLogin(),
+              },
+              {
+                icon: <UserPlus />,
+                label: t("web.shell.account.register"),
+                onSelect: () => navigate("/register"),
+              },
+            ],
+      }}
     >
       {children}
     </SidebarShell>
