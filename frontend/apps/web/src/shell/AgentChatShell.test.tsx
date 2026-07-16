@@ -605,7 +605,7 @@ describe("AgentChatShell", () => {
     ).not.toHaveAttribute("aria-current", "page")
   }, 15000)
 
-  it("lets long report pages use the shell scroll container", async () => {
+  it("keeps report pages on the fixed split-view viewport", async () => {
     const i18n = await createAgentChatTestI18n()
 
     render(
@@ -617,9 +617,9 @@ describe("AgentChatShell", () => {
     )
 
     const contentFrame = screen.getByText("Report content").parentElement
-    expect(contentFrame).toHaveClass("min-h-full")
-    expect(contentFrame).toHaveClass("w-full")
-    expect(contentFrame).not.toHaveClass("size-full")
+    expect(contentFrame).toHaveClass("size-full")
+    expect(contentFrame).toHaveClass("min-h-0")
+    expect(contentFrame).toHaveClass("flex-1")
   }, 15000)
 
   it("keeps commerce pages on the fixed inner-scroll viewport", async () => {

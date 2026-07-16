@@ -621,6 +621,7 @@ function isCommercePageLayoutRoute(pathname: string) {
     "/platform-connect",
     "/approvals",
     "/operations",
+    "/agent-output",
   ].some((path) => isAgentChatRouteActive(pathname, path))
 }
 
