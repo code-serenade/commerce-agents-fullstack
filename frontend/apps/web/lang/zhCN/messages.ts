@@ -2853,9 +2853,19 @@ const messages = {
     },
   },
   agentOutput: {
+    header: {
+      description: "查看并整理问答生成的报告与交付材料。",
+    },
     prompt:
       "我是做咖啡运营的，主要营销平台是抖音，现在马上就五一了，可以帮我像一个运营方案吗提升我的转化率",
     sectionsNavigation: "阅读导航",
+    structured: {
+      badge: "当前报告",
+      defaultDescription: "根据当前选中的对话报告自动整理，未提及的信息不会补写。",
+      defaultCollaboration: "内容来自当前选中的对话报告。",
+      emptyTitle: "请选择一份可读取的对话报告",
+      emptyDescription: "生成或选择报告后，这里会根据报告正文动态整理标题、指标、执行步骤和章节。",
+    },
     backend: {
       eyebrow: "对话整理",
       title: "对话整理报告",
@@ -2964,8 +2974,8 @@ const messages = {
     },
     plan: {
       eyebrow: "执行工作流",
-      title: "从引流到复盘的 4 步路径",
-      actionsTitle: "24 小时内动作",
+      title: "报告中的执行路径",
+      actionsTitle: "下一步行动",
     },
     steps: {
       sku: {

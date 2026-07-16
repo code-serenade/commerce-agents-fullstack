@@ -1,9 +1,3 @@
-import {
-  agentOutputActionKeys,
-  agentOutputMetricKeys,
-  agentOutputSectionKeys,
-  agentOutputStepKeys,
-} from "./agent-output-data"
 import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useQuery } from "@tanstack/react-query"
@@ -16,6 +10,8 @@ import {
   type WorkspaceArtifactResponse,
   type WorkspaceResponse,
 } from "@/api"
+import { buildAgentOutputReport } from "./domain/report-structure"
+import { getOutputArtifactDisplay } from "./view-model/output-artifact-display-view-model"
 
 export interface AgentOutputDeliverable extends WorkspaceArtifactResponse {
   workspace: WorkspaceResponse
@@ -36,7 +32,9 @@ export interface AgentOutputBackendState {
 
 export function useAgentOutputPage() {
   const { t } = useTranslation()
-  const [selectedArtifactId, setSelectedArtifactId] = useState<string | null>(null)
+  const [selectedArtifactId, setSelectedArtifactId] = useState<string | null>(
+    null
+  )
   const backendQuery = useQuery({
     queryKey: ["agent-output", "backend-deliverables"],
     queryFn: loadBackendDeliverables,
@@ -64,7 +62,10 @@ export function useAgentOutputPage() {
     ],
     enabled: Boolean(selectedWorkspace?.id && selectedArtifactSnapshot?.id),
     queryFn: () =>
-      getWorkspaceArtifactApi(selectedWorkspace!.id, selectedArtifactSnapshot!.id),
+      getWorkspaceArtifactApi(
+        selectedWorkspace!.id,
+        selectedArtifactSnapshot!.id
+      ),
   })
   const selectedArtifact = useMemo<AgentOutputDeliverable | null>(() => {
     if (!selectedArtifactSnapshot) return null
@@ -86,22 +87,39 @@ export function useAgentOutputPage() {
     ],
     enabled: Boolean(selectedArtifact?.workspaceId && selectedArtifact?.id),
     queryFn: () =>
-      exportWorkspaceArtifactApi(selectedArtifact!.workspaceId, selectedArtifact!.id, {
-        format: selectedArtifact?.format,
-      }),
+      exportWorkspaceArtifactApi(
+        selectedArtifact!.workspaceId,
+        selectedArtifact!.id,
+        {
+          format: selectedArtifact?.format,
+        }
+      ),
   })
   const backendError =
     backendQuery.error ?? artifactDetailQuery.error ?? artifactExportQuery.error
+  const report = useMemo(() => {
+    const result = buildAgentOutputReport(
+      selectedArtifact,
+      artifactExportQuery.data ?? null
+    )
+    if (
+      !result ||
+      !selectedArtifact ||
+      result.title !== selectedArtifact.title
+    ) {
+      return result
+    }
+    return {
+      ...result,
+      title: getOutputArtifactDisplay(t, selectedArtifact).title,
+    }
+  }, [artifactExportQuery.data, selectedArtifact, t])
 
   return {
-    actions: agentOutputActionKeys.map((key) =>
-      t(`agentOutput.actions.${key}`)
-    ),
     backend: {
       artifactExport: artifactExportQuery.data ?? null,
       deliverables,
-      errorMessage:
-        backendError instanceof Error ? backendError.message : null,
+      errorMessage: backendError instanceof Error ? backendError.message : null,
       isExportLoading: artifactExportQuery.isLoading,
       loading: backendQuery.isLoading || artifactDetailQuery.isLoading,
       refetch: () => {
@@ -112,27 +130,7 @@ export function useAgentOutputPage() {
       setSelectedArtifactId,
       workspaces: backendQuery.data?.workspaces ?? [],
     } satisfies AgentOutputBackendState,
-    metrics: agentOutputMetricKeys.map((key) => ({
-      label: t(`agentOutput.metrics.${key}.label`),
-      value: t(`agentOutput.metrics.${key}.value`),
-      description: t(`agentOutput.metrics.${key}.description`),
-    })),
-    prompt: t("agentOutput.prompt"),
-    sections: agentOutputSectionKeys.map((key) => ({
-      id: key,
-      title: t(`agentOutput.sections.${key}.title`),
-      eyebrow: t(`agentOutput.sections.${key}.eyebrow`),
-      content: t(`agentOutput.sections.${key}.content`),
-      bullets: [0, 1, 2].map((index) =>
-        t(`agentOutput.sections.${key}.bullets.${index}`)
-      ),
-    })),
-    steps: agentOutputStepKeys.map((key) => ({
-      title: t(`agentOutput.steps.${key}.title`),
-      owner: t(`agentOutput.steps.${key}.owner`),
-      timing: t(`agentOutput.steps.${key}.timing`),
-      detail: t(`agentOutput.steps.${key}.detail`),
-    })),
+    report,
   }
 }
 

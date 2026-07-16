@@ -8,6 +8,8 @@ export interface OutputSectionsProps {
 export function OutputSections({ sections }: OutputSectionsProps) {
   const { t } = useTranslation()
 
+  if (!sections.length) return null
+
   return (
     <section className="grid gap-4 lg:grid-cols-[16rem_1fr]">
       <nav className="rounded-lg border border-(--document-card-border) bg-(image:--document-card-background) p-4 shadow-(--document-card-shadow) backdrop-blur-md lg:sticky lg:top-4 lg:z-20 lg:self-start">
@@ -34,25 +36,31 @@ export function OutputSections({ sections }: OutputSectionsProps) {
             id={section.id}
             className="scroll-mt-4 rounded-lg border border-(--document-card-border) bg-(image:--document-card-background) p-5 shadow-(--document-card-shadow) backdrop-blur-md"
           >
-            <p className="text-sm font-medium text-(--app-muted-text)">
-              {section.eyebrow}
-            </p>
+            {section.eyebrow ? (
+              <p className="text-sm font-medium text-(--app-muted-text)">
+                {section.eyebrow}
+              </p>
+            ) : null}
             <h2 className="mt-1 text-xl font-semibold text-(--app-text)">
               {section.title}
             </h2>
-            <p className="mt-3 text-sm/6 text-(--app-text)">
-              {section.content}
-            </p>
-            <ul className="mt-4 space-y-2">
-              {section.bullets.map((bullet) => (
-                <li
-                  key={bullet}
-                  className="rounded-md border border-(--document-card-border) bg-muted/45 px-3 py-2 text-sm/6 text-(--app-muted-text)"
-                >
-                  {bullet}
-                </li>
-              ))}
-            </ul>
+            {section.content ? (
+              <p className="mt-3 text-sm/6 text-(--app-text)">
+                {section.content}
+              </p>
+            ) : null}
+            {section.bullets.length ? (
+              <ul className="mt-4 space-y-2">
+                {section.bullets.map((bullet) => (
+                  <li
+                    key={bullet}
+                    className="rounded-md border border-(--document-card-border) bg-muted/45 px-3 py-2 text-sm/6 text-(--app-muted-text)"
+                  >
+                    {bullet}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </article>
         ))}
       </div>

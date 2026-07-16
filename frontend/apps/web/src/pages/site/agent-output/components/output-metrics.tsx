@@ -5,6 +5,8 @@ export interface OutputMetricsProps {
 }
 
 export function OutputMetrics({ metrics }: OutputMetricsProps) {
+  if (!metrics.length) return null
+
   return (
     <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       {metrics.map((metric) => (

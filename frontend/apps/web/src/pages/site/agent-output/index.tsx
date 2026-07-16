@@ -5,6 +5,7 @@ import { OutputBackendDeliverables } from "./components/output-backend-deliverab
 import { OutputMetrics } from "./components/output-metrics"
 import { OutputPlan } from "./components/output-plan"
 import { OutputSections } from "./components/output-sections"
+import { OutputStructuredReport } from "./components/output-structured-report"
 import { useAgentOutputPage } from "./use-agent-output-page"
 
 export default function AgentOutputPage() {
@@ -20,14 +21,21 @@ export default function AgentOutputPage() {
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-5">
       <OutputBackendDeliverables backend={page.backend} />
-      <div className="overflow-visible rounded-lg border border-(--document-card-border) bg-(image:--document-card-background) shadow-(--document-card-shadow) backdrop-blur-md">
-        <OutputHero prompt={page.prompt} />
-        <div className="space-y-5 p-5">
-          <OutputMetrics metrics={page.metrics} />
-          <OutputPlan actions={page.actions} steps={page.steps} />
-          <OutputSections sections={page.sections} />
-        </div>
-      </div>
+      <OutputStructuredReport report={page.report}>
+        {page.report ? (
+          <>
+            <OutputHero report={page.report} />
+            <div className="space-y-5 p-5">
+              <OutputMetrics metrics={page.report.metrics} />
+              <OutputPlan
+                actions={page.report.actions}
+                steps={page.report.steps}
+              />
+              <OutputSections sections={page.report.sections} />
+            </div>
+          </>
+        ) : null}
+      </OutputStructuredReport>
     </div>
   )
 }

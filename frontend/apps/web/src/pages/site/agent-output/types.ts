@@ -20,3 +20,17 @@ export interface AgentOutputSection {
   content: string
   bullets: string[]
 }
+
+export interface AgentOutputReport {
+  actions: AgentOutputAction[]
+  badges: string[]
+  collaboration: string | null
+  content: string
+  description: string
+  fileName: string
+  metrics: AgentOutputMetric[]
+  prompt: string | null
+  sections: AgentOutputSection[]
+  steps: AgentOutputStep[]
+  title: string
+}

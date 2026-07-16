@@ -3023,9 +3023,19 @@ const messages = {
     },
   },
   agentOutput: {
+    header: {
+      description: "Review and organize reports and deliverables generated from Q&A.",
+    },
     prompt:
       "I run coffee operations. My main marketing platform is Douyin, and May Day is coming soon. Can you help me write an operations plan to improve conversion rate?",
     sectionsNavigation: "Reading guide",
+    structured: {
+      badge: "Selected report",
+      defaultDescription: "Automatically organized from the selected conversation report without inventing missing details.",
+      defaultCollaboration: "Content comes from the selected conversation report.",
+      emptyTitle: "Select a readable conversation report",
+      emptyDescription: "After a report is generated or selected, its title, metrics, execution steps, and sections will be organized here.",
+    },
     backend: {
       eyebrow: "Conversation archive",
       title: "Conversation reports",
@@ -3135,8 +3145,8 @@ const messages = {
     },
     plan: {
       eyebrow: "Execution workflow",
-      title: "Four-step path from traffic bait to review",
-      actionsTitle: "Actions in the next 24 hours",
+      title: "Execution path in this report",
+      actionsTitle: "Next actions",
     },
     steps: {
       sku: {
