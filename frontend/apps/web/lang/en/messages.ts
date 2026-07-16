@@ -3274,13 +3274,13 @@ const messages = {
         ],
       },
       tasks: {
-        title: "For your first visit, choose one outcome",
-        description: "Start with the task closest to your current goal. The system organizes the relevant materials and output around that workflow.",
-        resultLabel: "You can get",
+        title: "Choose the task you want to complete",
+        description: "Choose campaign planning, product analysis, or data review to see what information to prepare and what results you can receive.",
+        resultLabel: "You will get",
         items: [
-          { title: "Plan a campaign", shortDescription: "Goals, budget, timeline, and checklist", description: "Prepare product details, then state the campaign goal, budget, and dates so the system can generate a timeline, content direction, execution checklist, and review metrics.", result: "Campaign plan · Checklist · Risk notes" },
-          { title: "Analyze a product", shortDescription: "Selling points, price, competitors, and opportunity", description: "Select a product and add its price, selling points, and competitor materials so the system can assess demand, margin, content, and service risk.", result: "Opportunity assessment · Selling points · Test plan" },
-          { title: "Review business data", shortDescription: "Anomalies, causes, evidence, and actions", description: "Upload browsing, click, cart, order, or refund data so the system can locate likely problems and propose the next validation steps.", result: "Diagnosis · Evidence gaps · Optimization actions" },
+          { title: "Campaign planning", shortDescription: "Goals, budget, timing, and execution", description: "Prepare product details, then state the campaign goal, budget, and dates so the system can generate a timeline, content direction, execution checklist, and review metrics.", results: ["Campaign plan", "Execution checklist", "Risk notes"] },
+          { title: "Product analysis", shortDescription: "Selling points, competitors, price, and opportunity", description: "Select a product and add its price, selling points, and competitor materials so the system can assess demand, margin, content, and service risk.", results: ["Opportunity assessment", "Selling-point advice", "Test plan"] },
+          { title: "Data review", shortDescription: "Anomalies, causes, evidence, and actions", description: "Upload browsing, click, cart, order, or refund data so the system can locate likely problems and propose the next validation steps.", results: ["Diagnosis", "Evidence gaps", "Optimization actions"] },
         ],
       },
       journey: {
@@ -3319,7 +3319,7 @@ const messages = {
           { title: "Product selection analysis", detail: "Manage products, selling points, assets, knowledge, and competitors." },
           { title: "Files and images", detail: "Upload files that can be selected and read for the current turn." },
           { title: "Campaign planning practice", detail: "Plan goals, budget, dates, and deliverables." },
-          { title: "Data diagnosis guidance", detail: "Review products, campaigns, business data, and anomalies." },
+          { title: "Review reports", detail: "Preview, copy, download, and archive plans or reports from this task." },
           { title: "Training tasks and delivery", detail: "Store task history, revisions, and deliverables." },
           { title: "Teacher review records", detail: "Track submissions, decisions, returned revisions, and actions." },
           { title: "Business result tracking", detail: "Review long tasks, notifications, alerts, and stage results." },
@@ -3338,7 +3338,7 @@ const messages = {
       eyebrow: "Usage guide",
       title: "Commerce Multi-Agent Platform usage guide",
       description:
-        "This page explains how students use AI Q&A, product analysis, campaign planning, data diagnosis, and review reports around one ecommerce training task.",
+        "This page explains how students use AI Q&A, product analysis, campaign planning, task delivery, and review reports around one ecommerce training task.",
       action: "Open Q&A entry",
     },
     principle: {

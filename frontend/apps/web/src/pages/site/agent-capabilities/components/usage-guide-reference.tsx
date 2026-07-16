@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   ClipboardCheck,
   ArrowUpRight,
+  FileText,
   Library,
   Megaphone,
   ShieldAlert,
@@ -20,7 +21,7 @@ const featureIcons = [
   ShoppingBag,
   Library,
   Megaphone,
-  Boxes,
+  FileText,
   ClipboardCheck,
   ShieldAlert,
   BellRing,
@@ -31,7 +32,7 @@ const featurePaths = [
   "/products",
   "/materials",
   "/campaigns",
-  "/overview",
+  "/agent-output",
   "/workspaces",
   "/approvals",
   "/operations",
@@ -56,9 +57,9 @@ export function UsageGuideReference() {
               <Link
                 key={item.title}
                 to={featurePaths[index] ?? "/commerce"}
-                className="group relative flex min-h-24 min-w-0 cursor-pointer items-center gap-3 rounded-lg border border-(--app-border) bg-(--app-bg) px-4 py-3 pr-12 text-left no-underline transition-[transform,border-color,background-color,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-[0_10px_26px_color-mix(in_oklch,var(--primary)_10%,transparent)] focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:outline-none"
+                className="group relative flex min-h-24 min-w-0 cursor-pointer items-center gap-3 rounded-lg border border-(--app-border) bg-background px-4 py-3 pr-12 text-left no-underline transition-colors duration-200 hover:border-(--app-border) hover:bg-muted/25 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:outline-none"
               >
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary">
                   <Icon className="size-4" />
                 </span>
                 <div className="min-w-0 self-center">
@@ -83,7 +84,7 @@ export function UsageGuideReference() {
         contentClassName="pl-0 sm:pl-9"
       >
         <div className="grid gap-3 lg:grid-cols-2">
-          <div className="min-w-0 rounded-lg border border-(--app-border) bg-(--app-bg) p-4">
+          <div className="min-w-0 rounded-lg border border-(--app-border) bg-background p-4">
             <h3 className="text-sm font-semibold text-foreground">
               {content.boundary.supportedTitle}
             </h3>
@@ -96,7 +97,7 @@ export function UsageGuideReference() {
               ))}
             </ul>
           </div>
-          <div className="min-w-0 rounded-lg border border-(--app-border) bg-(--app-bg) p-4">
+          <div className="min-w-0 rounded-lg border border-(--app-border) bg-background p-4">
             <h3 className="text-sm font-semibold text-foreground">
               {content.boundary.guardedTitle}
             </h3>

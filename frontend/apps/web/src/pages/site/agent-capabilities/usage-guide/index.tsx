@@ -9,8 +9,8 @@ import { UsageGuideReference } from "../components/usage-guide-reference"
 export default function UsageGuidePage() {
   return (
     <CommerceSurface>
-      <CommerceBody className="min-[1200px]:px-8">
-        <div className="space-y-6 [&>section+section]:border-t [&>section+section]:border-(--app-border)/60 [&>section+section]:pt-6">
+      <CommerceBody className="bg-background min-[1200px]:px-8">
+        <div className="mx-auto w-full max-w-[1200px] space-y-8 [&>section+section]:border-t [&>section+section]:border-(--app-border)/55 [&>section+section]:pt-8">
           <UsageGuideOverview />
           <UsageGuideJourney />
           <UsageGuideReference />

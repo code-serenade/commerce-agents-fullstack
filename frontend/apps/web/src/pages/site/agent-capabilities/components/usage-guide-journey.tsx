@@ -18,7 +18,7 @@ function UsageGuideScreenshot({ step }: { step: UsageGuideJourneyStep }) {
   if (!step.screenshot || !step.screenshotAlt) return null
 
   return (
-    <figure className="ml-11 w-[calc(100%-2.75rem)] max-w-[800px] min-w-0 overflow-hidden rounded-lg border border-(--app-border) bg-(--app-bg) shadow-(--ui-shadow-soft)">
+    <figure className="ml-11 w-[calc(100%-2.75rem)] max-w-[800px] min-w-0 overflow-hidden rounded-lg border border-(--app-border)/80 bg-background">
       <div className="relative min-w-0 overflow-hidden">
         <img
           src={step.screenshot}
@@ -28,7 +28,7 @@ function UsageGuideScreenshot({ step }: { step: UsageGuideJourneyStep }) {
         {step.pins?.map((pin) => (
           <span
             key={`${step.id}-${pin.marker}`}
-            className="absolute flex size-7 -translate-1/2 items-center justify-center rounded-full border-2 border-background bg-destructive text-xs font-semibold text-destructive-foreground shadow-md"
+            className="absolute flex size-7 -translate-1/2 items-center justify-center rounded-full border-2 border-background bg-destructive text-xs font-semibold text-white shadow-md"
             style={{ left: `${pin.left}%`, top: `${pin.top}%` }}
           >
             {pin.marker}
@@ -36,7 +36,7 @@ function UsageGuideScreenshot({ step }: { step: UsageGuideJourneyStep }) {
         ))}
       </div>
       {step.note ? (
-        <figcaption className="border-t border-(--app-border) bg-muted/25 px-3 py-2 text-xs/5 text-muted-foreground">
+        <figcaption className="border-t border-(--app-border)/80 bg-muted/15 px-3 py-2 text-xs/5 text-muted-foreground">
           {step.note}
         </figcaption>
       ) : null}
@@ -59,8 +59,8 @@ function UsageGuideRecipe({
 }) {
   return (
     <div className="ml-11 w-[calc(100%-2.75rem)] space-y-3">
-      <div className="overflow-hidden rounded-lg border border-(--app-border) bg-(--app-bg)">
-        <div className="border-b border-(--app-border) bg-muted/25 px-4 py-3">
+      <div className="overflow-hidden rounded-lg border border-(--app-border) bg-background">
+        <div className="border-b border-(--app-border) bg-muted/15 px-4 py-3">
           <h4 className="text-sm font-semibold text-foreground">{title}</h4>
           <p className="mt-1 text-xs/5 text-muted-foreground">
             {description}
@@ -87,7 +87,7 @@ function UsageGuideRecipe({
           ))}
         </ol>
       </div>
-      <div className="rounded-r-lg border-l-3 border-primary bg-primary/5 px-4 py-3">
+      <div className="rounded-r-lg border-l-3 border-primary/70 bg-muted/15 px-4 py-3">
         <p className="text-xs font-semibold text-primary">{promptLabel}</p>
         <p className="mt-1 text-sm/6 text-foreground">{prompt}</p>
       </div>
@@ -103,8 +103,8 @@ function UsageGuideDestinations({
   title: string
 }) {
   return (
-    <div className="mt-3 ml-11 w-[calc(100%-2.75rem)] overflow-hidden rounded-lg border border-(--app-border) bg-(--app-bg)">
-      <div className="border-b border-(--app-border) bg-muted/25 px-4 py-3">
+    <div className="mt-3 ml-11 w-[calc(100%-2.75rem)] overflow-hidden rounded-lg border border-(--app-border) bg-background">
+      <div className="border-b border-(--app-border) bg-muted/15 px-4 py-3">
         <h4 className="text-sm font-semibold text-foreground">{title}</h4>
       </div>
       <ul className="divide-y divide-(--app-border)">
@@ -141,8 +141,13 @@ function UsageGuideDestinations({
 }
 
 export function UsageGuideJourney() {
-  const { t } = useTranslation()
-  const content = getUsageGuideContent(t).journey
+  const { i18n, t } = useTranslation()
+  const screenshotLanguage = i18n.resolvedLanguage
+    ?.toLowerCase()
+    .startsWith("en")
+    ? "en"
+    : "zh-CN"
+  const content = getUsageGuideContent(t, screenshotLanguage).journey
 
   return (
     <DocumentSection
