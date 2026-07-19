@@ -6,12 +6,21 @@ import type {
   ProductKnowledgeResponse,
   ProductMaterialResponse,
 } from "@/api"
-import { MutedText } from "../../components/commerce-ui"
+import {
+  MutedText,
+  StatusBadge,
+  toneForStatus,
+} from "../../components/commerce-ui"
 import type { CommerceColumn } from "../../components/commerce-ui"
 import type { CommerceTranslate } from "../../components/commerce-types"
-import type { ProductsPageState } from "../use-products-page"
-import type { ProductDialogName } from "../use-products-page"
-
+import {
+  getCommerceEnumLabel,
+  getCommerceStatusLabel,
+  knowledgeConfidenceLabel,
+  knowledgeContentTypeLabel,
+  knowledgeSourceTypeLabel,
+} from "../../domain/enum-mappings"
+import type { ProductDialogName, ProductsPageState } from "../use-products-page"
 export function createKnowledgeColumns(
   page: ProductsPageState,
   t: CommerceTranslate
@@ -23,7 +32,7 @@ export function createKnowledgeColumns(
       render: (item) => (
         <div className="min-w-0">
           <div className="truncate font-medium">
-            {item.title || item.contentType}
+            {item.title || knowledgeContentTypeLabel(t, item.contentType)}
           </div>
           <MutedText>{item.content.slice(0, 64)}</MutedText>
         </div>
@@ -32,12 +41,12 @@ export function createKnowledgeColumns(
     {
       key: "type",
       header: t("commerce.common.type"),
-      render: (item) => item.contentType,
+      render: (item) => knowledgeContentTypeLabel(t, item.contentType),
     },
     {
       key: "confidence",
       header: t("commerce.products.columns.confidence"),
-      render: (item) => item.confidence ?? "-",
+      render: (item) => knowledgeConfidenceLabel(t, item.confidence),
     },
     {
       key: "actions",
@@ -72,7 +81,7 @@ export function createAssetColumns(
     {
       key: "type",
       header: t("commerce.common.type"),
-      render: (item) => item.assetType,
+      render: (item) => getCommerceEnumLabel(t, "assetType", item.assetType),
     },
     {
       key: "actions",
@@ -105,36 +114,47 @@ export function createMaterialColumns(
       key: "title",
       header: t("commerce.products.columns.material"),
       render: (item) => (
-        <button
-          type="button"
-          className="block min-w-0 text-left"
-          onClick={() => page.setSelectedMaterialId(item.id)}
-        >
+        <div className="min-w-0">
           <span className="block truncate font-medium text-foreground">
-            {item.title || item.materialType}
+            {item.title ||
+              getCommerceEnumLabel(t, "materialType", item.materialType)}
           </span>
           <MutedText>
             {item.content?.slice(0, 64) || t("commerce.common.noContent")}
           </MutedText>
-        </button>
+        </div>
       ),
+      minWidth: "9rem",
+    },
+    {
+      key: "status",
+      header: t("commerce.common.status"),
+      render: (item) => (
+        <StatusBadge tone={toneForStatus(item.status)}>
+          {getCommerceStatusLabel(t, item.status)}
+        </StatusBadge>
+      ),
+      width: "7rem",
     },
     {
       key: "version",
       header: t("commerce.common.version"),
       render: (item) => item.version ?? "-",
+      width: "5rem",
     },
     {
       key: "actions",
       header: t("commerce.common.actions"),
-      render: (item) => (
-        <div className="flex flex-wrap gap-2">
-          {editButton(t, "edit-material", page, () =>
-            page.setSelectedMaterialId(item.id)
-          )}
-          {archiveButton(t, () => page.archiveMaterial(item.id))}
-        </div>
-      ),
+      render: (item) =>
+        item.status === "archived" ? null : (
+          <div className="flex flex-wrap gap-2">
+            {editButton(t, "edit-material", page, () =>
+              page.setSelectedMaterialId(item.id)
+            )}
+            {archiveButton(t, () => page.archiveMaterial(item.id))}
+          </div>
+        ),
+      width: "9rem",
     },
   ]
 }
@@ -184,7 +204,6 @@ export function createCompetitorColumns(
     },
   ]
 }
-
 function editButton(
   t: CommerceTranslate,
   dialog: ProductDialogName,
@@ -222,7 +241,9 @@ export function createChangeColumns(
       header: t("commerce.products.columns.change"),
       render: (item) => (
         <div className="min-w-0">
-          <div className="truncate font-medium">{item.changeType}</div>
+          <div className="truncate font-medium">
+            {getCommerceEnumLabel(t, "changeType", item.changeType)}
+          </div>
           <MutedText>
             {item.summary || `${item.oldValue || "-"} -> ${item.newValue || "-"}`}
           </MutedText>
@@ -232,7 +253,7 @@ export function createChangeColumns(
     {
       key: "source",
       header: t("commerce.common.source"),
-      render: (item) => item.sourceType || "manual",
+      render: (item) => knowledgeSourceTypeLabel(t, item.sourceType),
     },
   ]
 }

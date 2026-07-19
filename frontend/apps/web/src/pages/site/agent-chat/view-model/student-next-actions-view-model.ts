@@ -189,6 +189,11 @@ export function getStudentTaskEntries(t: TFunction): StudentTaskEntry[] {
       title: t("agentChat.thread.studentTaskEntries.analyze.title"),
     },
     {
+      detail: t("agentChat.thread.studentTaskEntries.campaign.detail"),
+      prompt: t("agentChat.thread.studentTaskEntries.campaign.prompt"),
+      title: t("agentChat.thread.studentTaskEntries.campaign.title"),
+    },
+    {
       detail: t("agentChat.thread.studentTaskEntries.plan.detail"),
       prompt: t("agentChat.thread.studentTaskEntries.plan.prompt"),
       title: t("agentChat.thread.studentTaskEntries.plan.title"),
@@ -202,6 +207,36 @@ export function getStudentTaskEntries(t: TFunction): StudentTaskEntry[] {
       detail: t("agentChat.thread.studentTaskEntries.review.detail"),
       prompt: t("agentChat.thread.studentTaskEntries.review.prompt"),
       title: t("agentChat.thread.studentTaskEntries.review.title"),
+    },
+    {
+      detail: t("agentChat.thread.studentTaskEntries.competitor.detail"),
+      prompt: t("agentChat.thread.studentTaskEntries.competitor.prompt"),
+      title: t("agentChat.thread.studentTaskEntries.competitor.title"),
+    },
+    {
+      detail: t("agentChat.thread.studentTaskEntries.visual.detail"),
+      prompt: t("agentChat.thread.studentTaskEntries.visual.prompt"),
+      title: t("agentChat.thread.studentTaskEntries.visual.title"),
+    },
+    {
+      detail: t("agentChat.thread.studentTaskEntries.live.detail"),
+      prompt: t("agentChat.thread.studentTaskEntries.live.prompt"),
+      title: t("agentChat.thread.studentTaskEntries.live.title"),
+    },
+    {
+      detail: t("agentChat.thread.studentTaskEntries.budget.detail"),
+      prompt: t("agentChat.thread.studentTaskEntries.budget.prompt"),
+      title: t("agentChat.thread.studentTaskEntries.budget.title"),
+    },
+    {
+      detail: t("agentChat.thread.studentTaskEntries.refund.detail"),
+      prompt: t("agentChat.thread.studentTaskEntries.refund.prompt"),
+      title: t("agentChat.thread.studentTaskEntries.refund.title"),
+    },
+    {
+      detail: t("agentChat.thread.studentTaskEntries.execution.detail"),
+      prompt: t("agentChat.thread.studentTaskEntries.execution.prompt"),
+      title: t("agentChat.thread.studentTaskEntries.execution.title"),
     },
   ]
 }

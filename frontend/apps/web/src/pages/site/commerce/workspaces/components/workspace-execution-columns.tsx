@@ -7,6 +7,10 @@ import {
 } from "../../components/commerce-ui"
 import type { CommerceColumn } from "../../components/commerce-ui"
 import type { CommerceTranslate } from "../../components/commerce-types"
+import {
+  getCommerceEnumLabel,
+  getCommerceStatusLabel,
+} from "../../domain/enum-mappings"
 import type { WorkspacesPageState } from "../use-workspaces-page"
 
 export function createExecutionColumns(
@@ -19,7 +23,9 @@ export function createExecutionColumns(
       header: t("commerce.workspaces.columns.suggestion"),
       render: (item) => (
         <div className="min-w-0">
-          <div className="truncate font-medium">{item.actionType}</div>
+          <div className="truncate font-medium">
+            {getCommerceEnumLabel(t, "actionType", item.actionType)}
+          </div>
           <MutedText>{item.description}</MutedText>
         </div>
       ),
@@ -32,7 +38,7 @@ export function createExecutionColumns(
     {
       key: "status",
       header: t("commerce.common.status"),
-      render: renderExecutionStatus,
+      render: (item) => renderExecutionStatus(item, t),
     },
     {
       key: "actions",
@@ -61,15 +67,22 @@ export function createExecutionColumns(
   ]
 }
 
-function renderExecutionStatus(item: ExecutionQueueResponse) {
+function renderExecutionStatus(
+  item: ExecutionQueueResponse,
+  t: CommerceTranslate
+) {
   const adapterStatus = getString(item.result, "adapterStatus")
   const message = getString(item.result, "message")
 
   return (
     <div className="space-y-1">
-      <StatusBadge tone={toneForStatus(item.status)}>{item.status}</StatusBadge>
+      <StatusBadge tone={toneForStatus(item.status)}>
+        {getCommerceStatusLabel(t, item.status)}
+      </StatusBadge>
       {adapterStatus ? (
-        <StatusBadge tone={toneForStatus(adapterStatus)}>{adapterStatus}</StatusBadge>
+        <StatusBadge tone={toneForStatus(adapterStatus)}>
+          {getCommerceStatusLabel(t, adapterStatus)}
+        </StatusBadge>
       ) : null}
       {message ? <MutedText>{message}</MutedText> : null}
     </div>

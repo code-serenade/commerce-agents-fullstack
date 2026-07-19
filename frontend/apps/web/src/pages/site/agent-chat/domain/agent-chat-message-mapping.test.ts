@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest"
 import type { ConversationDetailResponse } from "@/api"
 import {
+  createConversationTitle,
+  isFallbackConversationTitle,
   mapConversationAttachments,
   mapConversationMessages,
   readConversationRuntimeEvents,
@@ -25,6 +27,23 @@ const copy = {
 }
 
 describe("agent chat message mapping", () => {
+  it("creates trimmed conversation titles from the first user message", () => {
+    expect(createConversationTitle("  Analyze coffee products  ")).toBe(
+      "Analyze coffee products"
+    )
+    expect(createConversationTitle("  ")).toBe("")
+    expect(createConversationTitle("A".repeat(45))).toBe(
+      `${"A".repeat(40)}...`
+    )
+  })
+
+  it("recognizes empty and fallback conversation titles", () => {
+    expect(isFallbackConversationTitle(null, "New chat")).toBe(true)
+    expect(isFallbackConversationTitle("", "New chat")).toBe(true)
+    expect(isFallbackConversationTitle("New chat", "New chat")).toBe(true)
+    expect(isFallbackConversationTitle("Manual title", "New chat")).toBe(false)
+  })
+
   it("restores persisted runtime events from assistant messages", () => {
     const detail = conversationDetail([
       {

@@ -1,4 +1,5 @@
 import { Badge } from "@workspace/ui-components"
+import { fileKindLabel } from "../../domain/enum-mappings"
 import { fileKind } from "../domain/logic"
 import type { TrainingFileItem } from "../types"
 
@@ -12,7 +13,7 @@ export function FilesKindBadge({ file, t }: FilesKindBadgeProps) {
 
   return (
     <Badge variant="outline">
-      {t(`commerce.files.filters.kind.${kind}`)}
+      {fileKindLabel(t, kind)}
     </Badge>
   )
 }

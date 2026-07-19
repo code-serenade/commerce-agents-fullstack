@@ -45,7 +45,7 @@ export function MobileBottomNav({
   return (
     <>
       {openItem?.subItems?.length ? (
-        <div className="fixed inset-x-3 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-40 max-h-[min(24rem,calc(100svh-7rem))] overflow-y-auto rounded-xl border border-(--app-border) bg-[var(--surface)] p-2 text-[var(--surface-foreground)] shadow-[0_18px_64px_rgba(0,0,0,0.32)] [scrollbar-gutter:stable] md:hidden">
+        <div className="fixed inset-x-3 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-40 max-h-[min(24rem,calc(100svh-7rem))] overflow-y-auto rounded-xl border border-(--app-border) bg-white p-2 text-[var(--surface-foreground)] shadow-[0_18px_64px_rgba(0,0,0,0.32)] [scrollbar-gutter:stable] md:hidden dark:bg-[var(--surface)]">
           <div className="grid gap-1">
             {openItem.subItems.map((subItem) => (
               <a
@@ -53,9 +53,12 @@ export function MobileBottomNav({
                 href={subItem.href}
                 className={[
                   "flex min-h-10 items-center rounded-lg px-3 text-sm font-medium outline-hidden transition",
+                  "max-w-full min-w-0 overflow-hidden",
                   subItem.active
                     ? "bg-sidebar-accent text-sidebar-primary"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+                    : subItem.key === "empty-recents"
+                      ? "text-muted-foreground/70 hover:bg-sidebar-accent hover:text-muted-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring",
                 ].join(" ")}
                 aria-current={subItem.active ? "page" : undefined}
                 onClick={(event) => {
@@ -67,7 +70,9 @@ export function MobileBottomNav({
                   setOpenKey(null)
                 }}
               >
-                <span className="truncate">{subItem.label}</span>
+                <span className="block min-w-0 flex-1 truncate">
+                  {subItem.label}
+                </span>
               </a>
             ))}
           </div>
@@ -76,9 +81,9 @@ export function MobileBottomNav({
 
       <nav
         aria-label={label}
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-(--app-border) bg-[var(--surface)] px-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2 text-[var(--surface-foreground)] shadow-[0_-18px_48px_rgba(0,0,0,0.2)] md:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-(--app-border) bg-[var(--surface)] px-2 pt-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] text-[var(--surface-foreground)] shadow-[0_-18px_48px_rgba(0,0,0,0.2)] md:hidden"
       >
-        <div className="mx-auto grid max-w-lg grid-flow-col auto-cols-fr gap-1">
+        <div className="mx-auto grid max-w-lg auto-cols-fr grid-flow-col gap-1">
           {items.map((item) => (
             <MobileBottomNavButton
               key={item.key ?? item.href}
@@ -116,7 +121,7 @@ function MobileBottomNavButton({
   )
   const className = [
     "flex h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-lg px-2 outline-hidden transition",
-    active || open
+    open
       ? "bg-sidebar-accent text-sidebar-primary"
       : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring",
   ].join(" ")

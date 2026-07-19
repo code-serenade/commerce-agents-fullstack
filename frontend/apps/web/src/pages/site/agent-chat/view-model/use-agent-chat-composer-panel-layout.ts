@@ -3,8 +3,8 @@ import { useLayoutEffect, useState, type RefObject } from "react"
 const DEFAULT_PANEL_TOP_SAFE_SPACE = 120
 const STATUS_CARD_GAP = 12
 const PANEL_VIEWPORT_GAP = 20
-const MIN_PANEL_HEIGHT = 160
-const FALLBACK_PANEL_HEIGHT = 560
+const MIN_PANEL_HEIGHT = 260
+const FALLBACK_PANEL_HEIGHT = 640
 
 export type AgentChatComposerPanelPlacement = "top" | "bottom"
 

@@ -111,7 +111,7 @@ export function MessageContextSummary({
             <span>{t("agentChat.thread.contextSummary.details")}</span>
             <ChevronDown className="size-3.5 transition-transform group-open:rotate-180" />
           </summary>
-          <div className="mt-1.5 max-h-36 w-72 max-w-[min(72vw,18rem)] overflow-y-auto rounded-2xl border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) p-2 text-left shadow-[var(--agent-chat-card-shadow)] backdrop-blur-xl">
+          <div className="mt-1.5 max-h-36 w-72 max-w-[min(72vw,18rem)] overflow-y-auto rounded-2xl border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) p-2 text-left shadow-(--agent-chat-card-shadow) backdrop-blur-xl">
             <ContextReferenceGroup
               icon={<ShoppingBag className="size-3.5" />}
               items={summary.products}

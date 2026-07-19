@@ -8,6 +8,7 @@ import {
 } from "../../components/commerce-ui"
 import type { CommerceColumn } from "../../components/commerce-ui"
 import type { CommerceTranslate } from "../../components/commerce-types"
+import { getCommerceEnumLabel } from "../../domain/enum-mappings"
 import type { PlatformConnectPageState } from "../use-platform-connect-page"
 
 export function PlatformMetricsPanel({ page }: { page: PlatformConnectPageState }) {
@@ -68,7 +69,7 @@ function metricColumns(t: CommerceTranslate): CommerceColumn<StoreMetricResponse
     {
       key: "source",
       header: t("commerce.common.source"),
-      render: (item) => item.source || "-",
+      render: (item) => getCommerceEnumLabel(t, "source", item.source),
     },
   ]
 }

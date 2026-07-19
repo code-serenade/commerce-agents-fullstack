@@ -47,7 +47,7 @@ export function AgentChatThreadMessage({
     >
       {!isUser ? (
         <div
-          className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-(--agent-chat-strong-border) bg-(--agent-chat-elevated-strong) text-foreground shadow-[var(--agent-chat-avatar-shadow)]"
+          className="hidden size-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-(--agent-chat-strong-border) bg-(--agent-chat-elevated-strong) text-foreground shadow-(--agent-chat-avatar-shadow) md:flex"
           aria-label={assistantAvatarLabel}
           title={t("agentChat.thread.assistantAvatar.title")}
         >
@@ -59,14 +59,14 @@ export function AgentChatThreadMessage({
         </div>
       ) : null}
       <div
-        className={`flex w-full max-w-[min(45rem,88%)] min-w-0 flex-col ${
+        className={`flex w-full min-w-0 flex-col md:max-w-[min(45rem,88%)] ${
           isUser ? "items-end" : "items-start"
         }`}
       >
         <div
           className={`min-w-0 text-sm/6 ${
             isUser
-              ? "rounded-2xl bg-(--agent-chat-user-message-background) px-4 py-3 text-(--agent-chat-user-message-foreground) shadow-[var(--agent-chat-button-shadow)]"
+              ? "rounded-2xl rounded-tr-[2px] bg-(--agent-chat-user-message-background) px-4 py-3 text-(--agent-chat-user-message-foreground) shadow-(--agent-chat-button-shadow)"
               : "text-foreground"
           }`}
         >
@@ -110,7 +110,7 @@ export function AgentChatThreadMessage({
         ) : null}
       </div>
       {isUser ? (
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-(--agent-chat-strong-border) bg-(--agent-chat-elevated-strong) text-muted-foreground shadow-[var(--agent-chat-avatar-shadow)]">
+        <div className="hidden size-9 shrink-0 items-center justify-center rounded-xl border border-(--agent-chat-strong-border) bg-(--agent-chat-elevated-strong) text-muted-foreground shadow-(--agent-chat-avatar-shadow) md:flex">
           <UserRound className="size-5" />
         </div>
       ) : null}

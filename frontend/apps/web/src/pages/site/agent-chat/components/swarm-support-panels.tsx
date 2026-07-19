@@ -13,18 +13,42 @@ import { WORKSPACE_LANES } from "../view-model/swarm-panel-view-model"
 import { StatePill } from "./swarm-state-pill"
 
 const WORKSPACE_HANDOFFS = [
-  ["agentChat.swarm.handoffs.context.title", "agentChat.swarm.handoffs.context.detail", Database, "/products"],
-  ["agentChat.swarm.handoffs.execution.title", "agentChat.swarm.handoffs.execution.detail", ClipboardCheck, "/workspaces"],
-  ["agentChat.swarm.handoffs.delivery.title", "agentChat.swarm.handoffs.delivery.detail", FileText, "/agent-output"],
-  ["agentChat.swarm.handoffs.review.title", "agentChat.swarm.handoffs.review.detail", Bot, "/overview"],
+  [
+    "agentChat.swarm.handoffs.context.title",
+    "agentChat.swarm.handoffs.context.detail",
+    Database,
+    "/products",
+  ],
+  [
+    "agentChat.swarm.handoffs.execution.title",
+    "agentChat.swarm.handoffs.execution.detail",
+    ClipboardCheck,
+    "/workspaces",
+  ],
+  [
+    "agentChat.swarm.handoffs.delivery.title",
+    "agentChat.swarm.handoffs.delivery.detail",
+    FileText,
+    "/agent-output",
+  ],
+  [
+    "agentChat.swarm.handoffs.review.title",
+    "agentChat.swarm.handoffs.review.detail",
+    Bot,
+    "/overview",
+  ],
 ] as const
 
-export function WorkspaceHandoffRail({ compact = false }: { compact?: boolean }) {
+export function WorkspaceHandoffRail({
+  compact = false,
+}: {
+  compact?: boolean
+}) {
   const { t } = useTranslation()
   const navigate = useNavigate()
 
   return (
-    <div className="rounded-md border border-border bg-background p-2">
+    <div className="rounded-lg bg-(--agent-chat-elevated-strong)/70 p-2.5">
       <div className="mb-2 flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1.5 text-xs font-medium">
           <PlugZap className="size-4 text-muted-foreground" />
@@ -39,16 +63,16 @@ export function WorkspaceHandoffRail({ compact = false }: { compact?: boolean })
           <button
             key={titleKey}
             type="button"
-            className="flex min-w-0 items-start gap-2 rounded-md border border-border bg-card px-2 py-1.5 text-left transition-colors hover:bg-muted"
+            className="flex min-w-0 cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-muted/70"
             onClick={() => navigate(path)}
           >
-            <div className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+            <div className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
               <Icon className="size-3.5" />
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-medium">{t(titleKey)}</p>
               {compact ? null : (
-                <p className="mt-1 wrap-break-word text-xs/5 text-muted-foreground">
+                <p className="mt-1 text-xs/5 wrap-break-word text-muted-foreground">
                   {t(detailKey)}
                 </p>
               )}
@@ -72,7 +96,7 @@ export function CompactInfoBlock({
   title: string
 }) {
   return (
-    <div className="rounded-md border border-border bg-background p-2">
+    <div className="rounded-lg bg-(--agent-chat-elevated-strong)/70 p-2.5">
       <div className="mb-2 flex min-w-0 items-center gap-1.5 text-xs font-medium">
         <Icon className="size-4 text-muted-foreground" />
         <span className="truncate">{title}</span>
@@ -83,7 +107,7 @@ export function CompactInfoBlock({
             key={`${index}-${item}`}
             className="flex items-center gap-2 text-xs text-muted-foreground"
           >
-            <span className="size-1.5 shrink-0 rounded-full bg-muted-foreground/35" />
+            <span className="size-1.5 shrink-0 rounded-full bg-primary/50" />
             <span className="truncate">{item}</span>
           </div>
         ))}
@@ -129,11 +153,15 @@ export function SwarmIdleDetail({
             <span className="text-xs font-medium text-muted-foreground">
               {t("agentChat.workbench.businessInput")}
             </span>
-            <p className="mt-1 wrap-break-word text-sm/6 text-foreground">
+            <p className="mt-1 text-sm/6 wrap-break-word text-foreground">
               {lastTask ?? idleState.description}
             </p>
           </div>
-          <IdlePreview title={idleState.title} description={idleState.description} lines={lines} />
+          <IdlePreview
+            title={idleState.title}
+            description={idleState.description}
+            lines={lines}
+          />
           <div className="grid gap-2 border-t border-border bg-background p-3 sm:grid-cols-2">
             {WORKSPACE_LANES.map(([labelKey, valueKey]) => (
               <div

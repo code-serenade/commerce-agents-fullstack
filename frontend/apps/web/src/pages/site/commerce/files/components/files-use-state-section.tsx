@@ -1,3 +1,4 @@
+import { fileUsageLabel } from "../../domain/enum-mappings"
 import type { FileConversationUseState } from "../domain/logic"
 import { FilesDetailRow, FilesDetailSection } from "./files-detail-fields"
 
@@ -11,7 +12,7 @@ export function FilesUseStateSection({ state, t }: FilesUseStateSectionProps) {
     <FilesDetailSection title={t("commerce.files.detailDialog.sections.usage")}>
       <FilesDetailRow
         label={t("commerce.files.detailDialog.fields.usageState")}
-        value={t(`commerce.files.detailDialog.usageState.${state}`)}
+        value={fileUsageLabel(t, state)}
       />
       <FilesDetailRow
         label={t("commerce.files.detailDialog.fields.aiReadableThisTurn")}

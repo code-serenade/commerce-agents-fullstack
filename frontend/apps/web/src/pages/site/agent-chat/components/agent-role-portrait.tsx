@@ -53,7 +53,7 @@ function AgentPortraitImage({
   const imageClassName = "size-full"
   const surfaceClassName =
     size === "card"
-      ? "rounded-t-xl rounded-b-none bg-background"
+      ? "rounded-t-xl rounded-b-none bg-transparent"
       : `rounded-md bg-background shadow-sm ring-1 ${ringClassNames[activity.state]}`
   const isWorking =
     animate && (activity.state === "working" || activity.state === "reworking")

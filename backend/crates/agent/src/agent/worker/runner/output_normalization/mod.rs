@@ -546,7 +546,7 @@ mod tests {
 
         assert!(role_output.summary.contains("数据分析师"));
         assert!(!role_output.summary.contains("暂无法产出结果"));
-        assert!(combined.contains("指标口径"));
+        assert!(combined.contains("指标怎么算"));
         assert!(combined.contains("先建一张基础表"));
         assert!(combined.contains("资料边界"));
         assert!(!combined.contains("skill:"));

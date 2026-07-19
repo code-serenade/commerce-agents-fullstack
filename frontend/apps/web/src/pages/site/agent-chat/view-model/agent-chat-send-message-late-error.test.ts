@@ -14,6 +14,8 @@ vi.mock("../agent-chat-data", () => ({
   },
 }))
 
+const titleKey = "title"
+
 describe("sendAgentChatMessage late stream errors", () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -100,6 +102,13 @@ function createInput(
     content: "Analyze live commerce conversion.",
     attachments: [],
     conversationId: null,
+    ensureConversation: async () =>
+      (
+        await agentChatData.createConversation({
+          [titleKey]: "New chat",
+          agentId: "web-agent",
+        })
+      ).conversation.id,
     fallbackConversationTitle: "New chat",
     messageFormatCopy: {
       boundaryNotice: "boundary notice",
@@ -107,6 +116,7 @@ function createInput(
       streamTimedOut: "stream timed out",
     },
     onController: vi.fn(),
+    promoteConversationTitle: vi.fn(),
     runtimeSelection: {
       collaborationMode: "manual",
       learningLevel: "higher_vocational",
@@ -118,8 +128,6 @@ function createInput(
     selectedCampaigns: [],
     selectedSources: [],
     sessionIdRef: { current: sessionId },
-    setConversationId: vi.fn(),
-    setConversations: vi.fn(),
     setError: (value) => {
       state.errors.push(
         typeof value === "function" ? value(state.errors.at(-1) ?? null) : value

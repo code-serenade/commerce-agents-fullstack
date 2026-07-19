@@ -12,6 +12,11 @@ import {
 } from "../../components/commerce-ui"
 import type { CommerceColumn } from "../../components/commerce-ui"
 import type { CommerceTranslate } from "../../components/commerce-types"
+import {
+  getCommerceEnumLabel,
+  getCommerceStatusLabel,
+  getWorkspaceTypeLabel,
+} from "../../domain/enum-mappings"
 
 export function productColumns(
   t: CommerceTranslate
@@ -31,7 +36,9 @@ export function productColumns(
       key: "status",
       header: t("commerce.common.status"),
       render: (item) => (
-        <StatusBadge tone={toneForStatus(item.status)}>{item.status}</StatusBadge>
+        <StatusBadge tone={toneForStatus(item.status)}>
+          {getCommerceStatusLabel(t, item.status)}
+        </StatusBadge>
       ),
     },
   ]
@@ -47,7 +54,9 @@ export function campaignColumns(
       render: (item) => (
         <div className="min-w-0">
           <div className="truncate font-medium">{item.name}</div>
-          <MutedText>{item.campaignType || t("commerce.common.none")}</MutedText>
+          <MutedText>
+            {getCommerceEnumLabel(t, "campaignType", item.campaignType)}
+          </MutedText>
         </div>
       ),
     },
@@ -55,7 +64,9 @@ export function campaignColumns(
       key: "status",
       header: t("commerce.common.status"),
       render: (item) => (
-        <StatusBadge tone={toneForStatus(item.status)}>{item.status}</StatusBadge>
+        <StatusBadge tone={toneForStatus(item.status)}>
+          {getCommerceStatusLabel(t, item.status)}
+        </StatusBadge>
       ),
     },
   ]
@@ -71,7 +82,7 @@ export function workspaceColumns(
       render: (item) => (
         <div className="min-w-0">
           <div className="truncate font-medium">{item.title}</div>
-          <MutedText>{item.workspaceType || "general"}</MutedText>
+          <MutedText>{getWorkspaceTypeLabel(t, item.workspaceType)}</MutedText>
         </div>
       ),
     },
@@ -79,7 +90,9 @@ export function workspaceColumns(
       key: "status",
       header: t("commerce.common.status"),
       render: (item) => (
-        <StatusBadge tone={toneForStatus(item.status)}>{item.status}</StatusBadge>
+        <StatusBadge tone={toneForStatus(item.status)}>
+          {getCommerceStatusLabel(t, item.status)}
+        </StatusBadge>
       ),
     },
   ]
@@ -112,9 +125,7 @@ export function platformColumns(
   ]
 }
 
-export function governanceColumns(
-  t: CommerceTranslate
-): CommerceColumn<{
+export function governanceColumns(t: CommerceTranslate): CommerceColumn<{
   id: string
   name: string
   note: string
@@ -136,7 +147,9 @@ export function governanceColumns(
       key: "status",
       header: t("commerce.common.status"),
       render: (item) => (
-        <StatusBadge tone={toneForStatus(item.status)}>{item.status}</StatusBadge>
+        <StatusBadge tone={toneForStatus(item.status)}>
+          {getCommerceStatusLabel(t, item.status)}
+        </StatusBadge>
       ),
     },
   ]

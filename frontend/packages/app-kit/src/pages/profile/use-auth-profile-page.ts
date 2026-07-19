@@ -84,6 +84,7 @@ export function useAuthProfilePage({
   }, [applyUser, t])
 
   const displayName = user?.name || t("profile.fallback.name")
+  const account = user?.username || t("profile.fallback.account")
   const displayId = user?.display_id || user?.id || t("profile.fallback.id")
   const email = user?.email ?? ""
   const displayEmail = email || t("profile.fallback.email")
@@ -190,6 +191,7 @@ export function useAuthProfilePage({
     userAvatar: user?.avatar,
     displayName,
     displayId,
+    account,
     email: displayEmail,
     hasEmail,
     avatarFallback: getInitial(displayName),

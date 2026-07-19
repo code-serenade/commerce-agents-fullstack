@@ -63,8 +63,12 @@ describe("AgentProcessDrawer", () => {
       const dialog = screen.getByRole("dialog", {
         name: i18n.t("agentChat.workbench.title"),
       })
+      const drawer = dialog.closest("[data-agent-process-drawer='true']")
       const roleCluster = dialog.querySelector("[data-agent-role-cluster]")
 
+      expect(drawer).not.toBeNull()
+      expect(drawer).toHaveClass("absolute")
+      expect(drawer).toHaveClass("inset-0")
       expect(roleCluster).not.toBeNull()
       expect(
         dialog.querySelector("[data-agent-role-card='data']")

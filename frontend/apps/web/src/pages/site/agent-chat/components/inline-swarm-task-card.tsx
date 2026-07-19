@@ -33,6 +33,7 @@ import {
   InlineRuntimeBadge,
   InlineStepStrip,
 } from "./inline-swarm-task-details"
+import { InlineHandoffItem } from "./inline-handoff-item"
 
 export function InlineSwarmTaskCard({
   isStreaming,
@@ -98,7 +99,7 @@ export function InlineSwarmTaskCard({
       className="flex justify-start gap-3"
       data-process-message-id={messageId}
     >
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) text-primary">
+      <div className="hidden size-9 shrink-0 items-center justify-center rounded-xl border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) text-primary md:flex">
         <GitBranch className="size-5" />
       </div>
       <div
@@ -106,7 +107,7 @@ export function InlineSwarmTaskCard({
         data-agent-process-card-frame="true"
       >
         <div
-          className={`min-w-0 rounded-2xl border bg-(--agent-chat-elevated-surface) bg-(image:--agent-chat-card-background) p-3 shadow-(--agent-chat-card-shadow) backdrop-blur-xl ${
+          className={`agent-inline-process-card min-w-0 rounded-2xl border bg-(--agent-chat-elevated-surface) bg-(image:--agent-chat-card-background) p-3 shadow-(--agent-chat-card-shadow) backdrop-blur-xl ${
             processPanelOpen
               ? "border-primary/60 ring-1 ring-primary/25"
               : "border-(--agent-chat-soft-border)"
@@ -205,6 +206,8 @@ export function InlineSwarmTaskCard({
                   <AgentRoleClusterPanel
                     agents={agents}
                     animatePortraits={isStreaming}
+                    itemDetail="summary"
+                    variant="compact"
                   />
                 ) : null}
                 <InlineProgressSummary
@@ -235,18 +238,12 @@ export function InlineSwarmTaskCard({
                   isStreaming={isStreaming}
                 />
                 {handoffItems.map((item, index) => {
-                  const Icon = item.icon
                   return (
-                    <div
+                    <InlineHandoffItem
                       key={`${index}-${item.label}`}
-                      className="flex min-w-0 items-center gap-2 rounded-lg border border-(--agent-chat-soft-border) bg-(--agent-chat-subtle-surface) px-3 py-2 text-xs text-muted-foreground"
-                    >
-                      <Icon className="size-3.5 shrink-0" />
-                      <span className="shrink-0 font-medium text-foreground">
-                        {item.label}
-                      </span>
-                      <span className="min-w-0 truncate">{item.detail}</span>
-                    </div>
+                      item={item}
+                      itemKey={`${index}-${item.label}`}
+                    />
                   )
                 })}
               </div>

@@ -42,6 +42,7 @@ const messages = {
         logout: "Log out",
         actions: {
           profile: "Profile",
+          teamSchool: "Team school",
         },
       },
     },
@@ -50,9 +51,11 @@ const messages = {
     common: {
       all: "All",
       archive: "Archive",
+      delete: "Delete",
       approve: "Approve",
       reject: "Reject",
       edit: "Edit",
+      view: "View",
       save: "Save",
       cancel: "Cancel",
       download: "Download",
@@ -70,6 +73,7 @@ const messages = {
       smartFill: "Smart fill",
       templateSmartFill: "Template fill",
       agentSmartFill: "Agent fill",
+      breadcrumb: "Breadcrumb",
       smartFillReviewNotice:
         "Smart fill only writes a draft into this form and does not save it. Review the fields, then save to create the record.",
       smartFillProcess: {
@@ -101,6 +105,8 @@ const messages = {
       reason: "Reason",
       none: "Not set",
       noContent: "No content",
+      no: "No",
+      yes: "Yes",
       manualApprove: "Frontend manual approval",
       manualReject: "Frontend manual rejection",
       manualCancel: "Frontend manual cancellation",
@@ -117,6 +123,173 @@ const messages = {
       countActive: "{{count}} active",
       countDone: "{{count}} done",
       driftCount: "{{count}} drift items found",
+    },
+    statusOptions: {
+      active: "Active",
+      archived: "Archived",
+      approved: "Approved",
+      blocked: "Blocked",
+      cancelled: "Cancelled",
+      completed: "Completed",
+      configured: "Configured",
+      critical: "Critical",
+      degraded: "Degraded",
+      deprecated: "Deprecated",
+      dismissed: "Dismissed",
+      disabled: "Disabled",
+      done: "Done",
+      draft: "Draft",
+      empty: "No data",
+      enabled: "Enabled",
+      ended: "Ended",
+      executed: "Executed",
+      failed: "Failed",
+      idle: "Idle",
+      inProgress: "In progress",
+      missing: "Missing",
+      partial: "Partially available",
+      pending: "Pending",
+      pendingApproval: "Pending approval",
+      paused: "Paused",
+      planned: "Planned",
+      ready: "Ready",
+      rejected: "Rejected",
+      running: "Running",
+      skipped: "Skipped",
+      snoozed: "Snoozed",
+      success: "Success",
+      succeeded: "Succeeded",
+      syncing: "Syncing",
+      unsupported: "Unsupported",
+      warning: "Needs attention",
+    },
+    enumLabels: {
+      other: "Other",
+      actionType: {
+        approve: "Approve",
+        archive: "Archive",
+        execute: "Execute",
+        publish: "Publish",
+        reject: "Reject",
+        update: "Update",
+      },
+      adapterStatus: {
+        notImplemented: "Adapter not implemented",
+        required: "Adapter required",
+        degraded: "Degraded",
+        disabled: "Adapter disabled",
+        live: "Adapter available",
+      },
+      alertType: {
+        approvalRequired: "Approval required",
+        budgetRisk: "Budget risk",
+        dataAnomaly: "Data anomaly",
+        policyRisk: "Policy risk",
+        system: "System notice",
+        taskFailed: "Task failed",
+      },
+      assetType: { docs: "Documents", images: "Images", videos: "Videos" },
+      campaignType: {
+        content: "Content campaign",
+        flashSale: "Flash sale",
+        launch: "Product launch",
+        live: "Livestream campaign",
+        promotion: "Promotion",
+        seasonal: "Seasonal campaign",
+      },
+      changeType: {
+        description: "Description change",
+        price: "Price change",
+        rating: "Rating change",
+        sales: "Sales change",
+        stock: "Stock change",
+        title: "Title change",
+      },
+      connectionStatus: {
+        connected: "Connected",
+        disabled: "Disabled",
+        missing: "Not connected",
+        disconnected: "Disconnected",
+      },
+      eventType: {
+        campaignUpdated: "Campaign updated",
+        reportCreated: "Report created",
+        system: "System event",
+        taskCompleted: "Task completed",
+        taskCreated: "Task created",
+        taskFailed: "Task failed",
+      },
+      executionMode: {
+        adapter: "Platform adapter",
+        deferred: "Deferred",
+        manual: "Manual",
+        native: "Native execution",
+      },
+      materialType: {
+        context: "Context material",
+        copy: "Copy",
+        document: "Document",
+        sheet: "Spreadsheet",
+        image: "Image",
+        text: "Text",
+        video: "Video",
+      },
+      ownerRole: {
+        creative: "Creative",
+        data: "Data analysis",
+        delivery: "Delivery",
+        design: "Design",
+        engineering: "Engineering",
+        finance: "Finance",
+        ops: "Commerce operations",
+        planning: "Campaign planning",
+        search: "Research",
+        seo: "SEO",
+        service: "Customer service",
+      },
+      readiness: {
+        blocked: "Unavailable",
+        empty: "No data",
+        missing: "Requirements missing",
+        partial: "Partially available",
+        ready: "Executable",
+        unsupported: "Unsupported",
+      },
+      riskLevel: { low: "Low risk", medium: "Medium risk", high: "High risk" },
+      severity: {
+        blocking: "Blocking",
+        critical: "Critical",
+        high: "High",
+        info: "Info",
+        low: "Low",
+        medium: "Medium",
+        warning: "Warning",
+      },
+      source: {
+        agent: "AI generated",
+        api: "API sync",
+        imported: "Imported",
+        manual: "Manual",
+        platformSync: "Platform sync",
+        system: "System generated",
+      },
+      targetType: {
+        campaign: "Campaign",
+        execution: "Execution suggestion",
+        product: "Product",
+        run: "Run",
+        task: "Task",
+        tool: "Tool call",
+        workspace: "Workspace",
+      },
+      taskType: {
+        analysis: "Analysis task",
+        campaign: "Campaign task",
+        export: "Export task",
+        manual: "Manual task",
+        report: "Report task",
+        sync: "Sync task",
+      },
     },
     fields: {
       productName: "Product name",
@@ -365,6 +538,15 @@ const messages = {
           name: "Galaxy Cup temperature-display thermos",
         },
       },
+      templates: {
+        title: "Sample products",
+        description:
+          "Load built-in product cases so the product library and training analysis are ready immediately.",
+        loading: "Loading sample products",
+        noDescription: "No description for this sample yet",
+        import: "Load sample",
+        importing: "Loading",
+      },
       metrics: {
         active: "Active products",
         activeTail: "{{total}} total, {{archived}} archived",
@@ -379,7 +561,7 @@ const messages = {
       panels: {
         list: "Products to analyze",
         listDesc:
-          "Choose one product, then review selling points, assets, price band, and competitors to form a product-selection judgment.",
+          "Manage products for selection analysis and review their details, materials, and competitors.",
         create: "Add training product",
         search: "Search products, platform, category, or brand",
         empty:
@@ -391,6 +573,7 @@ const messages = {
         selectedDesc:
           "Organize knowledge, assets, competitors, and changes around this product.",
         edit: "Edit product",
+        moreDetails: "More details",
         archive: "Archive product",
         knowledgeTab: "Knowledge",
         assetsTab: "Assets",
@@ -439,6 +622,25 @@ const messages = {
         change: "Record competitor change",
         uploadFile: "Upload file",
       },
+      knowledgeContentTypes: {
+        sellingPoint: "Selling point",
+        text: "General text",
+        spec: "Specs",
+        faq: "FAQ",
+        competitive: "Competitive comparison",
+      },
+      knowledgeSourceTypes: {
+        manual: "Manual entry",
+        agentGenerated: "Agent generated",
+        platformSync: "Platform sync",
+        imported: "File import",
+      },
+      knowledgeConfidence: {
+        label: "Confidence level",
+        low: "Low (confidence 0.5)",
+        medium: "Medium (confidence 0.8)",
+        high: "High (confidence 0.95)",
+      },
       notify: {
         created: "Product created",
         updated: "Product updated",
@@ -458,6 +660,8 @@ const messages = {
         changeCreated: "Competitor change recorded",
         draftFilled:
           "Product draft filled into the form. Review before saving.",
+        templateImported: "Sample product loaded",
+        templateOpened: "Sample product opened",
       },
     },
     campaigns: {
@@ -512,6 +716,13 @@ const messages = {
       },
     },
     workspaces: {
+      typeOptions: {
+        general: "General training",
+        agentChat: "AI chat generated",
+        productAnalysis: "Product selection analysis",
+        campaignPlanning: "Campaign planning practice",
+        dataDiagnosis: "Data diagnosis analysis",
+      },
       metrics: {
         workspaces: "Training tasks",
         workspacesTail: "Student submissions and revisions",
@@ -527,6 +738,8 @@ const messages = {
         masterDesc:
           "Each training task can bind products and campaigns, then store submission records, review materials, and improvement suggestions.",
         createWorkspace: "Create training task",
+        viewDetail: "View detail",
+        backToList: "Back to list",
         search: "Search training task title or type",
         empty:
           "No training task yet. Generate or create one from the AI training assistant.",
@@ -612,13 +825,23 @@ const messages = {
       },
       dialogs: {
         workspace: "Create workspace",
+        editWorkspace: "Edit training task",
+        productBinding: "Bound product",
+        campaignBinding: "Bound campaign",
+        workspaceTypeLocked:
+          "Training task type is fixed after creation. Editing it may make existing task items, submissions, and review materials inconsistent, so only the title and bindings can be changed here.",
         task: "Create task",
         run: "Create run record",
         runTask: "Create run task snapshot",
         execution: "Create execution suggestion",
       },
+      confirm: {
+        deleteWorkspace:
+          'Delete training task "{{title}}"? This will archive the task and hide it from the list.',
+      },
       notify: {
         workspaceCreated: "Workspace created",
+        workspaceUpdated: "Workspace updated",
         workspaceArchived: "Workspace archived",
         taskCreated: "Task created",
         taskUpdated: "Task status updated",
@@ -836,6 +1059,19 @@ const messages = {
       panelTitle: "Upload file library",
       panelDescription:
         "Check upload read status and usage state, then choose which files should support this AI turn.",
+      imageViewer: {
+        preview: "Preview image",
+        close: "Close image viewer",
+        previous: "Previous image",
+        next: "Next image",
+        mirror: "Mirror image",
+        rotate: "Rotate image",
+        zoomOut: "Zoom out",
+        zoomIn: "Zoom in",
+        reset: "Reset image",
+        download: "Download image",
+        loadError: "Image could not be displayed",
+      },
       searchPlaceholder: "Search file name, type, object key, or status",
       deleteSelected: "Delete {{count}} file(s)",
       clearSelection: "Clear selection",
@@ -873,12 +1109,12 @@ const messages = {
         },
       },
       turnSelection: {
-        title: "AI will read {{count}} material file(s) this turn",
+        title: "{{count}} file(s) selected this turn",
         files: "{{names}}{{hiddenText}}",
         hiddenSuffix: " and {{count}} more",
-        empty: "No material files are selected for this turn.",
-        action: "Show turn materials",
-        clearAction: "Clear turn selection",
+        empty: "No materials selected this turn",
+        action: "View selected",
+        clearAction: "Clear",
       },
       filters: {
         kind: {
@@ -910,8 +1146,8 @@ const messages = {
       },
       table: {
         name: "File",
-        status: "Read status",
-        useStateHeader: "Usage state",
+        status: "AI read",
+        useStateHeader: "Turn status",
         size: "Size",
         createdAt: "Uploaded at",
         actions: "Actions",
@@ -1137,6 +1373,20 @@ const messages = {
       inline: "Sign in to continue and save history",
       action: "Sign in",
     },
+    reportActions: {
+      currentConversation: "Current conversation",
+      exportMenu: "Export",
+      exportMenuLabel: "Export current conversation",
+      exportReport: "Export report",
+      exportTranscript: "Export transcript",
+      exportingTranscript: "Exporting",
+      generatingReport: "Generating",
+      openReportCenter: "Report center",
+      reportExported: "Current conversation report generated and downloaded.",
+      reportFailed: "Report generation failed. Try again later.",
+      transcriptExported: "Transcript exported.",
+      transcriptFailed: "Transcript export failed. Try again later.",
+    },
     quota: {
       loading: "Loading account question quota...",
       availableBadge: "Quota available",
@@ -1177,6 +1427,7 @@ const messages = {
       expandFunctionNav: "Expand common entries",
       collapseFunctionNav: "Collapse common entries",
       empty: "No conversations yet",
+      guestEmpty: "Sign in to sync conversation history",
     },
     shell: {
       brandEyebrow: "Commerce Multi-Agent Platform",
@@ -1253,6 +1504,14 @@ const messages = {
       attachShort: "Upload",
       attachPrompt:
         "Add the file or data constraints here, for example: product price, budget, inventory, target audience, current conversion rate, and platform account status.",
+      uploadValidation: {
+        empty: 'File "{{fileName}}" is empty and cannot be read by AI.',
+        mimeMismatch:
+          'File "{{fileName}}" does not match its extension. Check the file and try again.',
+        tooLarge: 'File "{{fileName}}" exceeds the {{maxSize}} size limit.',
+        unsupportedFormat:
+          'File "{{fileName}}" is unsupported. Upload PNG, JPG, JPEG, WebP, PDF, DOCX, XLS, XLSX, CSV, TXT, MD, Markdown, JSON, TSV, HTML, or HTM.',
+      },
       agentTitle: "References for this turn",
       agentName: "Commerce Multi-Agent Platform",
       contextPreview: {
@@ -1675,6 +1934,7 @@ const messages = {
       closePanel: "Collapse process panel",
       progress: "Progress",
       activity: "Run activity",
+      summary: "Collaboration summary",
       adaptiveDispatch: "Adaptive dispatch",
       record: "Run records",
       recordCountSuffix: "items",
@@ -1787,41 +2047,88 @@ const messages = {
         },
       },
       studentTaskEntries: {
-        title: "Start here",
+        title: "Try asking",
         subtitle: "Choose one to put it into the input.",
         openIdeas: "More question ideas",
         start: {
-          title: "Check if this product can sell",
+          title: "Judge product potential",
           detail:
             "Incomplete information is fine; start with margin, demand, and service risk.",
           prompt:
-            "I have a product I want to sell, but the materials are incomplete. First help me judge whether it can work and what key detail is still missing.",
+            "I want to sell a product, but the information is incomplete. Help me judge whether it is worth pursuing and what key information is missing.",
         },
         analyze: {
-          title: "Improve title or selling points",
+          title: "Improve title and benefits",
           detail: "Make the click reason and buying reason clearer.",
           prompt:
-            "Help me see why this product title and selling points are not attractive enough, then rewrite one natural version.",
+            "Improve this product's title and selling points, and give me three versions.",
+        },
+        campaign: {
+          title: "Create a campaign plan",
+          detail: "Clarify the goal, budget, schedule, and execution steps.",
+          prompt:
+            "Create a campaign plan with a goal, budget, schedule, and execution checklist.",
         },
         plan: {
           title: "Write a customer reply",
           detail:
             "Keep it natural without promising what the shop cannot prove.",
           prompt:
-            "A customer says the price is expensive. Help me write a natural reply that does not overpromise.",
+            "A customer raised a concern. Write a natural, compliant reply that does not overpromise.",
         },
         data: {
-          title: "Review my data",
+          title: "Diagnose business data",
           detail:
             "You do not need to know the metrics first; I will help find what affects the result most.",
           prompt:
-            "I have some browse, click, add-to-cart, purchase, or refund data. First help me judge where the issue may be stuck and what I should check next.",
+            "Use browse, click, add-to-cart, purchase, and refund data to find the main issue and recommend the next step.",
         },
         review: {
-          title: "Make the plan more convincing",
-          detail: "Useful for assignments, presentations, or teacher feedback.",
+          title: "Prepare a review report",
+          detail:
+            "Turn conclusions, process, issues, and improvements into a deliverable.",
           prompt:
-            "My teacher said my plan is too empty. Help me make it more evidence-based and executable.",
+            "Turn the conclusions, process, issues, and improvement ideas into a review report.",
+        },
+        competitor: {
+          title: "Compare competitors",
+          detail:
+            "Find opportunities across price, benefits, audience, and risk.",
+          prompt:
+            "Compare my product with competitors across price, benefits, audience, and risk.",
+        },
+        visual: {
+          title: "Create main image copy",
+          detail:
+            "Highlight verified benefits and the audience's main concern.",
+          prompt:
+            "Use the product benefits and target audience to create three main image copy options.",
+        },
+        live: {
+          title: "Improve a live script",
+          detail:
+            "Strengthen the opening, benefits, interaction, and conversion.",
+          prompt:
+            "Improve my live script with an opening, key benefits, interaction, and conversion guidance.",
+        },
+        budget: {
+          title: "Plan an ad budget",
+          detail: "Set the allocation, test pace, and loss limits.",
+          prompt:
+            "Use my budget and goal to plan ad allocation, test pace, and stop-loss limits.",
+        },
+        refund: {
+          title: "Analyze refund causes",
+          detail:
+            "Identify the main refund issues and prioritize improvements.",
+          prompt:
+            "Use refund reasons and amounts to find the main issues and prioritize improvements.",
+        },
+        execution: {
+          title: "Break down execution tasks",
+          detail: "Turn a plan into ordered tasks with owners and checks.",
+          prompt:
+            "Break this plan into execution tasks with an order, owners, and checkpoints.",
         },
       },
       receivingOutput: "Preparing the usable answer",
@@ -2224,6 +2531,13 @@ const messages = {
             warnings: "{{warnings}} material note(s)",
           },
         },
+        materialReadiness: {
+          ready: "ready",
+          partial: "partially ready",
+          pending: "waiting to load",
+          empty: "no usable material",
+          unknown: "status to confirm",
+        },
         contextBudget: {
           label: "Context budget",
           detail:
@@ -2297,6 +2611,10 @@ const messages = {
         routeType: "Method",
         studentReadTitle: "Task summary",
         roleClusterTitle: "Roles working on this turn",
+        expandRoleCluster: "Expand",
+        collapseRoleCluster: "Collapse",
+        expandRoleClusterCards: "Expand role cards",
+        collapseRoleClusterCards: "Collapse role cards",
         roleClusterSummary:
           "These roles split the checks, add missing context, and organize the answer when useful.",
         emptyTask: "Waiting for this turn's task",
@@ -2909,6 +3227,9 @@ const messages = {
     },
   },
   agentOutput: {
+    header: {
+      description: "Review and organize reports and deliverables generated from Q&A.",
+    },
     prompt:
       "I run coffee operations. My main marketing platform is Douyin, and May Day is coming soon. Can you help me write an operations plan to improve conversion rate?",
     sectionsNavigation: "Reading guide",
@@ -2920,6 +3241,7 @@ const messages = {
       refresh: "Refresh",
       loading: "Loading conversation reports",
       listTitle: "Conversation report list",
+      backToList: "Back to report list",
       listDesc: "{{artifacts}} report(s) / {{workspaces}} training task(s)",
       emptyTitle: "No conversation reports yet",
       emptyDescription:
@@ -2932,6 +3254,42 @@ const messages = {
       copy: "Copy",
       download: "Download",
       downloadFileName: "conversation-report",
+      reportActions: {
+        exportTranscript: "Export transcript",
+        exportingTranscript: "Exporting",
+        generate: "Generate report",
+        generateCurrent: "Generate current conversation report",
+        generating: "Generating",
+        reportFailed: "Report generation failed. Try again later.",
+        reportGenerated: "Report generated.",
+        transcriptExported: "Transcript exported.",
+        transcriptFailed: "Transcript export failed. Try again later.",
+      },
+      reportDialog: {
+        cancel: "Cancel",
+        generating: "Generating",
+        submit: "Generate report",
+        title: "Generate conversation report",
+        fields: {
+          includeProcess: "Include multi-agent process material",
+          includeSources: "Include attachments and deliverable sources",
+          includeTranscriptAppendix: "Append transcript excerpts",
+          reportType: "Report type",
+          scope: "Material scope",
+        },
+        reportTypes: {
+          conversation_report: "General conversation report",
+          commerce_conversation_report: "Commerce operations report",
+          teaching_conversation_report: "Teaching review report",
+          process_evidence_pack: "Process evidence report",
+        },
+        scopes: {
+          conversation_all: "Full conversation",
+          conversation_recent: "Recent conversation",
+          selected_sources: "Selected sources",
+          workspace_run: "This task run",
+        },
+      },
       meta: {
         workspace: "Training task",
         source: "Source",
@@ -2958,6 +3316,7 @@ const messages = {
         source: {
           agentSession: "Generated from Q&A",
           agentSkillResult: "Reference check",
+          manualReportGeneration: "Manually generated report",
         },
         status: {
           active: "Ready to view",
@@ -2970,10 +3329,14 @@ const messages = {
           inline: "Saved body",
         },
         type: {
+          conversationReport: "General conversation report",
+          commerceConversationReport: "Commerce operations report",
           finalReport: "Conversation report",
           learningMaterial: "Learning material",
+          processEvidencePack: "Process evidence report",
           report: "Report",
           searchEvidence: "Reference check record",
+          teachingConversationReport: "Teaching review report",
         },
         validation: {
           failed: "Needs review",
@@ -3021,8 +3384,8 @@ const messages = {
     },
     plan: {
       eyebrow: "Execution workflow",
-      title: "Four-step path from traffic bait to review",
-      actionsTitle: "Actions in the next 24 hours",
+      title: "Execution path in this report",
+      actionsTitle: "Next actions",
     },
     steps: {
       sku: {
@@ -3141,11 +3504,117 @@ const messages = {
     },
   },
   agentCapabilities: {
+    final: {
+      intro: {
+        title: "What problems can this system help you solve?",
+        description:
+          "This is not just a chat tool. It is an AI workspace that helps you complete an ecommerce task, produce usable work, and retain the process.",
+        columns: {
+          problem: "Your problem",
+          action: "What the system does",
+          result: "What you get",
+        },
+        items: [
+          {
+            problem: "You do not know where to start",
+            action: "State the task. The system asks for missing details and organizes the key points.",
+            result: "A clear analysis direction and next steps.",
+          },
+          {
+            problem: "You have materials but do not know how to use them",
+            action: "Select the products, files, or campaigns needed for this task, and the system analyzes them.",
+            result: "Judgments and suggestions grounded in the current task.",
+          },
+          {
+            problem: "A general AI answer is difficult to use directly",
+            action: "AI roles analyze the task from operations, data, and creative perspectives, then organize the content.",
+            result: "Plans, checklists, copy, and reports ready for execution or submission.",
+          },
+          {
+            problem: "Task history and results are easily lost",
+            action: "The system retains conversations, revisions, and final results.",
+            result: "A task record that can be continued, submitted, reviewed, and reused.",
+          },
+        ],
+      },
+      flow: {
+        title: "The complete task workflow",
+        description:
+          "The sidebar entries are stages of one task, not unrelated features.",
+        items: [
+          { stage: "Before", title: "Prepare materials", detail: "Choose products, files, images, or campaigns." },
+          { stage: "Start", title: "State the problem", detail: "Explain the goal, constraints, and expected result." },
+          { stage: "In progress", title: "AI role collaboration", detail: "The system selects operations, data, and other roles." },
+          { stage: "Finish", title: "Review the result", detail: "Receive conclusions, plans, checklists, or reports." },
+          { stage: "After", title: "Submit and review", detail: "Save tasks, review records, and business results." },
+        ],
+      },
+      tasks: {
+        title: "Choose the task you want to complete",
+        description: "Choose campaign planning, product analysis, or data review to see what information to prepare and what results you can receive.",
+        resultLabel: "You will get",
+        items: [
+          { title: "Campaign planning", shortDescription: "Goals, budget, timing, and execution", description: "Prepare product details, then state the campaign goal, budget, and dates so the system can generate a timeline, content direction, execution checklist, and review metrics.", results: ["Campaign plan", "Execution checklist", "Risk notes"] },
+          { title: "Product analysis", shortDescription: "Selling points, competitors, price, and opportunity", description: "Select a product and add its price, selling points, and competitor materials so the system can assess demand, margin, content, and service risk.", results: ["Opportunity assessment", "Selling-point advice", "Test plan"] },
+          { title: "Data review", shortDescription: "Anomalies, causes, evidence, and actions", description: "Upload browsing, click, cart, order, or refund data so the system can locate likely problems and propose the next validation steps.", results: ["Diagnosis", "Evidence gaps", "Optimization actions"] },
+        ],
+      },
+      journey: {
+        title: "How to complete one task",
+        description: "Follow the actual operating sequence shown below. The feature locations match the current product.",
+        steps: [
+          { navLabel: "Prepare", title: "Prepare the product and materials needed for this task", description: "Add the product, selling points, assets, and competitors under Product Analysis. You can also start Q&A before every detail is ready.", screenshotAlt: "Product analysis after sign-in", note: "1 Add or select a product; 2 Review selling points, assets, knowledge, and competitor materials." },
+          { navLabel: "Open Q&A", title: "Start from New Conversation", description: "Enter the task and add files, products, or campaigns as needed. Only explicitly selected context is used in this turn.", screenshotAlt: "Q&A entry after sign-in", note: "1 New conversation; 2 Enter the task; 3 Choose files, products, campaigns, and response settings." },
+          { navLabel: "Choose mode", title: "Keep Automatically select for your first task", description: "Open Response settings only when you need to control answer style, depth, speed, or participating roles.", screenshotAlt: "Response settings after sign-in", note: "1 Choose response preferences; 2 Automatically select, one role, or multiple roles." },
+          { navLabel: "State task", title: "Describe the problem with four pieces of information", description: "State what to complete, what you can provide, the constraints, and the desired result. When details are incomplete, the system asks for the key information it still needs." },
+          { navLabel: "Save result", title: "Save the result according to its next use", description: "Use the corresponding page when you need to continue execution, organize or download the result, or submit it for review.", screenshotAlt: "Training tasks and deliverables after sign-in", note: "1 Create a training task; 2 Review, edit, or continue an existing task." },
+        ],
+        recipeTitle: "The four types of information AI needs first",
+        recipeDescription:
+          "The task goal sets the direction, available materials provide evidence, constraints define the execution boundary, and the desired result determines the answer format. When information is incomplete, the system asks follow-up questions.",
+        recipe: [
+          { title: "What to complete", detail: "Assess a product, create a plan, improve content, or review data" },
+          { title: "What you can provide", detail: "Product details, budget, platform data, or course requirements" },
+          { title: "What constraints apply", detail: "Time, budget, format, and mandatory rules" },
+          { title: "What result you want", detail: "A plan, checklist, report, or next action" },
+        ],
+        promptLabel: "Complete question example",
+        prompt: "Using the product and materials I selected, identify the three strongest selling points and provide a campaign direction, execution checklist, main risks, and the data still needed.",
+        destinationsTitle: "Choose where to save based on the next use",
+        destinations: [
+          { purpose: "Continue executing the task", title: "Training tasks and delivery", detail: "Save tasks, runs, execution guidance, and inspectable submissions." },
+          { purpose: "Organize, copy, or download", title: "Conversation reports and review", detail: "Preview, copy, download, and archive plans or reports from this turn." },
+          { purpose: "Submit for teacher review", title: "Teacher review records", detail: "Review submissions, decisions, returned revisions, and key actions." },
+        ],
+      },
+      reference: {
+        title: "Open the feature for your current task",
+        description: "Choose what you want to do next and go directly to the corresponding page.",
+        items: [
+          { title: "Q&A entry", detail: "Start a task, enter the question, and view AI collaboration." },
+          { title: "Product selection analysis", detail: "Manage products, selling points, assets, knowledge, and competitors." },
+          { title: "Files and images", detail: "Upload files that can be selected and read for the current turn." },
+          { title: "Campaign planning practice", detail: "Plan goals, budget, dates, and deliverables." },
+          { title: "Review reports", detail: "Preview, copy, download, and archive plans or reports from this task." },
+          { title: "Training tasks and delivery", detail: "Store task history, revisions, and deliverables." },
+          { title: "Teacher review records", detail: "Track submissions, decisions, returned revisions, and actions." },
+          { title: "Business result tracking", detail: "Review long tasks, notifications, alerts, and stage results." },
+        ],
+      },
+      boundary: {
+        title: "What the system does and does not do",
+        description: "Important data, budgets, and real platform actions always require human verification.",
+        supportedTitle: "The system can",
+        guardedTitle: "The system will not do automatically",
+        supported: ["Read products, files, and campaigns explicitly selected for this turn.", "Generate plans, checklists, reports, scripts, and form drafts.", "Keep conversations, tasks, deliverables, and review history."],
+        guarded: ["It will not read every file in the account by default.", "It will not present recommendations as real platform execution results.", "It will not bypass review for publishing, budget changes, or deletion."],
+      },
+    },
     header: {
       eyebrow: "Usage guide",
       title: "Commerce Multi-Agent Platform usage guide",
       description:
-        "This page explains how students use AI Q&A, product analysis, campaign planning, data diagnosis, and review reports around one ecommerce training task.",
+        "This page explains how students use AI Q&A, product analysis, campaign planning, task delivery, and review reports around one ecommerce training task.",
       action: "Open Q&A entry",
     },
     principle: {
@@ -3345,6 +3814,7 @@ const messages = {
     footer: {
       toRegisterPrefix: "Don't have an account?",
       toRegisterAction: "Register",
+      backToChat: "Back to chat",
     },
     error: {
       title: "Sign-in did not finish",
@@ -3359,10 +3829,18 @@ const messages = {
     },
   },
   profile: {
+    teamSchoolPage: {
+      title: "Team school settings",
+      description:
+        "Set the school and team for this account so training ownership and question quota can be identified.",
+    },
     appProfile: {
       title: "School and team",
       description:
         "These details identify your training group and affect your AI question quota.",
+      summaryTitle: "Team school",
+      summaryDescription:
+        "This shows the training ownership for this account. Use team school settings to edit it.",
       loading: "Loading school and team...",
       loadFailed: "Failed to load school and team.",
       missingAppUser:
@@ -3377,6 +3855,11 @@ const messages = {
       save: "Save school and team",
       saving: "Saving...",
       saved: "School and team saved",
+      manageTeamSchool: "Manage team school",
+      setupTeamSchool: "Set up",
+      summaryHelp:
+        "Binding helps identify training ownership and increases the AI question quota.",
+      unsetValue: "Not set",
       boundStatus: "Bound",
       unboundStatus: "Not bound",
       quotaRule:

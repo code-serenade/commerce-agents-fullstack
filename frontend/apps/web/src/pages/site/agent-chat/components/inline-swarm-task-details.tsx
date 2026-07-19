@@ -36,7 +36,7 @@ export function InlineProgressSummary({
 
   return (
     <div
-      className="rounded-xl border border-(--agent-chat-soft-border) bg-(--agent-chat-subtle-surface) px-3 py-2"
+      className="rounded-xl bg-(--agent-chat-subtle-surface) py-2"
       data-agent-process-progress="true"
     >
       <div className="flex min-w-0 items-center gap-2 text-xs">

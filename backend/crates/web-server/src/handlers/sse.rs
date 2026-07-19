@@ -1228,9 +1228,7 @@ pub async fn stream_agent_session(
                         }
                     }
                 }
-                SessionEvent::LlmChunk { content, .. } => {
-                    yield Ok(json_event("delta", json!({ "content": content })));
-                }
+                SessionEvent::LlmChunk { .. } => {}
                 SessionEvent::Output { content, .. } => {
                     link_state.latest_output = Some(content.clone());
                 }

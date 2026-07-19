@@ -1,8 +1,6 @@
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
-import { MetricCards } from "@workspace/app-kit"
 import { Button, NativeSelect } from "@workspace/ui-components"
-import type { MetricCardsItem } from "@workspace/app-kit"
 import type { CampaignResponse } from "@/api"
 import {
   CommercePanel,
@@ -15,26 +13,19 @@ import {
 } from "../../components/commerce-ui"
 import type { CommerceColumn } from "../../components/commerce-ui"
 import type { CommerceTranslate } from "../../components/commerce-types"
+import {
+  commerceStatusOptions,
+  getCommerceEnumLabel,
+  getCommerceStatusLabel,
+} from "../../domain/enum-mappings"
 import type { CampaignsPageState } from "../use-campaigns-page"
-
-export function CampaignMetrics({ items }: { items: MetricCardsItem[] }) {
-  return <MetricCards items={items} />
-}
 
 export function CampaignsPanel({ page }: { page: CampaignsPageState }) {
   const { t } = useTranslation()
   const [statusDraft, setStatusDraft] = useState(page.status)
 
   return (
-    <CommercePanel
-      title={t("commerce.campaigns.panel.title")}
-      description={t("commerce.campaigns.panel.description")}
-      actions={
-        <Button size="sm" onClick={() => page.setDialog("create")}>
-          {t("commerce.campaigns.panel.create")}
-        </Button>
-      }
-    >
+    <CommercePanel>
       <div className="space-y-3">
         <CommerceToolbar
           keyword={page.keyword}
@@ -84,7 +75,8 @@ function campaignColumns(
     {
       key: "type",
       header: t("commerce.common.type"),
-      render: (item) => item.campaignType || "-",
+      render: (item) =>
+        getCommerceEnumLabel(t, "campaignType", item.campaignType),
     },
     {
       key: "budget",
@@ -105,7 +97,7 @@ function campaignColumns(
       header: t("commerce.common.status"),
       render: (item) => (
         <StatusBadge tone={toneForStatus(item.status)}>
-          {item.status}
+          {getCommerceStatusLabel(t, item.status)}
         </StatusBadge>
       ),
     },
@@ -140,10 +132,12 @@ function campaignColumns(
 function statusOptions(t: CommerceTranslate) {
   return [
     { label: t("commerce.common.all"), value: "" },
-    { label: t("commerce.campaigns.options.draft"), value: "draft" },
-    { label: t("commerce.campaigns.options.active"), value: "active" },
-    { label: t("commerce.campaigns.options.paused"), value: "paused" },
-    { label: t("commerce.campaigns.options.ended"), value: "ended" },
-    { label: t("commerce.campaigns.options.archived"), value: "archived" },
+    ...commerceStatusOptions(t, [
+      "draft",
+      "active",
+      "paused",
+      "ended",
+      "archived",
+    ]),
   ]
 }

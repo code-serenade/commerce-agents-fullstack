@@ -6,6 +6,10 @@ import {
   StatusBadge,
   toneForStatus,
 } from "../../components/commerce-ui"
+import {
+  getCommerceEnumLabel,
+  getCommerceStatusLabel,
+} from "../../domain/enum-mappings"
 
 export function ApprovalExecutionOutcome({
   result,
@@ -29,11 +33,13 @@ export function ApprovalExecutionOutcome({
       <div className="flex flex-wrap gap-1.5">
         {executionStatus ? (
           <StatusBadge tone={toneForStatus(executionStatus)}>
-            {executionStatus}
+            {getCommerceStatusLabel(t, executionStatus)}
           </StatusBadge>
         ) : null}
         {adapterStatus ? (
-          <StatusBadge tone={toneForStatus(adapterStatus)}>{adapterStatus}</StatusBadge>
+          <StatusBadge tone={toneForStatus(adapterStatus)}>
+            {getCommerceEnumLabel(t, "adapterStatus", adapterStatus)}
+          </StatusBadge>
         ) : null}
       </div>
       {retryable !== undefined ? (

@@ -65,3 +65,7 @@ export function buildWorkspaceMetricCards(
     },
   ]
 }
+
+export function filterWorkspaceDetailMetricCards(items: MetricCardsItem[]) {
+  return items.filter((item) => item.key !== "workspaces")
+}

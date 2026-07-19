@@ -15,6 +15,11 @@ import {
 } from "../../components/commerce-ui"
 import type { CommerceColumn } from "../../components/commerce-ui"
 import type { CommerceTranslate } from "../../components/commerce-types"
+import {
+  commerceStatusOptions,
+  getCommerceEnumLabel,
+  getCommerceStatusLabel,
+} from "../../domain/enum-mappings"
 import type { ApprovalsPageState } from "../use-approvals-page"
 
 export function ApprovalMetrics({ items }: { items: MetricCardsItem[] }) {
@@ -100,14 +105,17 @@ function approvalColumns(
     {
       key: "risk",
       header: t("commerce.approvals.columns.risk"),
-      render: (item) => item.riskLevel || "L1",
+      render: (item) =>
+        getCommerceEnumLabel(t, "riskLevel", item.riskLevel || "L1"),
       width: "6rem",
     },
     {
       key: "status",
       header: t("commerce.common.status"),
       render: (item) => (
-        <StatusBadge tone={toneForStatus(item.status)}>{item.status}</StatusBadge>
+        <StatusBadge tone={toneForStatus(item.status)}>
+          {getCommerceStatusLabel(t, item.status)}
+        </StatusBadge>
       ),
       width: "8rem",
     },
@@ -117,7 +125,7 @@ function approvalColumns(
       render: (item) => (
         <div className="max-w-96 space-y-1">
           <MutedText>{item.reason || "-"}</MutedText>
-          <ApprovalReadiness result={item.result} />
+          <ApprovalReadiness result={item.result} t={t} />
         </div>
       ),
       minWidth: "18rem",
@@ -159,8 +167,10 @@ function approvalColumns(
 
 function ApprovalReadiness({
   result,
+  t,
 }: {
   result?: ToolApprovalResponse["result"]
+  t: CommerceTranslate
 }) {
   const readiness = getRecord(result, "executionReadiness")
   const adapterStatus = getString(readiness, "adapterStatus")
@@ -171,7 +181,9 @@ function ApprovalReadiness({
   return (
     <div className="space-y-1">
       {adapterStatus ? (
-        <StatusBadge tone={toneForStatus(adapterStatus)}>{adapterStatus}</StatusBadge>
+        <StatusBadge tone={toneForStatus(adapterStatus)}>
+          {getCommerceEnumLabel(t, "adapterStatus", adapterStatus)}
+        </StatusBadge>
       ) : null}
       {message ? <MutedText>{message}</MutedText> : null}
     </div>
@@ -207,7 +219,10 @@ function auditColumns(t: CommerceTranslate): CommerceColumn<AuditLogResponse>[] 
       render: (item) => (
         <div className="min-w-0">
           <div className="truncate font-medium">{item.action}</div>
-          <MutedText>{item.targetType} / {item.targetId || "-"}</MutedText>
+          <MutedText>
+            {getCommerceEnumLabel(t, "targetType", item.targetType)} /{" "}
+            {item.targetId || "-"}
+          </MutedText>
         </div>
       ),
     },
@@ -216,7 +231,7 @@ function auditColumns(t: CommerceTranslate): CommerceColumn<AuditLogResponse>[] 
       header: t("commerce.common.status"),
       render: (item) => (
         <StatusBadge tone={toneForStatus(item.status || "success")}>
-          {item.status || "success"}
+          {getCommerceStatusLabel(t, item.status || "success")}
         </StatusBadge>
       ),
     },
@@ -231,11 +246,13 @@ function auditColumns(t: CommerceTranslate): CommerceColumn<AuditLogResponse>[] 
 function approvalStatusOptions(t: CommerceTranslate) {
   return [
     { label: t("commerce.common.all"), value: "" },
-    { label: String("pending"), value: "pending" },
-    { label: String("approved"), value: "approved" },
-    { label: String("executed"), value: "executed" },
-    { label: String("failed"), value: "failed" },
-    { label: String("rejected"), value: "rejected" },
-    { label: String("cancelled"), value: "cancelled" },
+    ...commerceStatusOptions(t, [
+      "pending",
+      "approved",
+      "executed",
+      "failed",
+      "rejected",
+      "cancelled",
+    ]),
   ]
 }

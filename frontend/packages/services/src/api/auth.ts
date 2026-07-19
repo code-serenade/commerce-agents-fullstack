@@ -22,6 +22,7 @@ export interface RegisterRequest {
 export interface UserInfo {
   id: string
   display_id: string
+  username: string
   email: string
   name: string
   avatar: string
@@ -83,6 +84,7 @@ export const meApi = async (): Promise<UserInfo> => {
   return {
     id: response.id,
     display_id: response.display_user_id ?? "",
+    username: response.username,
     email: response.email ?? "",
     name: response.display_name || response.username,
     avatar,

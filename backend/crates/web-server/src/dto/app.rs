@@ -406,6 +406,39 @@ pub struct BulkDeleteUserFilesRequest {
 
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
+pub struct ExportConversationTranscriptQuery {
+    #[validate(length(max = 32))]
+    pub format: Option<String>,
+    pub include_files: Option<bool>,
+    pub include_runtime_events: Option<bool>,
+    #[validate(length(max = 64))]
+    pub scope: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct GenerateConversationReportRequest {
+    #[validate(length(max = 64))]
+    pub workspace_id: Option<String>,
+    #[validate(length(max = 64))]
+    pub run_id: Option<String>,
+    #[validate(length(max = 64))]
+    pub report_type: Option<String>,
+    #[validate(length(max = 64))]
+    pub scope: Option<String>,
+    #[validate(length(max = 32))]
+    pub format: Option<String>,
+    pub include_process: Option<bool>,
+    pub include_sources: Option<bool>,
+    pub include_transcript_appendix: Option<bool>,
+    #[validate(length(max = 20))]
+    pub artifact_ids: Option<Vec<String>>,
+    #[validate(length(max = 20))]
+    pub file_ids: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
 pub struct PresignConversationFileUploadRequest {
     #[validate(length(min = 1, max = 32))]
     pub extension: String,
@@ -446,6 +479,38 @@ pub struct ConversationDetailResponse {
     pub conversation: ConversationResponse,
     pub messages: Vec<ConversationMessageResponse>,
     pub files: Vec<ConversationFileResponse>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConversationTranscriptExportResponse {
+    pub conversation_id: String,
+    pub file_name: String,
+    pub mime_type: String,
+    pub format: String,
+    pub content: String,
+    pub content_chars: usize,
+    pub message_count: usize,
+    pub file_count: usize,
+    pub warnings: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GenerateConversationReportResponse {
+    pub artifact: WorkspaceArtifactResponse,
+    pub export: GeneratedConversationReportExportResponse,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GeneratedConversationReportExportResponse {
+    pub file_name: String,
+    pub mime_type: String,
+    pub format: String,
+    pub content: String,
+    pub content_chars: usize,
+    pub warnings: Vec<String>,
 }
 
 #[derive(Debug, Serialize)]

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import {
   getAgentRoleActivities,
@@ -13,7 +14,9 @@ export function AgentRoleClusterPanel({
   ariaLabel,
   eyebrow,
   footer,
+  headerAction,
   itemDetail = "action",
+  isCollapsed = false,
   summary,
   surface = "card",
   title,
@@ -24,7 +27,9 @@ export function AgentRoleClusterPanel({
   ariaLabel?: string
   eyebrow?: string
   footer?: string
+  headerAction?: ReactNode
   itemDetail?: "action" | "summary"
+  isCollapsed?: boolean
   summary?: string
   surface?: "card" | "plain"
   title?: string
@@ -35,6 +40,7 @@ export function AgentRoleClusterPanel({
 
   if (activities.length === 0) return null
   const isShowcase = variant === "showcase"
+  const isCompact = variant === "compact"
   const isPlain = surface === "plain"
 
   return (
@@ -44,7 +50,9 @@ export function AgentRoleClusterPanel({
           ? isPlain
             ? "relative max-w-full min-w-0 overflow-hidden"
             : "relative max-w-full min-w-0 overflow-hidden rounded-lg border border-border bg-muted/30 p-3 shadow-xs"
-          : "max-w-full min-w-0 overflow-hidden rounded-xl border border-(--agent-chat-soft-border) bg-(--agent-chat-subtle-surface) px-3 py-2"
+          : isCompact
+            ? "max-w-full min-w-0 overflow-hidden bg-transparent px-3 py-2"
+            : "max-w-full min-w-0 overflow-hidden rounded-xl border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong)/70 px-3 py-2 shadow-sm"
       }
       aria-label={
         ariaLabel ?? t("agentChat.thread.roleClusterActivity.ariaLabel")
@@ -54,80 +62,91 @@ export function AgentRoleClusterPanel({
       <div
         className={
           isShowcase && isPlain
-            ? "mb-3 flex min-w-0 flex-wrap items-start justify-between gap-2"
+            ? "mb-3 flex min-w-0 flex-wrap items-center justify-between gap-2"
             : isShowcase
               ? "flex min-w-0 flex-wrap items-end justify-between gap-2"
-              : "flex min-w-0 items-center gap-2 text-xs"
+              : isCompact
+                ? "flex min-w-0 items-center justify-between gap-3 text-xs"
+                : "flex min-w-0 items-center gap-2 text-xs"
         }
       >
-        <div
-          className={`flex min-w-0 ${
-            isShowcase && isPlain ? "items-start" : "items-center gap-2"
-          }`}
-        >
-          <div className="min-w-0">
-            {eyebrow ? (
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <div
+            className={`flex min-w-0 ${
+              isShowcase && isPlain ? "items-start" : "items-center gap-2"
+            }`}
+          >
+            <div className="min-w-0">
+              {eyebrow ? (
+                <p
+                  className={
+                    isShowcase && isPlain
+                      ? "text-base font-bold text-foreground"
+                      : "text-[10px] font-semibold text-muted-foreground uppercase"
+                  }
+                >
+                  {eyebrow}
+                </p>
+              ) : null}
               <p
                 className={
                   isShowcase && isPlain
-                    ? "text-base font-bold text-foreground"
-                    : "text-[10px] font-semibold text-muted-foreground uppercase"
+                    ? "mt-0.5 truncate text-xs text-muted-foreground"
+                    : "truncate text-sm font-medium text-foreground"
                 }
               >
-                {eyebrow}
+                {title ?? t("agentChat.thread.roleClusterActivity.title")}
               </p>
-            ) : null}
-            <p
-              className={
-                isShowcase && isPlain
-                  ? "mt-0.5 truncate text-xs text-muted-foreground"
-                  : "truncate text-xs font-medium text-foreground"
-              }
-            >
-              {title ?? t("agentChat.thread.roleClusterActivity.title")}
-            </p>
+            </div>
           </div>
+          <span
+            className={
+              isShowcase
+                ? "min-w-0 text-xs text-muted-foreground"
+                : "min-w-0 truncate text-muted-foreground"
+            }
+          >
+            {summary ?? getAgentRoleSummary(activities, t)}
+          </span>
         </div>
-        <span
-          className={
-            isShowcase
-              ? "min-w-0 text-xs text-muted-foreground"
-              : "min-w-0 truncate text-muted-foreground"
-          }
-        >
-          {summary ?? getAgentRoleSummary(activities, t)}
-        </span>
+        {headerAction ? <div className="shrink-0">{headerAction}</div> : null}
       </div>
-      <div
-        className={
-          isShowcase
-            ? isPlain
-              ? "max-w-full overflow-x-auto pb-1 [scrollbar-gutter:stable]"
-              : "mt-3 max-w-full overflow-x-auto pb-1 [scrollbar-gutter:stable]"
-            : "mt-2 max-w-full"
-        }
-      >
+      {isCollapsed ? null : (
         <div
           className={
             isShowcase
-              ? "grid min-w-216 grid-cols-5 gap-2 sm:min-w-0 sm:grid-cols-3 lg:grid-cols-5"
-              : "grid min-w-0 gap-1.5"
+              ? isPlain
+                ? "max-w-full overflow-x-auto pb-1 [scrollbar-gutter:stable]"
+                : "mt-3 max-w-full overflow-x-auto pb-1 [scrollbar-gutter:stable]"
+              : isCompact
+                ? "mt-2 max-w-full overflow-x-auto pb-1 [scrollbar-gutter:stable] md:overflow-visible"
+                : "mt-2 max-w-full"
           }
         >
-          {activities.map((activity, index) => (
-            <AgentRoleActivityItem
-              key={activity.agent.nodeId}
-              animatePortraits={animatePortraits}
-              activity={activity}
-              index={index}
-              itemDetail={itemDetail}
-              showStatus={!isPlain}
-              variant={variant}
-            />
-          ))}
+          <div
+            className={
+              isShowcase
+                ? "grid min-w-216 grid-cols-5 gap-2 sm:min-w-0 sm:grid-cols-3 lg:grid-cols-5"
+                : isCompact
+                  ? "flex min-w-max gap-2"
+                  : "grid min-w-0 gap-1.5"
+            }
+          >
+            {activities.map((activity, index) => (
+              <AgentRoleActivityItem
+                key={activity.agent.nodeId}
+                animatePortraits={animatePortraits}
+                activity={activity}
+                index={index}
+                itemDetail={itemDetail}
+                showStatus={!isPlain}
+                variant={variant}
+              />
+            ))}
+          </div>
         </div>
-      </div>
-      {footer ? (
+      )}
+      {footer && !isCollapsed ? (
         <p className="mt-2 text-[11px]/5 text-muted-foreground">{footer}</p>
       ) : null}
     </section>

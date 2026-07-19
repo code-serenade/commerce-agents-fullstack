@@ -624,6 +624,9 @@ importers:
       date-fns:
         specifier: 'catalog:'
         version: 4.1.0
+      lucide-react:
+        specifier: 'catalog:'
+        version: 1.8.0(react@19.2.4)
       react:
         specifier: 'catalog:'
         version: 19.2.4
@@ -634,6 +637,9 @@ importers:
         specifier: 'catalog:'
         version: 3.8.0(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react-is@19.2.5)(react@19.2.4)(redux@5.0.1)
     devDependencies:
+      '@testing-library/react':
+        specifier: 'catalog:'
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@types/node':
         specifier: 'catalog:'
         version: 25.5.0
@@ -643,6 +649,9 @@ importers:
       '@types/react-dom':
         specifier: 'catalog:'
         version: 19.2.3(@types/react@19.2.14)
+      jsdom:
+        specifier: 'catalog:'
+        version: 29.0.1(@noble/hashes@1.8.0)
       typescript:
         specifier: 'catalog:'
         version: 5.9.3

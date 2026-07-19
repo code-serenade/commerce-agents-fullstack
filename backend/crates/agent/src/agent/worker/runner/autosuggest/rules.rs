@@ -39,9 +39,21 @@ pub(super) fn configured_rule_requests(
             continue;
         }
 
+        if rule.mode == AutosuggestRuleMode::First {
+            if !request.skill_id.starts_with("search_") {
+                if contains_any(match_text, &policy.fallback_search_keywords) {
+                    requests.retain(|existing| existing.skill_id.starts_with("search_"));
+                } else {
+                    requests.clear();
+                }
+            }
+            requests.push(request);
+            break;
+        }
+
         requests.push(request);
 
-        if route_mode != "requests" || rule.mode == AutosuggestRuleMode::First {
+        if route_mode != "requests" {
             break;
         }
     }
@@ -72,6 +84,10 @@ fn rule_matches(
             .all_keywords
             .iter()
             .all(|keyword| contains_keyword(text, keyword))
+        && (!rule.fallback
+            || !rule.skill_id.starts_with("search_")
+            || role_runtime == "search"
+            || contains_any(text, &policy.fallback_search_keywords))
         && !(rule.skill_id.starts_with("search_")
             && contains_any(text, &policy.global_none_keywords))
         && !contains_any(text, &rule.r#match.none_keywords)

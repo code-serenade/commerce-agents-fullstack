@@ -71,7 +71,10 @@ pub(super) fn autosuggest_skill_requests(
         )),
     }
 
-    if route.handler != "search" && requests.is_empty() {
+    if route.handler != "search"
+        && requests.is_empty()
+        && contains_any(&match_text, &policy.fallback_search_keywords)
+    {
         let fallback_mode = if route.mode == "requests" {
             "requests"
         } else {
@@ -504,17 +507,56 @@ mod tests {
     }
 
     #[test]
-    fn configured_light_fallback_search_strength_is_not_overwritten() {
+    fn generic_market_background_does_not_fallback_to_search() {
         let requests =
             autosuggest_skill_requests("data", &task("帮我了解咖啡这个商品的市场背景"), &[]);
+
+        assert!(
+            requests
+                .iter()
+                .all(|request| !request.skill_id.starts_with("search_")),
+            "generic market background should stay on local business reasoning unless the user \
+             asks for live/source-backed search: {requests:?}"
+        );
+    }
+
+    #[test]
+    fn explicit_live_market_background_still_fallbacks_to_light_search() {
+        let requests = autosuggest_skill_requests(
+            "data",
+            &task("请联网搜索咖啡这个商品的最新市场背景，并给公开来源"),
+            &[],
+        );
         let search_request = requests
             .iter()
             .find(|request| request.skill_id == "search_market_info")
-            .expect("data market fallback search should be requested");
+            .expect("explicit live market background should request search evidence");
 
         assert_eq!(
             search_request.input.get("max_results"),
             Some(&serde_json::json!(3))
+        );
+        assert_eq!(
+            search_request.input.get("_needs_fresh_data"),
+            Some(&serde_json::json!(true))
+        );
+    }
+
+    #[test]
+    fn explicit_source_fallback_search_keeps_cache_when_not_fresh() {
+        let requests = autosuggest_skill_requests(
+            "data",
+            &task("请搜索咖啡这个商品的市场背景，并给来源链接"),
+            &[],
+        );
+        let search_request = requests
+            .iter()
+            .find(|request| request.skill_id == "search_market_info")
+            .expect("explicit source request should use market search");
+
+        assert_eq!(
+            search_request.input.get("_needs_fresh_data"),
+            Some(&serde_json::json!(false))
         );
     }
 

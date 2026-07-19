@@ -7,6 +7,10 @@ import {
   type SimpleFormValues,
 } from "../../components/commerce-ui"
 import type { CommerceTranslate } from "../../components/commerce-types"
+import {
+  commerceEnumOptions,
+  commerceStatusOptions,
+} from "../../domain/enum-mappings"
 import type { OperationsPageState } from "../use-operations-page"
 
 export function OperationDialogs({ page }: { page: OperationsPageState }) {
@@ -96,13 +100,25 @@ function ControlledDialog({
 function longTaskFields(t: CommerceTranslate): SimpleField[] {
   return [
     { key: "title", label: t("commerce.fields.title"), required: true },
-    { key: "taskType", label: t("commerce.fields.taskType") },
+    {
+      key: "taskType",
+      label: t("commerce.fields.taskType"),
+      options: commerceEnumOptions(t, "taskType", [
+        "manual",
+        "analysis",
+        "campaign",
+        "report",
+        "sync",
+        "export",
+      ]),
+      type: "select",
+    },
     { key: "workspaceId", label: t("commerce.fields.workspaceId") },
     { key: "runId", label: t("commerce.fields.runId") },
     {
       key: "status",
       label: t("commerce.common.status"),
-      options: longTaskStatusOptions,
+      options: longTaskStatusOptions(t),
       type: "select",
     },
     { key: "progress", label: t("commerce.fields.progress"), type: "number" },
@@ -117,8 +133,18 @@ function dailyFields(t: CommerceTranslate): SimpleField[] {
   return [
     { key: "briefingDate", label: t("commerce.fields.briefingDate"), required: true },
     { key: "title", label: t("commerce.fields.title"), required: true },
-    { key: "source", label: t("commerce.common.source") },
-    { key: "status", label: t("commerce.common.status") },
+    {
+      key: "source",
+      label: t("commerce.common.source"),
+      options: commerceEnumOptions(t, "source", ["manual", "system", "agent"]),
+      type: "select",
+    },
+    {
+      key: "status",
+      label: t("commerce.common.status"),
+      options: commerceStatusOptions(t, ["ready", "archived"]),
+      type: "select",
+    },
     {
       key: "summary",
       label: t("commerce.fields.summary"),
@@ -130,13 +156,26 @@ function dailyFields(t: CommerceTranslate): SimpleField[] {
 
 function notificationFields(t: CommerceTranslate): SimpleField[] {
   return [
-    { key: "eventType", label: t("commerce.fields.eventType"), required: true },
+    {
+      key: "eventType",
+      label: t("commerce.fields.eventType"),
+      options: commerceEnumOptions(t, "eventType", [
+        "task.created",
+        "task.completed",
+        "task.failed",
+        "campaign.updated",
+        "report.created",
+        "system",
+      ]),
+      required: true,
+      type: "select",
+    },
     { key: "title", label: t("commerce.fields.title"), required: true },
     { key: "conversationId", label: t("commerce.fields.conversationId") },
     {
       key: "consumed",
       label: t("commerce.fields.consumed"),
-      options: booleanOptions,
+      options: booleanOptions(t),
       type: "select",
     },
   ]
@@ -144,8 +183,30 @@ function notificationFields(t: CommerceTranslate): SimpleField[] {
 
 function alertFields(t: CommerceTranslate): SimpleField[] {
   return [
-    { key: "alertType", label: t("commerce.fields.alertType"), required: true },
-    { key: "severity", label: t("commerce.fields.severity") },
+    {
+      key: "alertType",
+      label: t("commerce.fields.alertType"),
+      options: commerceEnumOptions(t, "alertType", [
+        "policy_risk",
+        "budget_risk",
+        "data_anomaly",
+        "task_failed",
+        "agent_approval_required",
+        "system",
+      ]),
+      required: true,
+      type: "select",
+    },
+    {
+      key: "severity",
+      label: t("commerce.fields.severity"),
+      options: commerceEnumOptions(t, "severity", [
+        "info",
+        "warning",
+        "critical",
+      ]),
+      type: "select",
+    },
     { key: "workspaceId", label: t("commerce.fields.workspaceId") },
     { key: "runId", label: t("commerce.fields.runId") },
     { key: "role", label: t("commerce.fields.role") },
@@ -160,15 +221,19 @@ function alertFields(t: CommerceTranslate): SimpleField[] {
   ]
 }
 
-const longTaskStatusOptions = [
-  { label: String("pending"), value: "pending" },
-  { label: String("running"), value: "running" },
-  { label: String("completed"), value: "completed" },
-  { label: String("failed"), value: "failed" },
-  { label: String("cancelled"), value: "cancelled" },
-]
+function longTaskStatusOptions(t: CommerceTranslate) {
+  return commerceStatusOptions(t, [
+    "pending",
+    "running",
+    "completed",
+    "failed",
+    "cancelled",
+  ])
+}
 
-const booleanOptions = [
-  { label: String("false"), value: "false" },
-  { label: String("true"), value: "true" },
-]
+function booleanOptions(t: CommerceTranslate) {
+  return [
+    { label: t("commerce.common.no"), value: "false" },
+    { label: t("commerce.common.yes"), value: "true" },
+  ]
+}

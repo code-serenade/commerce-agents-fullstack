@@ -101,6 +101,22 @@ async fn manager_stream_finishes_and_cleans_active_session() {
             .iter()
             .any(|event| matches!(event, SessionEvent::Output { .. }))
     );
+    let output = events
+        .iter()
+        .find_map(|event| match event {
+            SessionEvent::Output { content, .. } => Some(content.as_str()),
+            _ => None,
+        })
+        .expect("stream should emit final output");
+    let chunks = events
+        .iter()
+        .filter_map(|event| match event {
+            SessionEvent::LlmChunk { content, .. } => Some(content.as_str()),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert!(!chunks.is_empty());
+    assert_eq!(chunks.join(""), output);
     assert!(matches!(events.last(), Some(SessionEvent::Finished { .. })));
     assert_eq!(manager.active_session_count(), 0);
 }

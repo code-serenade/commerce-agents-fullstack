@@ -68,12 +68,13 @@ describe("FilesTable", () => {
       </AgentChatTestI18nProvider>
     )
 
-    const useButton = screen.getByRole("button", {
+    const useButtons = screen.getAllByRole("button", {
       name: i18n.t("commerce.files.table.useState.available"),
     })
 
-    expect(useButton).toBeDisabled()
-    await userEvent.click(useButton)
+    expect(useButtons).toHaveLength(2)
+    useButtons.forEach((button) => expect(button).toBeDisabled())
+    await userEvent.click(useButtons[0])
     expect(toggleCurrentTurn).not.toHaveBeenCalled()
   })
 })

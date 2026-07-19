@@ -16,7 +16,7 @@ export type ButtonSize = "default" | "xs" | "sm" | "lg" | "icon"
 export type ButtonType = "button" | "submit" | "reset"
 export type ButtonClassNameMode = "merge" | "replace"
 
-export interface ButtonProps extends Omit<
+interface ButtonPropsBase extends Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,
   "className" | "disabled" | "type"
 > {
@@ -29,6 +29,8 @@ export interface ButtonProps extends Omit<
   type?: ButtonType
   disabled?: boolean
 }
+
+export type ButtonProps = ButtonPropsBase
 
 export function Button({
   children,

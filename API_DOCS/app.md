@@ -953,6 +953,171 @@
 - 挂接后会创建新的会话附件记录，复用同一个对象存储文件，并写入来源附件 ID 到 metadata。
 - 如果挂接的是图片或可解析文档，后续仍按会话附件的既有解析 / 预识别流程进入 Agent 上下文。
 
+## 13.5 导出会话原文
+
+- 方法：`GET`
+- 路径：`/api/app/conversations/{conversationId}/transcript/export`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `format` | `markdown \| text \| json` | 否 | 导出格式；不传时默认 `markdown` |
+| `includeFiles` | `boolean` | 否 | 是否包含会话附件清单和已登记的抽取摘要；默认 `true` |
+| `includeRuntimeEvents` | `boolean` | 否 | 是否包含用户可读的运行过程摘要；默认 `false`，不会返回 raw event JSON |
+| `scope` | `conversation_all \| conversation_recent` | 否 | 导出范围；不传时默认 `conversation_all` |
+
+成功响应 `data`：
+
+```json
+{
+  "conversationId": "conversation-uuid",
+  "fileName": "conversation-transcript.md",
+  "mimeType": "text/markdown; charset=utf-8",
+  "format": "markdown",
+  "content": "# 对话原文\n\n...",
+  "contentChars": 1200,
+  "messageCount": 8,
+  "fileCount": 2,
+  "warnings": []
+}
+```
+
+补充说明：
+
+- 本接口为纯读接口，不写数据库，不创建 `workspace_artifacts`，不调用 LLM。
+- 服务端只读取当前用户自己的会话、消息和 active 会话附件。
+- `includeFiles=true` 时只输出附件文件名、类型、大小、解析状态和安全摘要；不会返回 `objectKey`、签名下载地址或对象存储路径。
+- 附件未完成解析时只说明“未解析 / 仍在解析 / 不支持解析”，不会伪造成已读取全文。
+- `includeRuntimeEvents=true` 时只把 assistant message 中可用户化展示的运行过程整理成摘要，不返回 `contentJson.runtimeEvents` 原始 JSON。
+- 超长会话会按服务端预算截断，并在 `warnings` 说明省略范围；报告或原文中不得声称已读取被省略的全文。
+
+## 13.6 主动生成会话报告
+
+- 方法：`POST`
+- 路径：`/api/app/conversations/{conversationId}/reports/generate`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "workspaceId": "workspace-uuid",
+  "runId": "run-uuid",
+  "reportType": "commerce_conversation_report",
+  "scope": "conversation_all",
+  "format": "markdown",
+  "includeProcess": true,
+  "includeSources": true,
+  "includeTranscriptAppendix": false,
+  "artifactIds": ["artifact-uuid"],
+  "fileIds": ["file-uuid"]
+}
+```
+
+请求字段：
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `workspaceId` | `uuid \| null` | 否 | 报告保存目标工作区；不传时由服务端解析当前用户默认 Agent Chat 工作区 |
+| `runId` | `uuid \| null` | 否 | 限定某次工作区运行的过程材料；传入时必须属于当前用户和目标工作区 |
+| `reportType` | `conversation_report \| commerce_conversation_report \| teaching_conversation_report \| process_evidence_pack` | 否 | 报告类型；不传时默认 `conversation_report` |
+| `scope` | `conversation_all \| conversation_recent \| workspace_run \| selected_sources` | 否 | 材料范围；不传时默认 `conversation_all` |
+| `format` | `markdown` | 否 | 第一阶段固定生成 markdown artifact；传入其它格式返回请求参数错误 |
+| `includeProcess` | `boolean` | 否 | 是否纳入运行任务、skill run、质量检查等过程摘要；默认 `true` |
+| `includeSources` | `boolean` | 否 | 是否纳入附件、搜索证据、已有 artifact 等来源摘要；默认 `true` |
+| `includeTranscriptAppendix` | `boolean` | 否 | 是否在报告末尾附加对话摘要 / 原文节选；默认 `false` |
+| `artifactIds` | `uuid[]` | 否 | 用户显式选择纳入报告的工作区交付物，最多 20 个 |
+| `fileIds` | `uuid[]` | 否 | 用户显式选择纳入报告的会话附件，最多 20 个 |
+
+成功响应 `data`：
+
+```json
+{
+  "artifact": {
+    "id": "artifact-uuid",
+    "workspaceId": "workspace-uuid",
+    "runId": "run-uuid",
+    "workspaceTaskId": null,
+    "runTaskId": null,
+    "userId": "user-uuid",
+    "artifactType": "commerce_conversation_report",
+    "title": "电商对话整理报告",
+    "content": "# 电商对话整理报告\n\n...",
+    "preview": "本报告整理了本次对话中的经营目标、关键资料、过程摘要和下一步动作。",
+    "mimeType": "text/markdown",
+    "format": "markdown",
+    "storageKind": "inline",
+    "bucket": null,
+    "objectKey": null,
+    "fileName": null,
+    "fileSize": null,
+    "sha256": null,
+    "source": "manual_report_generation",
+    "status": "active",
+    "validationStatus": "unchecked",
+    "validationReport": {},
+    "metadata": {
+      "kind": "manual_conversation_report",
+      "conversationId": "conversation-uuid",
+      "reportType": "commerce_conversation_report",
+      "scope": "conversation_all",
+      "includeProcess": true,
+      "includeSources": true,
+      "includeTranscriptAppendix": false,
+      "materialCounts": {
+        "messages": 8,
+        "files": 2,
+        "artifacts": 3,
+        "skillRuns": 5,
+        "qualityChecks": 1,
+        "runTasks": 4
+      },
+      "generatedAt": "2026-07-08T00:00:00Z"
+    },
+    "createdAt": "2026-07-08T00:00:00Z",
+    "updatedAt": "2026-07-08T00:00:00Z"
+  },
+  "export": {
+    "fileName": "commerce-conversation-report.md",
+    "mimeType": "text/markdown; charset=utf-8",
+    "format": "markdown",
+    "content": "# 电商对话整理报告\n\n...",
+    "contentChars": 1800,
+    "warnings": []
+  }
+}
+```
+
+`reportType` 语义：
+
+| code | 说明 |
+| --- | --- |
+| `conversation_report` | 普通对话整理报告 |
+| `commerce_conversation_report` | 电商经营 / 运营场景报告 |
+| `teaching_conversation_report` | 教学 / 实训复盘报告 |
+| `process_evidence_pack` | 多智能体过程证据报告 |
+
+`scope` 语义：
+
+| code | 说明 |
+| --- | --- |
+| `conversation_all` | 当前会话全部有效消息 |
+| `conversation_recent` | 当前会话最近窗口 |
+| `workspace_run` | 指定 `runId` 的工作区运行及其过程材料 |
+| `selected_sources` | 用户显式选择的 `artifactIds` / `fileIds` / `runId` 材料 |
+
+补充说明：
+
+- 本接口只在用户主动点击“生成报告”时调用；Agent 每次回答完成后不会自动调用。
+- 第一阶段采用确定性材料收集和 markdown 模板渲染，不新增 LLM 调用，不启动完整 Agent session，不触发 task graph、skill、搜索、文件解析或外部工具调用。
+- 生成成功后只创建 1 条 `workspace_artifacts`，`storageKind=inline`、`source=manual_report_generation`、`status=active`。
+- 生成失败时不创建 artifact，不影响原有会话、SSE、工作区运行和已有交付物。
+- 报告材料只来自已经沉淀的会话消息、附件解析摘要、workspace artifacts、skill-runs、quality checks 和 run task 摘要；不会读取对象存储二进制正文。
+- 报告正文和响应不得暴露 raw UUID 之外的内部存储细节、`objectKey`、adapter 原始错误、diagnostic JSON、`failure_kind`、provider request id、API key、prompt 路径或模型配置。
+- 超出服务端材料预算时，服务端会优先保留最近消息、显式选择材料和当前 run 材料，并在 `warnings` 或报告正文中说明省略内容。
+
 ## 14. 查询我的商品列表
 
 - 方法：`GET`
@@ -2883,7 +3048,7 @@
 
 ## 工作区交付物接口
 
-工作区交付物用于保存 Agent 运行或人工流程产生的最终报告、岗位交付件、文件引用等结果。Agent SSE 正常完成时会自动创建一个 `artifactType=final_report`、`storageKind=inline`、`format=markdown` 的交付物；当搜索类 `search_*` skill 返回真实 live 来源时，还会自动创建 `artifactType=search_evidence`、`storageKind=inline`、`format=json` 的搜索证据交付物；当部分 creative / design / data / accounting / service / ops / web / engineering / learning 内容类 skill 返回真实成功结果时，还会自动创建对应 markdown 内容交付物。普通 HTTP 接口可用于查询、人工登记、更新或归档交付物。
+工作区交付物用于保存 Agent 运行或人工流程产生的最终报告、岗位交付件、文件引用等结果。Agent SSE 正常完成时会自动创建一个 `artifactType=final_report`、`storageKind=inline`、`format=markdown` 的交付物；当搜索类 `search_*` skill 返回真实 live 来源时，还会自动创建 `artifactType=search_evidence`、`storageKind=inline`、`format=json` 的搜索证据交付物；当部分 creative / design / data / accounting / service / ops / web / engineering / learning 内容类 skill 返回真实成功结果时，还会自动创建对应 markdown 内容交付物。用户主动调用 `/api/app/conversations/{conversationId}/reports/generate` 时，会创建 `source=manual_report_generation`、`storageKind=inline` 的会话整理报告类交付物。普通 HTTP 接口可用于查询、人工登记、更新或归档交付物。
 
 ### 查询工作区交付物列表
 
@@ -2898,7 +3063,7 @@
 | `runId` | `uuid` | 否 | 只查询某次运行产生的交付物 |
 | `workspaceTaskId` | `uuid` | 否 | 只查询某个工作区任务关联的交付物 |
 | `runTaskId` | `uuid` | 否 | 只查询某个运行任务快照关联的交付物 |
-| `artifactType` | `string` | 否 | 交付物类型，例如 `final_report`、`search_evidence`、`video_script`、`seeding_copy`、`ip_branding`、`content_calendar`、`live_script`、`product_article`、`creative_trend_report`、`creative_title_ctr_score`、`design_main_image_brief`、`design_detail_page_brief`、`design_color_scheme`、`design_material_spec`、`design_campaign_poster_brief`、`data_dashboard`、`data_funnel_report`、`data_channel_roi_report`、`data_refund_report`、`data_anomaly_report`、`data_trend_forecast_report`、`data_customer_segmentation_report`、`data_competitor_report`、`data_ab_test_report`、`data_attribution_report`、`data_multi_period_trend_report`、`data_ltv_report`、`data_cohort_report`、`data_seasonal_decompose_report`、`data_price_elasticity_report`、`data_demand_forecast_report`、`data_comprehensive_diagnosis_report`、`accounting_cost_report`、`accounting_profit_report`、`accounting_roi_report`、`accounting_budget_plan`、`accounting_break_even_report`、`accounting_compliance_report`、`accounting_pl_statement`、`accounting_budget_vs_actual_report`、`accounting_gmv_waterfall_report`、`accounting_scenario_report`、`accounting_cash_flow_forecast_report`、`accounting_financial_narrative_report`、`service_ticket_playbook`、`service_faq_playbook`、`service_escalation_playbook`、`service_dsr_improvement_plan`、`service_return_plan`、`service_nps_report`、`service_sentiment_report`、`service_nps_driver_report`、`ops_promo_plan`、`ops_product_opportunity_report`、`ops_product_market_fit_report`、`ops_experiment_mvp_plan`、`ops_experiment_review_report`、`ops_pricing_strategy`、`ops_channel_strategy`、`ops_inventory_plan`、`ops_listing_copy`、`ops_assortment_plan`、`ops_execution_plan`、`ops_smart_pricing_report`、`ops_inventory_optimization_report`、`ops_ad_fatigue_report`、`ops_abc_xyz_report`、`douyin_ads_plan_structure`、`douyin_ads_audience_package`、`douyin_ads_budget_pacing`、`douyin_ads_live_funnel_report`、`web_seo_plan`、`web_title_candidates`、`web_conversion_plan`、`web_store_design_brief`、`web_keyword_matrix`、`web_product_description`、`web_title_seo_score`、`engineering_arch_review_report`、`engineering_bug_analysis_report`、`engineering_perf_plan`、`engineering_tech_selection_report`、`engineering_sla_report`、`learning_teaching_explain`、`role_report`、`file` |
+| `artifactType` | `string` | 否 | 交付物类型，例如 `final_report`、`conversation_report`、`commerce_conversation_report`、`teaching_conversation_report`、`process_evidence_pack`、`search_evidence`、`video_script`、`seeding_copy`、`ip_branding`、`content_calendar`、`live_script`、`product_article`、`creative_trend_report`、`creative_title_ctr_score`、`design_main_image_brief`、`design_detail_page_brief`、`design_color_scheme`、`design_material_spec`、`design_campaign_poster_brief`、`data_dashboard`、`data_funnel_report`、`data_channel_roi_report`、`data_refund_report`、`data_anomaly_report`、`data_trend_forecast_report`、`data_customer_segmentation_report`、`data_competitor_report`、`data_ab_test_report`、`data_attribution_report`、`data_multi_period_trend_report`、`data_ltv_report`、`data_cohort_report`、`data_seasonal_decompose_report`、`data_price_elasticity_report`、`data_demand_forecast_report`、`data_comprehensive_diagnosis_report`、`accounting_cost_report`、`accounting_profit_report`、`accounting_roi_report`、`accounting_budget_plan`、`accounting_break_even_report`、`accounting_compliance_report`、`accounting_pl_statement`、`accounting_budget_vs_actual_report`、`accounting_gmv_waterfall_report`、`accounting_scenario_report`、`accounting_cash_flow_forecast_report`、`accounting_financial_narrative_report`、`service_ticket_playbook`、`service_faq_playbook`、`service_escalation_playbook`、`service_dsr_improvement_plan`、`service_return_plan`、`service_nps_report`、`service_sentiment_report`、`service_nps_driver_report`、`ops_promo_plan`、`ops_product_opportunity_report`、`ops_product_market_fit_report`、`ops_experiment_mvp_plan`、`ops_experiment_review_report`、`ops_pricing_strategy`、`ops_channel_strategy`、`ops_inventory_plan`、`ops_listing_copy`、`ops_assortment_plan`、`ops_execution_plan`、`ops_smart_pricing_report`、`ops_inventory_optimization_report`、`ops_ad_fatigue_report`、`ops_abc_xyz_report`、`douyin_ads_plan_structure`、`douyin_ads_audience_package`、`douyin_ads_budget_pacing`、`douyin_ads_live_funnel_report`、`web_seo_plan`、`web_title_candidates`、`web_conversion_plan`、`web_store_design_brief`、`web_keyword_matrix`、`web_product_description`、`web_title_seo_score`、`engineering_arch_review_report`、`engineering_bug_analysis_report`、`engineering_perf_plan`、`engineering_tech_selection_report`、`engineering_sla_report`、`learning_teaching_explain`、`role_report`、`file` |
 | `status` | `active \| archived` | 否 | 不传时默认查询 `active` |
 | `keyword` | `string` | 否 | 匹配标题、预览、文件名、对象 key |
 | `page` | `number` | 否 | 默认 1 |
@@ -2952,6 +3117,18 @@
 - 如果 live 搜索输出的 `output.query` 带有本轮显式选品上下文，`metadata.productContext` 会包含 `productRef/productName/productCategory`，并冗余写入顶层 `metadata.productRef/productName/productCategory`；`preview` 也会出现 `Product:` 行
 - 未显式选商品时不会写空商品字段，也不会从 query 文本、历史对话、工作区摘要或预设商品推断商品
 - 只有真实 live 来源会创建该交付物；adapter 未配置、provider 失败或无来源时不会创建假搜索证据
+
+`artifactType=conversation_report / commerce_conversation_report / teaching_conversation_report / process_evidence_pack` 时：
+
+- 这些交付物来自用户主动点击生成报告，不来自 Agent 每轮回答自动生成。
+- `source=manual_report_generation`，`storageKind=inline`，`format=markdown`。
+- `metadata.kind=manual_conversation_report`。
+- `metadata` 包含 `conversationId`、`reportType`、`scope`、`includeProcess`、`includeSources`、`includeTranscriptAppendix`、`materialCounts`、`generatedAt`。
+- 报告内容由已沉淀的会话消息、附件解析摘要、workspace artifacts、skill-runs、quality checks 和 run task 摘要整理生成；不会重新触发搜索、skill、文件解析、LLM 或完整 Agent session。
+- `commerce_conversation_report` 面向电商经营 / 运营复盘，重点整理商品、店铺、平台、活动、转化、投放、竞品、库存或利润风险和下一步动作。
+- `teaching_conversation_report` 面向教学 / 实训复盘，重点整理学习任务、能力点、学生提问、AI 辅导过程、知识点、操作步骤和改进建议。
+- `process_evidence_pack` 面向多智能体过程审计，重点整理运行任务、skill 调用、搜索证据、附件材料、质量检查和最终交付物清单。
+- 报告正文不得暴露 `objectKey`、provider request id、API key、prompt 路径、adapter 原始错误、diagnostic JSON、`failure_kind` 等内部字段。
 
 `artifactType=video_script / seeding_copy / ip_branding / content_calendar / live_script / product_article / creative_trend_report / creative_title_ctr_score / design_main_image_brief / design_detail_page_brief / design_color_scheme / design_material_spec / design_campaign_poster_brief / data_dashboard / data_funnel_report / data_channel_roi_report / data_refund_report / data_anomaly_report / data_trend_forecast_report / data_customer_segmentation_report / data_competitor_report / data_ab_test_report / data_attribution_report / data_multi_period_trend_report / data_ltv_report / data_cohort_report / data_seasonal_decompose_report / data_price_elasticity_report / data_demand_forecast_report / data_comprehensive_diagnosis_report / accounting_cost_report / accounting_profit_report / accounting_roi_report / accounting_budget_plan / accounting_break_even_report / accounting_compliance_report / accounting_pl_statement / accounting_budget_vs_actual_report / accounting_gmv_waterfall_report / accounting_scenario_report / accounting_cash_flow_forecast_report / accounting_financial_narrative_report / service_ticket_playbook / service_faq_playbook / service_escalation_playbook / service_dsr_improvement_plan / service_return_plan / service_nps_report / service_sentiment_report / service_nps_driver_report / ops_promo_plan / ops_product_opportunity_report / ops_product_market_fit_report / ops_experiment_mvp_plan / ops_experiment_review_report / ops_pricing_strategy / ops_channel_strategy / ops_inventory_plan / ops_listing_copy / ops_assortment_plan / ops_execution_plan / ops_smart_pricing_report / ops_inventory_optimization_report / ops_ad_fatigue_report / ops_abc_xyz_report / douyin_ads_plan_structure / douyin_ads_audience_package / douyin_ads_budget_pacing / douyin_ads_live_funnel_report / web_seo_plan / web_title_candidates / web_conversion_plan / web_store_design_brief / web_keyword_matrix / web_product_description / web_title_seo_score / engineering_arch_review_report / engineering_bug_analysis_report / engineering_perf_plan / engineering_tech_selection_report / engineering_sla_report / learning_teaching_explain` 时：
 

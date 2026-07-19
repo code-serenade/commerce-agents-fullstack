@@ -3,12 +3,14 @@ import {
   CommercePageHeader,
   CommerceSurface,
 } from "../components/commerce-ui"
+import { Button } from "@workspace/ui-components"
+import { Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { ProductDialogs } from "./components/product-dialogs"
 import {
-  ProductDetailPanel,
+  ProductDetailDrawer,
   ProductsMasterPanel,
-  ProductsMetrics,
+  ProductTemplatePanel,
 } from "./components/product-panels"
 import { useProductsPage } from "./use-products-page"
 
@@ -22,14 +24,22 @@ export default function ProductsPage() {
         eyebrow={t("commerce.pages.products.eyebrow")}
         title={t("commerce.pages.products.title")}
         description={t("commerce.pages.products.description")}
+        actions={
+          <Button
+            size="lg"
+            variant="primary"
+            onClick={() => page.setDialog("create-product")}
+          >
+            <Plus className="size-4" />
+            {t("commerce.products.panels.create")}
+          </Button>
+        }
       />
       <CommerceBody>
-        <ProductsMetrics items={page.metricCards} />
-        <div className="grid gap-4 xl:grid-cols-[minmax(22rem,0.85fr)_minmax(0,1.65fr)]">
-          <ProductsMasterPanel page={page} />
-          <ProductDetailPanel page={page} />
-        </div>
+        <ProductTemplatePanel page={page} />
+        <ProductsMasterPanel page={page} />
       </CommerceBody>
+      <ProductDetailDrawer page={page} />
       <ProductDialogs page={page} />
     </CommerceSurface>
   )

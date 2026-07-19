@@ -31,7 +31,7 @@ describe("QuestionIdeasPage", () => {
     )
 
     expect(
-      screen.getByRole("heading", { name: i18n.t("questionIdeas.header.title") })
+      screen.getByRole("heading", { name: i18n.t("questionIdeas.recipe.title") })
     ).toBeInTheDocument()
 
     await user.click(screen.getByText(prompt))
@@ -57,7 +57,7 @@ describe("QuestionIdeasPage", () => {
     )
 
     expect(
-      screen.getByRole("heading", { name: i18n.t("questionIdeas.header.title") })
+      screen.getByRole("heading", { name: i18n.t("questionIdeas.recipe.title") })
     ).toBeInTheDocument()
 
     await user.click(screen.getByText(prompt))

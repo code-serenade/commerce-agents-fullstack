@@ -13,6 +13,8 @@ vi.mock("../agent-chat-data", () => ({
   },
 }))
 
+const titleKey = "title"
+
 describe("sendAgentChatMessage", () => {
   it("sends empty product context when the user did not select products", async () => {
     const addConversationMessage = vi.mocked(agentChatData.addConversationMessage)
@@ -40,6 +42,9 @@ describe("sendAgentChatMessage", () => {
       content: "Analyze coffee category products.",
       attachments: [],
       conversationId: null,
+      ensureConversation: async () =>
+        (await createConversation({ [titleKey]: "New chat", agentId: "web-agent" }))
+          .conversation.id,
       fallbackConversationTitle: "New chat",
       messageFormatCopy: {
         boundaryNotice: "boundary notice",
@@ -47,6 +52,7 @@ describe("sendAgentChatMessage", () => {
         streamTimedOut: "stream timed out",
       },
       onController: vi.fn(),
+      promoteConversationTitle: vi.fn(),
       runtimeSelection: {
         collaborationMode: "manual",
         learningLevel: "higher_vocational",
@@ -58,8 +64,6 @@ describe("sendAgentChatMessage", () => {
       selectedCampaigns: [],
       selectedSources: [],
       sessionIdRef: { current: "session-a" },
-      setConversationId: vi.fn(),
-      setConversations: vi.fn(),
       setError: vi.fn(),
       setInput: vi.fn(),
       setIsStreaming: vi.fn(),
@@ -149,6 +153,9 @@ describe("sendAgentChatMessage", () => {
       content: `${textFromCodes([35831, 20998, 26512, 21654, 21857, 31867, 21830, 21697])}，${textFromCodes([19981, 24341, 29992, 20219, 20309, 39044, 35774, 21830, 21697])}。`,
       attachments: [],
       conversationId: null,
+      ensureConversation: async () =>
+        (await createConversation({ [titleKey]: "New chat", agentId: "web-agent" }))
+          .conversation.id,
       fallbackConversationTitle: "New chat",
       messageFormatCopy: {
         boundaryNotice: "boundary notice",
@@ -156,6 +163,7 @@ describe("sendAgentChatMessage", () => {
         streamTimedOut: "stream timed out",
       },
       onController: vi.fn(),
+      promoteConversationTitle: vi.fn(),
       runtimeSelection: {
         collaborationMode: "manual",
         learningLevel: "higher_vocational",
@@ -167,8 +175,6 @@ describe("sendAgentChatMessage", () => {
       selectedCampaigns: [],
       selectedSources: [],
       sessionIdRef: { current: "session-b" },
-      setConversationId: vi.fn(),
-      setConversations: vi.fn(),
       setError: vi.fn(),
       setInput: vi.fn(),
       setIsStreaming: vi.fn(),
@@ -227,6 +233,9 @@ describe("sendAgentChatMessage", () => {
       content: `${textFromCodes([35831, 29992, 22810, 23703, 20301, 21327, 20316, 20998, 26512, 30452, 25773, 38388, 28431, 26007])}，${textFromCodes([19981, 24341, 29992, 20219, 20309, 39044, 35774, 21830, 21697])}。`,
       attachments: [],
       conversationId: null,
+      ensureConversation: async () =>
+        (await createConversation({ [titleKey]: "New chat", agentId: "web-agent" }))
+          .conversation.id,
       fallbackConversationTitle: "New chat",
       messageFormatCopy: {
         boundaryNotice: "boundary notice",
@@ -234,6 +243,7 @@ describe("sendAgentChatMessage", () => {
         streamTimedOut: "stream timed out",
       },
       onController: vi.fn(),
+      promoteConversationTitle: vi.fn(),
       runtimeSelection: {
         collaborationMode: "manual",
         learningLevel: "higher_vocational",
@@ -245,8 +255,6 @@ describe("sendAgentChatMessage", () => {
       selectedCampaigns: [],
       selectedSources: [],
       sessionIdRef: { current: "session-c" },
-      setConversationId: vi.fn(),
-      setConversations: vi.fn(),
       setError: vi.fn(),
       setInput: vi.fn(),
       setIsStreaming: (value) => {

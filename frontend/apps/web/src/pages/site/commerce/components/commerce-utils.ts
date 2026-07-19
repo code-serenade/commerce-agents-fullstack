@@ -8,6 +8,26 @@ export function notifyError(message: string) {
   toast.error(message)
 }
 
+export function downloadTextFile({
+  content,
+  fileName,
+  mimeType,
+}: {
+  content: string
+  fileName: string
+  mimeType: string
+}) {
+  const blob = new Blob([content], {
+    type: mimeType || "text/plain;charset=utf-8",
+  })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement("a")
+  anchor.href = url
+  anchor.download = fileName
+  anchor.click()
+  URL.revokeObjectURL(url)
+}
+
 export function toNumberOrNull(value?: string | null): number | null {
   if (!value?.trim()) return null
   const parsed = Number(value)

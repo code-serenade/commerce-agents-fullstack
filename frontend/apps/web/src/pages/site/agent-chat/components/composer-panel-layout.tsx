@@ -57,29 +57,29 @@ export function ComposerPanelHeader({
   const closeAction = useContext(ComposerPanelCloseContext)
 
   return (
-    <div className="relative mb-4 flex min-w-0 flex-wrap items-center justify-between gap-3 pb-3 after:absolute after:bottom-0 after:left-0 after:h-px after:w-full after:bg-[linear-gradient(90deg,var(--agent-chat-soft-border),transparent)]">
+    <div className="relative mb-4 flex min-w-0 flex-wrap items-center justify-between gap-3 pr-10 pb-3 after:absolute after:bottom-0 after:left-0 after:h-px after:w-full after:bg-[linear-gradient(90deg,var(--agent-chat-soft-border),transparent)]">
       <div className="min-w-0">
         <p className="text-sm/5 font-bold text-foreground">{title}</p>
         <p className="mt-0.5 text-[11px]/4 text-muted-foreground">
           {description}
         </p>
       </div>
-      {actions || closeAction ? (
+      {actions ? (
         <div className="flex shrink-0 flex-wrap items-center gap-1.5">
           {actions}
-          {closeAction ? (
-            <Button
-              type="button"
-              aria-label={closeAction.label}
-              title={closeAction.label}
-              onClick={closeAction.onClose}
-              classNameMode="replace"
-              className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) text-muted-foreground shadow-sm transition-colors hover:bg-(--agent-chat-accent-soft) hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden"
-            >
-              <X className="size-4" aria-hidden="true" />
-            </Button>
-          ) : null}
         </div>
+      ) : null}
+      {closeAction ? (
+        <Button
+          type="button"
+          aria-label={closeAction.label}
+          title={closeAction.label}
+          onClick={closeAction.onClose}
+          classNameMode="replace"
+          className="absolute top-0 right-0 inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) text-muted-foreground shadow-sm transition-colors hover:bg-(--agent-chat-accent-soft) hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden"
+        >
+          <X className="size-4" aria-hidden="true" />
+        </Button>
       ) : null}
     </div>
   )
@@ -104,7 +104,7 @@ export function ComposerPanelFrame({
         title={title}
       />
       <div
-        className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain pr-1 pb-9 [scrollbar-gutter:stable]"
+        className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain pr-3 pb-9 [scrollbar-gutter:stable]"
         data-agent-chat-composer-panel-scroll="true"
       >
         {children}

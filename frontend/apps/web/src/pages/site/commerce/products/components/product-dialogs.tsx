@@ -99,7 +99,7 @@ export function ProductDialogs({ page }: { page: ProductsPageState }) {
       {page.dialog === "create-knowledge" ? (
         <ControlledSimpleDialog
           title={t("commerce.products.dialogs.knowledge")}
-          fields={knowledgeFields(t)}
+          fields={knowledgeFields(t, { includeSourceType: false })}
           initialValues={{
             confidence: "0.8",
             contentType: "selling_point",

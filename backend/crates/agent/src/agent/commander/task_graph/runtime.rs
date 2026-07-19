@@ -2186,7 +2186,7 @@ mod tests {
 
         let output = runtime.synthesize();
 
-        assert!(output.contains("## 先说判断"), "{output}");
+        assert!(output.contains("## 先给你一版可用判断"), "{output}");
         assert!(output.contains("## 接下来怎么做"), "{output}");
         assert!(output.contains("## 风险边界"), "{output}");
         assert!(output.contains("## 还要注意"), "{output}");

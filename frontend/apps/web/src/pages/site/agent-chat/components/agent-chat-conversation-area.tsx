@@ -1,8 +1,11 @@
 import { AgentChatComposer } from "./agent-chat-composer"
+import { AgentChatQuotaStatus } from "./agent-chat-quota-status"
+import { AgentChatReportActions } from "./agent-chat-report-actions"
 import { AgentChatThread } from "./agent-chat-thread"
 import { AgentChatWelcomeContent } from "./agent-chat-welcome-content"
 import { useTranslation } from "react-i18next"
 import type { AgentChatContextValue } from "../context/agent-chat-context-value"
+import type { AgentChatReportActionsState } from "../view-model/use-agent-chat-report-actions"
 import type { useAgentChatRequestedComposerPanel } from "../view-model/use-agent-chat-requested-composer-panel"
 import type { useAgentProcessPanel } from "../view-model/use-agent-process-panel"
 
@@ -14,6 +17,7 @@ export function AgentChatConversationArea({
   onSendMessage,
   onUploadAttachments,
   processPanel,
+  reportActions,
   requestedComposerPanel,
 }: {
   chat: AgentChatContextValue
@@ -23,6 +27,7 @@ export function AgentChatConversationArea({
   onSendMessage: () => void
   onUploadAttachments: (files: File[]) => void
   processPanel: ReturnType<typeof useAgentProcessPanel>
+  reportActions: AgentChatReportActionsState
   requestedComposerPanel: ReturnType<typeof useAgentChatRequestedComposerPanel>
 }) {
   const { t } = useTranslation()
@@ -33,23 +38,42 @@ export function AgentChatConversationArea({
     <div
       className={
         isWelcomeMode
-          ? "relative z-10 flex min-h-0 w-full flex-1 flex-col overflow-y-auto px-4 pt-[24vh] pb-8 sm:px-7"
-          : "relative z-10 flex min-h-0 w-full flex-1 flex-col overflow-hidden"
+          ? "relative z-10 flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col overflow-x-hidden overflow-y-auto px-4 py-6 sm:px-7 lg:px-10"
+          : "relative z-10 flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col overflow-hidden"
       }
     >
       {isWelcomeMode ? null : (
-        <AgentChatThread
-          activeProcessMessageId={processPanel.activeProcessMessage?.id ?? null}
-          isStreaming={chat.isStreaming}
-          messages={chat.messages}
-          onCloseProcessPanel={processPanel.closeProcessPanel}
-          onExamplePromptSelect={onExamplePromptSelect}
-          onNextActionPromptSubmit={onNextActionPromptSubmit}
-          onOpenProcessPanel={processPanel.openProcessPanel}
-          runtimeEvents={chat.runtimeEvents}
-          selectedStrategy={chat.selectedStrategy}
-          showProcessPanelAction
-        />
+        <>
+          <AgentChatReportActions
+            canUseConversation={reportActions.canUseConversation}
+            isExportingTranscript={reportActions.isExportingTranscript}
+            isGeneratingReport={reportActions.isGeneratingReport}
+            isStreaming={chat.isStreaming}
+            leading={
+              chat.isLoggedIn ? (
+                <AgentChatQuotaStatus
+                  isLoading={chat.isLoadingQuota}
+                  quota={chat.quota}
+                />
+              ) : undefined
+            }
+            onExportReport={reportActions.exportReport}
+            onExportTranscript={reportActions.exportTranscript}
+            onOpenReportCenter={reportActions.openReportCenter}
+          />
+          <AgentChatThread
+            activeProcessMessageId={processPanel.activeProcessMessage?.id ?? null}
+            isStreaming={chat.isStreaming}
+            messages={chat.messages}
+            onCloseProcessPanel={processPanel.closeProcessPanel}
+            onExamplePromptSelect={onExamplePromptSelect}
+            onNextActionPromptSubmit={onNextActionPromptSubmit}
+            onOpenProcessPanel={processPanel.openProcessPanel}
+            runtimeEvents={chat.runtimeEvents}
+            selectedStrategy={chat.selectedStrategy}
+            showProcessPanelAction
+          />
+        </>
       )}
       <AgentChatComposer
         attachments={chat.attachments}
@@ -112,7 +136,7 @@ export function AgentChatConversationArea({
       >
         {isWelcomeMode ? (
           <AgentChatWelcomeContent
-            onSelectExamplePrompt={onNextActionPromptSubmit}
+            onSelectExamplePrompt={onExamplePromptSelect}
           />
         ) : null}
       </AgentChatComposer>

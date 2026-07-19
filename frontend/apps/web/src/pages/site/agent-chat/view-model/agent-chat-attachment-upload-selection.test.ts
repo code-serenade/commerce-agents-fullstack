@@ -53,6 +53,7 @@ describe("uploadAgentChatAttachments", () => {
 
     const result = await uploadAgentChatAttachments({
       conversationId: "conversation-upload",
+      ensureConversation: vi.fn(),
       fallbackConversationTitle: "New chat",
       files: [new File(["hello upload"], "note.txt", { type: "text/plain" })],
       setAttachments: (updater) => {
@@ -60,8 +61,6 @@ describe("uploadAgentChatAttachments", () => {
           attachments.splice(0, attachments.length, ...updater(attachments))
         }
       },
-      setConversationId: vi.fn(),
-      setConversations: vi.fn(),
     })
 
     expect(result).toEqual({

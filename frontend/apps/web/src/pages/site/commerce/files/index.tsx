@@ -1,24 +1,19 @@
 import { useRef } from "react"
-import { FolderOpen, Library } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import {
   CommerceBody,
+  CommercePanel,
   CommercePageHeader,
   CommerceSurface,
   CommerceToolbar,
   InlineAlert,
 } from "../components/commerce-ui"
-import {
-  DocumentIntroCard,
-  DocumentSection,
-} from "../components/document-section"
 import { FilesTable } from "./components/files-table"
-import { FilesBulkSelectionActions } from "./components/files-bulk-selection-actions"
 import { FilesFilters } from "./components/files-filters"
 import { FilesDeleteDialog } from "./components/files-delete-dialog"
-import { FilesDetailDialog } from "./components/files-detail-dialog"
+import { FilesDetailDrawer } from "./components/files-detail-drawer"
 import { FilesPageActions } from "./components/files-page-actions"
-import { FilesFilterSummary } from "./components/files-filter-summary"
+import { FilesToolbarActions } from "./components/files-toolbar-actions"
 import { FilesTurnSelectionSummary } from "./components/files-turn-selection-summary"
 import { FilesUsageSummary } from "./components/files-usage-summary"
 import { useFilesPage } from "./use-files-page"
@@ -45,12 +40,7 @@ export default function FilesPage() {
           />
         }
       />
-      <CommerceBody className="min-[1200px]:px-8">
-        <DocumentIntroCard
-          title={t("commerce.pages.files.boundaryTitle")}
-          description={t("commerce.pages.files.boundaryDescription")}
-          icon={<Library className="size-4" />}
-        />
+      <CommerceBody>
         {page.error ? (
           <InlineAlert
             variant="error"
@@ -65,26 +55,25 @@ export default function FilesPage() {
             description={t("commerce.files.chatContextUnavailable.description")}
           />
         ) : null}
-        <DocumentSection
-          title={t("commerce.files.panelTitle")}
-          description={t("commerce.files.panelDescription")}
-          icon={<FolderOpen className="size-4" />}
-        >
-          <div className="grid gap-3">
-            <FilesUsageSummary summary={page.usageSummary} t={t} />
-            <FilesTurnSelectionSummary
-              canClearSelectedForTurn={page.canClearSelectedForTurn}
-              onClearSelectedForTurn={page.clearSelectedForTurn}
-              onShowSelectedForTurn={() =>
-                page.setUsageFilter("selectedForTurn")
-              }
-              summary={page.turnSelectionSummary}
-              t={t}
-            />
+        <CommercePanel>
+          <div className="space-y-3">
+            <div className="flex min-w-0 flex-col gap-3 border-b border-(--app-border) pb-3 sm:flex-row sm:items-center sm:justify-between">
+              <FilesUsageSummary summary={page.usageSummary} t={t} />
+              <FilesTurnSelectionSummary
+                canClearSelectedForTurn={page.canClearSelectedForTurn}
+                onClearSelectedForTurn={page.clearSelectedForTurn}
+                onShowSelectedForTurn={() =>
+                  page.setUsageFilter("selectedForTurn")
+                }
+                summary={page.turnSelectionSummary}
+                t={t}
+              />
+            </div>
             <CommerceToolbar
               actions={
-                <FilesBulkSelectionActions
+                <FilesToolbarActions
                   deleting={page.deleting}
+                  filterSummary={page.filterSummary}
                   onClearSelection={page.clearSelection}
                   onDeleteSelected={() => page.setDeleteDialogOpen(true)}
                   selectedCount={page.selectedFiles.length}
@@ -108,7 +97,6 @@ export default function FilesPage() {
                 />
               }
             />
-            <FilesFilterSummary summary={page.filterSummary} t={t} />
             <FilesTable
               canUploadEmpty={page.canUploadFiles}
               dataFileCount={page.dataFileCount}
@@ -130,7 +118,7 @@ export default function FilesPage() {
               usingFileIds={page.usingFileIds}
             />
           </div>
-        </DocumentSection>
+        </CommercePanel>
       </CommerceBody>
       <FilesDeleteDialog
         deleteImpact={page.deleteImpact}
@@ -141,7 +129,7 @@ export default function FilesPage() {
         selectedFiles={page.selectedFiles}
         t={t}
       />
-      <FilesDetailDialog
+      <FilesDetailDrawer
         file={page.detailFile}
         onOpenChange={(open) => {
           if (!open) page.closeFileDetail()

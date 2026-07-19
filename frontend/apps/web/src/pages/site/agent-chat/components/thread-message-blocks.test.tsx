@@ -27,7 +27,7 @@ describe("WelcomeCard", () => {
       </WelcomeCardTestShell>
     )
 
-    await user.click(screen.getByText(prompt))
+    await user.click(screen.getByText(i18n.t("agentChat.thread.studentTaskEntries.start.title")))
 
     expect(onSelectExamplePrompt).toHaveBeenCalledWith(prompt)
   })
@@ -71,21 +71,7 @@ describe("WelcomeCard", () => {
       screen.getByText(i18n.t("agentChat.welcomeMessage"))
     ).toBeInTheDocument()
     expect(
-      document.querySelector("[data-agent-portrait-asset='ops-portrait']")
-    ).not.toHaveClass("agent-role-portrait__sprite--working")
-    expect(
-      document.querySelector("[data-agent-portrait-asset='ops-portrait']")
-    ).toHaveAttribute("data-agent-portrait-source", "static")
-    expect(
-      document.querySelector("[data-agent-portrait-asset='design-portrait']")
-    ).not.toHaveClass("agent-role-portrait__sprite--working")
-    expect(
-      document.querySelector("[data-agent-portrait-asset='design-portrait']")
-    ).toHaveAttribute("data-agent-portrait-source", "static")
-    expect(
-      document.querySelector(
-        "[data-agent-portrait-asset='engineering-portrait']"
-      )
+      document.querySelector("[data-agent-portrait-asset]")
     ).not.toBeInTheDocument()
   })
 
@@ -108,7 +94,7 @@ describe("WelcomeCard", () => {
       screen.getByText(i18n.t("agentChat.thread.studentTaskEntries.title"))
     ).toBeInTheDocument()
 
-    await user.click(screen.getByText(prompt))
+    await user.click(screen.getByText(i18n.t("agentChat.thread.studentTaskEntries.plan.title")))
 
     expect(onSelectExamplePrompt).toHaveBeenCalledWith(prompt)
   })
@@ -128,7 +114,7 @@ describe("WelcomeCard", () => {
       </WelcomeCardTestShell>
     )
 
-    await user.click(screen.getByText(prompt))
+    await user.click(screen.getByText(i18n.t("agentChat.thread.studentTaskEntries.data.title")))
 
     expect(onSelectExamplePrompt).toHaveBeenCalledWith(prompt)
   })

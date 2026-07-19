@@ -3,6 +3,17 @@ import { describe, expect, it, vi } from "vitest"
 import { AgentChatTestI18nProvider } from "@/test/AgentChatTestI18nProvider"
 import { createAgentChatTestI18n } from "@/test/create-agent-chat-test-i18n"
 import { SimpleFormDialog } from "./commerce-form"
+import { normalizeNumericInput } from "./commerce-form-utils"
+
+describe("normalizeNumericInput", () => {
+  it("keeps a non-negative decimal value to the configured precision", () => {
+    const options = { decimalScale: 2, nonNegative: true }
+
+    expect(normalizeNumericInput("12.345", options)).toBe("12.34")
+    expect(normalizeNumericInput("-8.9", options)).toBe("8.9")
+    expect(normalizeNumericInput("CNY 6.789", options)).toBe("6.78")
+  })
+})
 
 describe("SimpleFormDialog", () => {
   it("keeps an optional review notice visible inside the form", async () => {

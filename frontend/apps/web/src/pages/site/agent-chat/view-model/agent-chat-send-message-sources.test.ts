@@ -43,6 +43,9 @@ describe("sendAgentChatMessage source context", () => {
       content: "Analyze the selected materials.",
       attachments: [],
       conversationId: null,
+      ensureConversation: async () =>
+        (await createConversation({ [titleKey]: "New chat", agentId: "web-agent" }))
+          .conversation.id,
       fallbackConversationTitle: "New chat",
       messageFormatCopy: {
         boundaryNotice: "boundary notice",
@@ -50,6 +53,7 @@ describe("sendAgentChatMessage source context", () => {
         streamTimedOut: "stream timed out",
       },
       onController: vi.fn(),
+      promoteConversationTitle: vi.fn(),
       runtimeSelection: {
         collaborationMode: "manual",
         learningLevel: "higher_vocational",
@@ -78,8 +82,6 @@ describe("sendAgentChatMessage source context", () => {
         },
       ],
       sessionIdRef: { current: "session-sources" },
-      setConversationId: vi.fn(),
-      setConversations: vi.fn(),
       setError: vi.fn(),
       setInput: vi.fn(),
       setIsStreaming: vi.fn(),

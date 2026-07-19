@@ -1283,10 +1283,8 @@ mod tests {
         };
         assert!(content.contains("## 先给你一版可用判断"), "{content}");
         assert!(content.contains("## 还要注意"), "{content}");
-        assert!(
-            content.contains("部分处理步骤没有形成可用结果"),
-            "{content}"
-        );
+        assert!(content.contains("低风险可执行版本"), "{content}");
+        assert!(content.contains("当前资料还不足以"), "{content}");
         assert!(!content.contains("没有形成完整答案"), "{content}");
         assert!(!content.contains("failure_kind"), "{content}");
         assert!(!content.contains("worker."), "{content}");
@@ -1382,10 +1380,8 @@ mod tests {
         };
         assert!(content.contains("## 先给你一版可用判断"), "{content}");
         assert!(content.contains("## 还要注意"), "{content}");
-        assert!(
-            content.contains("部分处理步骤没有形成可用结果"),
-            "{content}"
-        );
+        assert!(content.contains("低风险可执行版本"), "{content}");
+        assert!(content.contains("当前资料还不足以"), "{content}");
         assert!(!content.contains("没有形成完整答案"), "{content}");
         assert!(!content.contains("task_graph_stalled"), "{content}");
         assert!(!content.contains("worker."), "{content}");

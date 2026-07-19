@@ -6,6 +6,10 @@ import {
 } from "../../components/commerce-ui"
 import type { CommerceColumn } from "../../components/commerce-ui"
 import type { CommerceTranslate } from "../../components/commerce-types"
+import {
+  getCommerceEnumLabel,
+  getCommerceStatusLabel,
+} from "../../domain/enum-mappings"
 
 export function createSkillRunColumns(
   t: CommerceTranslate
@@ -17,7 +21,12 @@ export function createSkillRunColumns(
       render: (item) => (
         <div className="min-w-0">
           <div className="truncate font-medium">{item.skillId}</div>
-          <MutedText>{item.workerId || item.role || item.requestId}</MutedText>
+          <MutedText>
+            {item.workerId ||
+              (item.role
+                ? getCommerceEnumLabel(t, "ownerRole", item.role)
+                : item.requestId)}
+          </MutedText>
         </div>
       ),
     },
@@ -26,7 +35,7 @@ export function createSkillRunColumns(
       header: t("commerce.common.status"),
       render: (item) => (
         <StatusBadge tone={toneForStatus(item.status)}>
-          {item.status}
+          {getCommerceStatusLabel(t, item.status)}
         </StatusBadge>
       ),
     },
@@ -35,8 +44,12 @@ export function createSkillRunColumns(
       header: t("commerce.workspaces.columns.executionMode"),
       render: (item) => (
         <div className="space-y-1">
-          <MutedText>{item.executionMode || "-"}</MutedText>
-          <MutedText>{item.riskLevel || "-"}</MutedText>
+          <MutedText>
+            {getCommerceEnumLabel(t, "executionMode", item.executionMode)}
+          </MutedText>
+          <MutedText>
+            {getCommerceEnumLabel(t, "riskLevel", item.riskLevel)}
+          </MutedText>
         </div>
       ),
     },

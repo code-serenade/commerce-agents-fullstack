@@ -10,6 +10,7 @@ import {
 } from "../../components/commerce-ui"
 import type { CommerceColumn } from "../../components/commerce-ui"
 import type { CommerceTranslate } from "../../components/commerce-types"
+import { getCommerceStatusLabel } from "../../domain/enum-mappings"
 import type { OperationsPageState } from "../use-operations-page"
 
 export function DailyBriefingPanel({ page }: { page: OperationsPageState }) {
@@ -58,7 +59,7 @@ function briefingColumns(
       header: t("commerce.common.status"),
       render: (item) => (
         <StatusBadge tone={toneForStatus(item.status || "ready")}>
-          {item.status || "ready"}
+          {getCommerceStatusLabel(t, item.status || "ready")}
         </StatusBadge>
       ),
     },

@@ -9,6 +9,7 @@ import {
   createProductApi,
   createProductKnowledgeApi,
   createProductMaterialApi,
+  importProductTemplateApi,
   updateProductAssetApi,
   updateProductKnowledgeApi,
   updateProductMaterialApi,
@@ -54,6 +55,7 @@ export function useProductActions({
   setSelectedKnowledgeId,
   setSelectedMaterialId,
   setSelectedProductId,
+  setDetailOpen,
   t,
 }: {
   assetFile: File | null
@@ -66,6 +68,7 @@ export function useProductActions({
   setSelectedKnowledgeId: (id: string | null) => void
   setSelectedMaterialId: (id: string | null) => void
   setSelectedProductId: (id: string | null) => void
+  setDetailOpen: (open: boolean) => void
   t: CommerceTranslate
 }) {
   const queryClient = useQueryClient()
@@ -122,6 +125,23 @@ export function useProductActions({
     onSuccess: async () => {
       setSelectedProductId(null)
       notifySuccess(t("commerce.products.notify.archived"))
+      await invalidateProducts()
+    },
+  })
+  const importProductTemplate = useMutation({
+    mutationFn: (templateId: string) =>
+      importProductTemplateApi({ templateId }),
+    onSuccess: async (result) => {
+      syncProductCache(queryClient, result.product)
+      setSelectedProductId(result.product.id)
+      setDetailOpen(true)
+      notifySuccess(
+        t(
+          result.created
+            ? "commerce.products.notify.templateImported"
+            : "commerce.products.notify.templateOpened"
+        )
+      )
       await invalidateProducts()
     },
   })
@@ -286,6 +306,8 @@ export function useProductActions({
       createProductDraft.isPending || createProductDraftStream.isPending,
     createProductDraftStream: createProductDraftStream.mutateAsync,
     createProductPending: createProduct.isPending,
+    importProductTemplate: importProductTemplate.mutate,
+    importProductTemplatePending: importProductTemplate.isPending,
     updateAsset: updateAsset.mutate,
     updateCompetitor,
     updateKnowledge: updateKnowledge.mutate,

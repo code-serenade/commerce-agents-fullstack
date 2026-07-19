@@ -82,12 +82,12 @@ describe("getDispatchFacts", () => {
     expect(getDispatchFacts(events, t)).toEqual([
       {
         detail:
-          "omitted 2 selected 0 packed 3 readable 1 missing 0 omitted 2 unreadable 2 warnings 1 readiness partial",
+          "omitted 2 selected 0 packed 3 readable 1 missing 0 omitted 2 unreadable 2 warnings 1 readiness Partially ready",
         label: dispatchFactTestLabels.materialAuditLabel,
         tone: "warning",
       },
       {
-        detail: dispatchFactTestLabels.workspaceDetail,
+        detail: "Partially ready 1/3",
         label: dispatchFactTestLabels.workspaceLabel,
         tone: "success",
       },
@@ -130,7 +130,7 @@ describe("getDispatchFacts", () => {
 
     expect(getDispatchFacts(events, t)).toContainEqual({
       detail:
-        "ready selected 2 packed 2 readable 2 missing 0 omitted 0 unreadable 0 warnings 0 readiness ready",
+        "ready selected 2 packed 2 readable 2 missing 0 omitted 0 unreadable 0 warnings 0 readiness Ready",
       label: dispatchFactTestLabels.materialAuditLabel,
       tone: "success",
     })
@@ -159,7 +159,7 @@ describe("getDispatchFacts", () => {
 
     expect(facts).toContainEqual({
       detail:
-        "ready selected 2 packed 2 readable 2 missing 0 omitted 0 unreadable 0 warnings 0 readiness ready",
+        "ready selected 2 packed 2 readable 2 missing 0 omitted 0 unreadable 0 warnings 0 readiness Ready",
       label: dispatchFactTestLabels.materialAuditLabel,
       tone: "success",
     })
@@ -180,7 +180,7 @@ describe("getDispatchFacts", () => {
 
     expect(getDispatchFacts(events, t)).toContainEqual({
       detail:
-        "pending pack selected 1 packed 0 readable 0 missing 1 omitted 0 unreadable 0 warnings 0 readiness pending",
+        "pending pack selected 1 packed 0 readable 0 missing 1 omitted 0 unreadable 0 warnings 0 readiness Waiting to load",
       label: dispatchFactTestLabels.materialAuditLabel,
       tone: "warning",
     })
@@ -206,10 +206,28 @@ describe("getDispatchFacts", () => {
 
     expect(getDispatchFacts(events, t)).toContainEqual({
       detail:
-        "missing pack 1 selected 2 packed 1 readable 1 missing 1 omitted 0 unreadable 0 warnings 0 readiness ready",
+        "missing pack 1 selected 2 packed 1 readable 1 missing 1 omitted 0 unreadable 0 warnings 0 readiness Ready",
       label: dispatchFactTestLabels.materialAuditLabel,
       tone: "warning",
     })
+  })
+
+  it("maps empty workspace readiness before showing process facts", () => {
+    const events: AgentRuntimeEvent[] = [
+      {
+        type: "workspace_context_pack_loaded",
+        itemCount: 0,
+        readableItemCount: 0,
+        readiness: "empty",
+      },
+    ]
+
+    const facts = getDispatchFacts(events, t)
+    const serialized = JSON.stringify(facts)
+
+    expect(serialized).toContain("No usable material")
+    expect(serialized).not.toContain("readiness empty")
+    expect(serialized).not.toContain("empty 0/0")
   })
 
   it("shows memory record summaries without memory content", () => {

@@ -1,12 +1,14 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from "react"
-import type { ConversationDetailResponse } from "@/api"
+import type { ConversationDetailResponse, ConversationResponse } from "@/api"
 import { agentChatData, type AgentRuntimeEvent } from "../agent-chat-data"
 import {
   createSessionId,
+  createConversationTitle,
   formatAgentUiMessage,
   mapConversationAttachments,
   mapConversationItem,
   mapConversationMessages,
+  isFallbackConversationTitle,
   readConversationRuntimeEvents,
   readConversationRuntimeSelection,
   readConversationSelectedCampaignIds,
@@ -48,6 +50,11 @@ interface ConversationActionState {
   tError: string
 }
 
+const LEGACY_DEFAULT_CONVERSATION_TITLES = [
+  String.fromCharCode(26032, 24314, 23545, 35805),
+  ["New", "chat"].join(" "),
+]
+
 export async function loadLatestAgentConversation(
   state: ConversationActionState,
   isCancelled: () => boolean
@@ -86,14 +93,85 @@ export async function loadAgentConversationList(
 ) {
   const conversations = await agentChatData.listConversations()
   if (isCancelled()) return []
+  const displayConversations = await filterDisplayableConversations(
+    conversations,
+    state.fallbackConversationTitle,
+    isCancelled
+  )
+  if (isCancelled()) return []
 
   state.setConversations(
-    conversations.map((conversation) =>
+    displayConversations.map((conversation) =>
       mapConversationItem(conversation, state.fallbackConversationTitle)
     )
   )
 
-  return conversations
+  return displayConversations
+}
+
+async function filterDisplayableConversations(
+  conversations: ConversationResponse[],
+  fallbackConversationTitle: string,
+  isCancelled: () => boolean
+) {
+  const displayConversations = await Promise.all(
+    conversations.map(
+      async (conversation): Promise<ConversationResponse | null> => {
+        if (
+          !isDefaultConversationTitle(
+            conversation.title,
+            fallbackConversationTitle
+          )
+        ) {
+          return conversation
+        }
+
+        return resolveDefaultTitleConversation(conversation)
+      }
+    )
+  )
+
+  if (isCancelled()) return []
+
+  return displayConversations.filter(
+    (conversation): conversation is ConversationResponse => Boolean(conversation)
+  )
+}
+
+function isDefaultConversationTitle(
+  title: string | null | undefined,
+  fallbackConversationTitle: string
+) {
+  const normalizedTitle = title?.trim()
+  return (
+    isFallbackConversationTitle(title, fallbackConversationTitle) ||
+    LEGACY_DEFAULT_CONVERSATION_TITLES.includes(normalizedTitle ?? "")
+  )
+}
+
+async function resolveDefaultTitleConversation(
+  conversation: ConversationResponse
+): Promise<ConversationResponse | null> {
+  try {
+    const detail = await agentChatData.getConversation(conversation.id)
+    const firstUserMessage = detail.messages.find(
+      (message) =>
+        message.role === "user" && Boolean(message.contentText?.trim())
+    )
+    if (firstUserMessage?.contentText) {
+      return {
+        ...conversation,
+        title: createConversationTitle(firstUserMessage.contentText),
+      }
+    }
+
+    const hasContent =
+      detail.files.length > 0 ||
+      detail.messages.some((message) => Boolean(message.contentText?.trim()))
+    return hasContent ? conversation : null
+  } catch {
+    return conversation
+  }
 }
 
 export async function loadAgentConversationById(

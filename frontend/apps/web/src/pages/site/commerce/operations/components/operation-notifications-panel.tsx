@@ -9,6 +9,7 @@ import {
 } from "../../components/commerce-ui"
 import type { CommerceColumn } from "../../components/commerce-ui"
 import type { CommerceTranslate } from "../../components/commerce-types"
+import { getCommerceEnumLabel } from "../../domain/enum-mappings"
 import type { OperationsPageState } from "../use-operations-page"
 
 export function NotificationsPanel({ page }: { page: OperationsPageState }) {
@@ -51,7 +52,9 @@ function notificationColumns(
       render: (item) => (
         <div className="min-w-0">
           <div className="truncate font-medium">{item.title}</div>
-          <MutedText>{item.eventType}</MutedText>
+          <MutedText>
+            {getCommerceEnumLabel(t, "eventType", item.eventType)}
+          </MutedText>
         </div>
       ),
     },

@@ -3,17 +3,11 @@ import {
   CommercePageHeader,
   CommerceSurface,
 } from "../components/commerce-ui"
-import { ClipboardList } from "lucide-react"
+import { Button } from "@workspace/ui-components"
+import { Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { DocumentIntroCard } from "../components/document-section"
 import { WorkspaceDialogs } from "./components/workspace-dialogs"
-import {
-  WorkspaceDetailPanel,
-  WorkspaceMetrics,
-  WorkspaceQualityPanel,
-  WorkspaceSkillRunsPanel,
-  WorkspacesMasterPanel,
-} from "./components/workspace-panels"
+import { WorkspacesMasterPanel } from "./components/workspace-panels"
 import { useWorkspacesPage } from "./use-workspaces-page"
 
 export default function WorkspacesPage() {
@@ -26,20 +20,19 @@ export default function WorkspacesPage() {
         eyebrow={t("commerce.pages.workspaces.eyebrow")}
         title={t("commerce.pages.workspaces.title")}
         description={t("commerce.pages.workspaces.description")}
+        actions={
+          <Button
+            size="lg"
+            variant="primary"
+            onClick={() => page.setDialog("create-workspace")}
+          >
+            <Plus className="size-4" />
+            {t("commerce.workspaces.panels.createWorkspace")}
+          </Button>
+        }
       />
       <CommerceBody>
-        <DocumentIntroCard
-          title={t("commerce.pages.workspaces.boundaryTitle")}
-          description={t("commerce.pages.workspaces.boundaryDescription")}
-          icon={<ClipboardList className="size-4" />}
-        />
-        <WorkspaceMetrics items={page.metricCards} />
-        <div className="grid gap-4 xl:grid-cols-[minmax(22rem,0.85fr)_minmax(0,1.65fr)]">
-          <WorkspacesMasterPanel page={page} />
-          <WorkspaceDetailPanel page={page} />
-        </div>
-        <WorkspaceSkillRunsPanel page={page} />
-        <WorkspaceQualityPanel page={page} />
+        <WorkspacesMasterPanel page={page} />
       </CommerceBody>
       <WorkspaceDialogs page={page} />
     </CommerceSurface>

@@ -30,8 +30,9 @@ export interface DropdownMenuProps {
   children: ReactNode
 }
 
-export interface DropdownMenuTriggerProps {
+interface DropdownMenuTriggerPropsBase {
   children: ReactNode
+  className?: string
   disabled?: boolean
   label?: ReactNode
   size?: DropdownMenuTriggerSize
@@ -40,14 +41,18 @@ export interface DropdownMenuTriggerProps {
   onClick?: MouseEventHandler<HTMLButtonElement>
 }
 
+export type DropdownMenuTriggerProps = DropdownMenuTriggerPropsBase
+
 export interface DropdownMenuPortalProps {
   children: ReactNode
 }
 
-export interface DropdownMenuContentProps {
+interface DropdownMenuContentPropsBase {
   children: ReactNode
   className?: string
 }
+
+export type DropdownMenuContentProps = DropdownMenuContentPropsBase
 
 export interface DropdownMenuGroupProps {
   children: ReactNode
@@ -58,7 +63,7 @@ export interface DropdownMenuLabelProps {
   inset?: boolean
 }
 
-export interface DropdownMenuItemProps {
+interface DropdownMenuItemPropsBase {
   children: ReactNode
   className?: string
   disabled?: boolean
@@ -66,6 +71,8 @@ export interface DropdownMenuItemProps {
   variant?: DropdownMenuItemVariant
   onSelect?: () => void
 }
+
+export type DropdownMenuItemProps = DropdownMenuItemPropsBase
 
 export interface DropdownMenuCheckboxItemProps {
   children: ReactNode
@@ -123,6 +130,7 @@ export function DropdownMenu({
 
 export function DropdownMenuTrigger({
   children,
+  className,
   disabled = false,
   label,
   size = "default",
@@ -145,7 +153,8 @@ export function DropdownMenuTrigger({
         size === "default" && "min-h-9 px-3 py-2 text-sm",
         size === "sm" && "min-h-8 px-2.5 py-1.5 text-sm",
         size === "icon" && "size-9 p-0",
-        size === "compactIcon" && "size-7 p-0"
+        size === "compactIcon" && "size-7 p-0",
+        className
       )}
     >
       {children}

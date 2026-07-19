@@ -52,7 +52,10 @@ describe("AgentChatComposerPanelShell", () => {
     expect(content).toHaveClass("min-h-0")
     expect(scroll).toHaveClass("overflow-y-auto")
     expect(scroll).toHaveClass("overflow-x-hidden")
-    expect(content).toHaveClass("p-3")
+    expect(content).toHaveClass("p-4")
+    expect(shell).toHaveClass(
+      "sm:w-[min(calc(100vw_-_var(--sidebar-width)_-_2rem),60rem)]"
+    )
   })
 
   it("can render below the composer when the caller selects bottom placement", async () => {
@@ -81,6 +84,27 @@ describe("AgentChatComposerPanelShell", () => {
     expect(shell).toHaveClass("top-[calc(100%+1.25rem)]")
     expect(shell).toHaveClass("origin-top")
     expect(shell).not.toHaveClass("bottom-[calc(100%+1.25rem)]")
+  })
+
+  it("allows wide panels to use the available content viewport", async () => {
+    const i18n = await createAgentChatTestI18n()
+
+    render(
+      <TestProviders i18n={i18n}>
+        <AgentChatComposerPanelShell maxHeight={240} open size="wide">
+          <div>Wide panel content</div>
+        </AgentChatComposerPanelShell>
+      </TestProviders>
+    )
+
+    const shell = screen
+      .getByText("Wide panel content")
+      .closest("[data-agent-chat-composer-panel-shell='true']")
+
+    expect(shell).toHaveAttribute("data-agent-chat-composer-panel-size", "wide")
+    expect(shell).toHaveClass(
+      "sm:w-[min(calc(100vw_-_var(--sidebar-width)_-_2rem),72rem)]"
+    )
   })
 
   it("renders close action inside the panel header area", async () => {

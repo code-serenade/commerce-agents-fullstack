@@ -1,6 +1,10 @@
 import { ArrowRight } from "lucide-react"
 import type { CSSProperties } from "react"
 import type { TFunction } from "i18next"
+import {
+  homeStepCardStyle,
+  homeStudentPathImageSources,
+} from "./home-student-path-presentation"
 
 interface StudentPathItem {
   titleKey: string
@@ -16,7 +20,7 @@ const studentPathItems: StudentPathItem[] = [
     titleKey: "home.studentPath.steps.assistant.title",
     descriptionKey: "home.studentPath.steps.assistant.description",
     actionKey: "home.studentPath.steps.assistant.action",
-    imageSrc: "/home/student-path-01-assistant.png",
+    imageSrc: homeStudentPathImageSources.assistant,
     path: "/commerce",
     requiresLogin: false,
   },
@@ -24,7 +28,7 @@ const studentPathItems: StudentPathItem[] = [
     titleKey: "home.studentPath.steps.products.title",
     descriptionKey: "home.studentPath.steps.products.description",
     actionKey: "home.studentPath.steps.products.action",
-    imageSrc: "/home/student-path-02-products.png",
+    imageSrc: homeStudentPathImageSources.products,
     path: "/products",
     requiresLogin: true,
   },
@@ -32,7 +36,7 @@ const studentPathItems: StudentPathItem[] = [
     titleKey: "home.studentPath.steps.campaigns.title",
     descriptionKey: "home.studentPath.steps.campaigns.description",
     actionKey: "home.studentPath.steps.campaigns.action",
-    imageSrc: "/home/student-path-03-campaign.png",
+    imageSrc: homeStudentPathImageSources.campaigns,
     path: "/campaigns",
     requiresLogin: true,
   },
@@ -40,7 +44,7 @@ const studentPathItems: StudentPathItem[] = [
     titleKey: "home.studentPath.steps.tasks.title",
     descriptionKey: "home.studentPath.steps.tasks.description",
     actionKey: "home.studentPath.steps.tasks.action",
-    imageSrc: "/home/student-path-04-tasks.png",
+    imageSrc: homeStudentPathImageSources.tasks,
     path: "/workspaces",
     requiresLogin: true,
   },
@@ -48,7 +52,7 @@ const studentPathItems: StudentPathItem[] = [
     titleKey: "home.studentPath.steps.reports.title",
     descriptionKey: "home.studentPath.steps.reports.description",
     actionKey: "home.studentPath.steps.reports.action",
-    imageSrc: "/home/student-path-05-report.png",
+    imageSrc: homeStudentPathImageSources.reports,
     path: "/agent-output",
     requiresLogin: true,
   },
@@ -93,12 +97,31 @@ const routeSegments: CSSProperties[] = [
   },
 ]
 
-const homeStepCardStyle: CSSProperties = {
-  background:
-    "linear-gradient(180deg, color-mix(in oklch, var(--background) 98%, var(--primary) 2%) 0%, color-mix(in oklch, var(--background) 94%, var(--primary) 6%) 54%, color-mix(in oklch, var(--background) 90%, var(--primary) 10%) 100%)",
-  borderColor: "color-mix(in oklch, var(--background) 98%, transparent)",
-  boxShadow:
-    "0 22px 52px color-mix(in oklch, var(--primary) 9%, transparent), inset 0 1px 0 color-mix(in oklch, var(--background) 98%, transparent)",
+export function HomeStudentPathBackdrop({
+  showCornerDecoration = true,
+}: {
+  showCornerDecoration?: boolean
+} = {}) {
+  return (
+    <>
+      {showCornerDecoration ? (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute right-8 -bottom-10 hidden size-12 rotate-45 bg-[color-mix(in_oklch,var(--app-surface)_70%,transparent)] [clip-path:polygon(50%_0,62%_38%,100%_50%,62%_62%,50%_100%,38%_62%,0_50%,38%_38%)] lg:block"
+        />
+      ) : null}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+        {routeSegments.map((style, index) => (
+          <span
+            key={index}
+            className="absolute hidden h-[3px] origin-left rounded-full bg-[linear-gradient(90deg,transparent_0%,color-mix(in_oklch,var(--primary)_22%,transparent)_18%,color-mix(in_oklch,var(--primary)_24%,transparent)_82%,transparent_100%)] lg:block"
+            style={style}
+          />
+        ))}
+        <span className="absolute top-[calc(45.5%+6px)] right-[-1%] hidden size-4 rotate-45 lg:block" />
+      </div>
+    </>
+  )
 }
 
 export interface HomeStudentPathProps {
@@ -113,7 +136,7 @@ export function HomeStudentPath({ t, navigateToPath }: HomeStudentPathProps) {
         <p className="text-[11px] font-semibold text-(--app-muted-text)">
           {t("home.studentPath.eyebrow")}
         </p>
-        <h2 className="text-xl leading-tight font-semibold text-(--app-text)">
+        <h2 className="text-xl/tight font-semibold text-(--app-text)">
           {t("home.studentPath.title")}
         </h2>
         <p className="max-w-3xl text-xs/5 font-medium text-(--app-muted-text)">
@@ -122,46 +145,30 @@ export function HomeStudentPath({ t, navigateToPath }: HomeStudentPathProps) {
       </div>
 
       <div className="relative px-0 lg:px-2">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute right-8 -bottom-10 hidden size-12 rotate-45 bg-[color-mix(in_oklch,var(--app-surface)_70%,transparent)] [clip-path:polygon(50%_0,62%_38%,100%_50%,62%_62%,50%_100%,38%_62%,0_50%,38%_38%)] lg:block"
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0"
-        >
-          {routeSegments.map((style, index) => (
-            <span
-              key={index}
-              className="absolute hidden h-[3px] origin-left rounded-full bg-[linear-gradient(90deg,transparent_0%,color-mix(in_oklch,var(--primary)_22%,transparent)_18%,color-mix(in_oklch,var(--primary)_24%,transparent)_82%,transparent_100%)] lg:block"
-              style={style}
-            />
-          ))}
-          <span className="absolute top-[calc(45.5%+6px)] right-[-1%] hidden size-4 rotate-45 border-t-[3px] border-r-[3px] border-[color-mix(in_oklch,var(--primary)_26%,transparent)] lg:block" />
-        </div>
+            <HomeStudentPathBackdrop />
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5 lg:gap-9">
           {studentPathItems.map((item, index) => (
             <button
               key={item.path}
               type="button"
-              className="group relative z-10 flex min-h-[260px] cursor-pointer flex-col overflow-hidden rounded-lg border border-[color-mix(in_oklch,var(--background)_98%,transparent)] bg-[linear-gradient(180deg,color-mix(in_oklch,var(--background)_98%,var(--primary)_2%)_0%,color-mix(in_oklch,var(--background)_94%,var(--primary)_6%)_54%,color-mix(in_oklch,var(--background)_90%,var(--primary)_10%)_100%)] text-left shadow-[0_22px_52px_color-mix(in_oklch,var(--primary)_9%,transparent),inset_0_1px_0_color-mix(in_oklch,var(--background)_98%,transparent)] backdrop-blur-xl transition hover:border-[color-mix(in_oklch,var(--background)_82%,var(--primary))]"
+              className="group relative z-10 flex min-h-[150px] cursor-pointer flex-row overflow-hidden rounded-lg border border-[color-mix(in_oklch,var(--background)_98%,transparent)] bg-[linear-gradient(180deg,color-mix(in_oklch,var(--background)_98%,var(--primary)_2%)_0%,color-mix(in_oklch,var(--background)_94%,var(--primary)_6%)_54%,color-mix(in_oklch,var(--background)_90%,var(--primary)_10%)_100%)] text-left shadow-[0_22px_52px_color-mix(in_oklch,var(--primary)_9%,transparent),inset_0_1px_0_color-mix(in_oklch,var(--background)_98%,transparent)] backdrop-blur-xl transition hover:border-[color-mix(in_oklch,var(--background)_82%,var(--primary))] sm:min-h-[260px] sm:flex-col"
               style={homeStepCardStyle}
               onClick={() => navigateToPath(item.path, item.requiresLogin)}
             >
-              <span className="pointer-events-none absolute top-2.5 left-2.5 z-10 text-2xl leading-none font-semibold text-(--app-muted-text)/58 italic">
+              <span className="pointer-events-none absolute top-2.5 left-2.5 z-10 text-xl leading-none font-semibold text-(--app-muted-text)/58 italic sm:text-2xl">
                 {String(index + 1).padStart(2, "0")}
               </span>
-              <span className="block h-[126px] w-full overflow-hidden">
+              <span className="flex w-[42%] max-w-36 shrink-0 items-center justify-center overflow-hidden pt-5 sm:block sm:h-[126px] sm:w-full sm:max-w-none sm:pt-0">
                 <img
                   src={item.imageSrc}
                   alt=""
                   aria-hidden="true"
-                  className="size-full object-contain p-3 pb-0"
+                  className="size-full max-h-30 object-contain p-3 sm:max-h-none sm:pb-0"
                   loading="lazy"
                 />
               </span>
-              <span className="flex flex-1 flex-col px-3.5 pt-3 pb-3.5">
+              <span className="flex min-w-0 flex-1 flex-col px-3.5 pt-8 pb-3.5 sm:pt-3">
                 <span className="block text-xs font-semibold text-(--app-text)">
                   {t(item.titleKey)}
                 </span>

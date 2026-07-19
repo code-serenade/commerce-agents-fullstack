@@ -1,6 +1,17 @@
-import type { SimpleField, SimpleFormValues } from "../../components/commerce-ui"
+import {
+  normalizeNumericInput,
+  type SimpleField,
+  type SimpleFormValues,
+} from "../../components/commerce-ui"
 import type { CommerceTranslate } from "../../components/commerce-types"
+import {
+  knowledgeConfidenceOptions,
+  knowledgeContentTypeOptions,
+  knowledgeSourceTypeOptions,
+} from "../../domain/enum-mappings"
 import type { ProductsPageState } from "../use-products-page"
+
+export { assetFields, changeFields, materialFields } from "./product-enum-fields"
 
 export function productInitialValues(
   page: ProductsPageState
@@ -13,7 +24,10 @@ export function productInitialValues(
     externalId: page.selectedProduct?.externalId ?? "",
     name: page.selectedProduct?.name ?? "",
     platform: page.selectedProduct?.platform ?? "",
-    price: page.selectedProduct?.price ?? "",
+    price: normalizeNumericInput(page.selectedProduct?.price ?? "", {
+      decimalScale: 2,
+      nonNegative: true,
+    }),
   }
 }
 
@@ -28,8 +42,19 @@ export function productFields(t: CommerceTranslate): SimpleField[] {
     { key: "externalId", label: t("commerce.fields.platformProductId") },
     { key: "category", label: t("commerce.fields.category") },
     { key: "brand", label: t("commerce.fields.brand") },
-    { key: "price", label: t("commerce.fields.price"), type: "number" },
-    { key: "currency", label: t("commerce.fields.currency") },
+    {
+      key: "currency",
+      label: t("commerce.fields.currency"),
+      layout: "half",
+    },
+    {
+      decimalScale: 2,
+      key: "price",
+      label: t("commerce.fields.price"),
+      layout: "half",
+      nonNegative: true,
+      type: "number",
+    },
     {
       key: "description",
       label: t("commerce.fields.description"),
@@ -38,19 +63,23 @@ export function productFields(t: CommerceTranslate): SimpleField[] {
   ]
 }
 
-export function knowledgeFields(t: CommerceTranslate): SimpleField[] {
-  return [
+export function knowledgeFields(
+  t: CommerceTranslate,
+  { includeSourceType = true }: { includeSourceType?: boolean } = {}
+): SimpleField[] {
+  const fields: SimpleField[] = [
     { key: "title", label: t("commerce.fields.title") },
     {
       key: "contentType",
       label: t("commerce.fields.contentType"),
-      required: true,
+      type: "select",
+      options: knowledgeContentTypeOptions(t),
     },
-    { key: "sourceType", label: t("commerce.fields.sourceType") },
     {
       key: "confidence",
-      label: t("commerce.fields.confidence"),
-      type: "number",
+      label: t("commerce.products.knowledgeConfidence.label"),
+      type: "select",
+      options: knowledgeConfidenceOptions(t),
     },
     {
       key: "content",
@@ -59,6 +88,17 @@ export function knowledgeFields(t: CommerceTranslate): SimpleField[] {
       type: "textarea",
     },
   ]
+
+  if (includeSourceType) {
+    fields.splice(2, 0, {
+      key: "sourceType",
+      label: t("commerce.fields.sourceType"),
+      type: "select",
+      options: knowledgeSourceTypeOptions(t),
+    })
+  }
+
+  return fields
 }
 
 export function knowledgeInitialValues(
@@ -73,21 +113,6 @@ export function knowledgeInitialValues(
   }
 }
 
-export function assetFields(t: CommerceTranslate): SimpleField[] {
-  return [
-    {
-      key: "assetType",
-      label: t("commerce.fields.assetType"),
-      placeholder: String("docs / images / videos / other"),
-    },
-    { key: "fileName", label: t("commerce.fields.fileName") },
-    { key: "objectKey", label: t("commerce.fields.objectKey") },
-    { key: "mimeType", label: t("commerce.fields.mimeType") },
-    { key: "fileSize", label: t("commerce.fields.fileSize") },
-    { key: "description", label: t("commerce.fields.note") },
-  ]
-}
-
 export function assetInitialValues(page: ProductsPageState): SimpleFormValues {
   return {
     assetType: page.selectedAsset?.assetType ?? "docs",
@@ -97,18 +122,6 @@ export function assetInitialValues(page: ProductsPageState): SimpleFormValues {
     mimeType: page.selectedAsset?.mimeType ?? "",
     objectKey: page.selectedAsset?.objectKey ?? "",
   }
-}
-
-export function materialFields(t: CommerceTranslate): SimpleField[] {
-  return [
-    {
-      key: "materialType",
-      label: t("commerce.fields.materialType"),
-      required: true,
-    },
-    { key: "title", label: t("commerce.fields.title") },
-    { key: "content", label: t("commerce.fields.content"), type: "textarea" },
-  ]
 }
 
 export function materialInitialValues(
@@ -149,18 +162,4 @@ export function competitorInitialValues(
     rating: String(page.selectedCompetitor?.rating ?? ""),
     url: page.selectedCompetitor?.url ?? "",
   }
-}
-
-export function changeFields(t: CommerceTranslate): SimpleField[] {
-  return [
-    {
-      key: "changeType",
-      label: t("commerce.fields.changeType"),
-      required: true,
-    },
-    { key: "oldValue", label: t("commerce.fields.oldValue") },
-    { key: "newValue", label: t("commerce.fields.newValue") },
-    { key: "sourceType", label: t("commerce.fields.sourceType") },
-    { key: "summary", label: t("commerce.fields.summary"), type: "textarea" },
-  ]
 }

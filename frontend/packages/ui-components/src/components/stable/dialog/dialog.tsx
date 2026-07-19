@@ -28,22 +28,28 @@ export interface DialogPortalProps {
 
 export interface DialogOverlayProps {}
 
-export interface DialogContentProps {
+interface DialogContentPropsBase {
   children: ReactNode
   className?: string
   showCloseButton?: boolean
   style?: CSSProperties
 }
 
-export interface DialogHeaderProps {
+export type DialogContentProps = DialogContentPropsBase
+
+interface DialogHeaderPropsBase {
   children: ReactNode
   className?: string
 }
 
-export interface DialogFooterProps {
+export type DialogHeaderProps = DialogHeaderPropsBase
+
+interface DialogFooterPropsBase {
   children: ReactNode
   className?: string
 }
+
+export type DialogFooterProps = DialogFooterPropsBase
 
 export interface DialogTitleProps {
   children: ReactNode
@@ -53,11 +59,13 @@ export interface DialogDescriptionProps {
   children: ReactNode
 }
 
-export interface DialogCloseProps {
+interface DialogClosePropsBase {
   children: ReactNode
   asChild?: boolean
   className?: string
 }
+
+export type DialogCloseProps = DialogClosePropsBase
 
 export function Dialog({ open, onOpenChange, children }: DialogProps) {
   return (

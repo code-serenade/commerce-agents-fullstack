@@ -27,6 +27,8 @@ use crate::{
     skills::{SearchAdapterConfig, SkillExecutorSet},
 };
 
+const FINAL_OUTPUT_CHUNK_CHAR_LIMIT: usize = 80;
+
 pub type SessionEventTx = tokio_mpsc::Sender<SessionEvent>;
 pub type SessionEventRx = tokio_mpsc::Receiver<SessionEvent>;
 
@@ -419,6 +421,7 @@ impl SessionRuntime {
         let output =
             sanitize_session_final_output(&output, &self.context, Some(&self.task_description));
 
+        self.emit_final_output_chunks(&output).await;
         self.emit_event(SessionEvent::Output {
             session_id: self.session_id.clone(),
             content: output.clone(),
@@ -782,6 +785,17 @@ impl SessionRuntime {
     async fn emit_event(&self, event: SessionEvent) {
         if let Some(event_tx) = &self.event_tx {
             let _ = event_tx.send(event).await;
+        }
+    }
+
+    async fn emit_final_output_chunks(&self, output: &str) {
+        for content in final_output_chunks(output) {
+            self.emit_event(SessionEvent::LlmChunk {
+                session_id: self.session_id.clone(),
+                content,
+            })
+            .await;
+            tokio::task::yield_now().await;
         }
     }
 }
@@ -1428,6 +1442,52 @@ fn sanitize_session_final_output(
     final_text_with_forced_rich_fallback(output, context, task_input)
 }
 
+fn final_output_chunks(output: &str) -> Vec<String> {
+    if output.is_empty() {
+        return Vec::new();
+    }
+
+    let mut chunks = Vec::new();
+    let mut current = String::new();
+    let mut current_chars = 0usize;
+    for ch in output.chars() {
+        current.push(ch);
+        current_chars += 1;
+        if (current_chars >= FINAL_OUTPUT_CHUNK_CHAR_LIMIT && is_final_output_chunk_boundary(ch))
+            || current_chars >= FINAL_OUTPUT_CHUNK_CHAR_LIMIT * 2
+        {
+            chunks.push(std::mem::take(&mut current));
+            current_chars = 0;
+        }
+    }
+
+    if !current.is_empty() {
+        chunks.push(current);
+    }
+
+    chunks
+}
+
+fn is_final_output_chunk_boundary(ch: char) -> bool {
+    matches!(
+        ch,
+        '\n' | ' '
+            | '\t'
+            | ','
+            | '.'
+            | ';'
+            | ':'
+            | '!'
+            | '?'
+            | '，'
+            | '。'
+            | '；'
+            | '：'
+            | '！'
+            | '？'
+    )
+}
+
 fn normalize_timeout(timeout: Duration) -> Duration {
     if timeout.is_zero() {
         Duration::from_millis(1)
@@ -1494,9 +1554,20 @@ mod tests {
     use std::time::Duration;
 
     use super::{
-        MessageContext, effective_response_timeout, sanitize_session_final_output,
-        session_response_timeout_message, task_description_with_history_text,
+        MessageContext, effective_response_timeout, final_output_chunks,
+        sanitize_session_final_output, session_response_timeout_message,
+        task_description_with_history_text,
     };
+
+    #[test]
+    fn final_output_chunks_preserve_content_and_split_long_text() {
+        let output = "第一段回答会先展示给用户。第二段回答继续补充商品、资料和执行动作。".repeat(8);
+        let chunks = final_output_chunks(&output);
+
+        assert!(chunks.len() > 1);
+        assert_eq!(chunks.concat(), output);
+        assert!(final_output_chunks("").is_empty());
+    }
 
     #[test]
     fn session_final_output_restores_readable_answer_layout() {

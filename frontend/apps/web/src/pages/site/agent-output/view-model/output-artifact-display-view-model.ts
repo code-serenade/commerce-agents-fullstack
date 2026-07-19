@@ -113,6 +113,18 @@ function sanitizeFileBaseName(value: string, fallback: string) {
 
 function formatArtifactType(t: TFunction, type?: string) {
   const normalized = String(type ?? "").trim().toLowerCase()
+  if (normalized === "conversation_report") {
+    return t("agentOutput.backend.display.type.conversationReport")
+  }
+  if (normalized === "commerce_conversation_report") {
+    return t("agentOutput.backend.display.type.commerceConversationReport")
+  }
+  if (normalized === "teaching_conversation_report") {
+    return t("agentOutput.backend.display.type.teachingConversationReport")
+  }
+  if (normalized === "process_evidence_pack") {
+    return t("agentOutput.backend.display.type.processEvidencePack")
+  }
   if (normalized === "final_report") return t("agentOutput.backend.display.type.finalReport")
   if (normalized === "search_evidence") {
     return t("agentOutput.backend.display.type.searchEvidence")
@@ -146,6 +158,9 @@ function formatArtifactSource(t: TFunction, source?: string) {
   if (normalized === "agent_session") return t("agentOutput.backend.display.source.agentSession")
   if (normalized === "agent_skill_result") {
     return t("agentOutput.backend.display.source.agentSkillResult")
+  }
+  if (normalized === "manual_report_generation") {
+    return t("agentOutput.backend.display.source.manualReportGeneration")
   }
   return normalized ? normalized.replaceAll("_", " ") : "-"
 }

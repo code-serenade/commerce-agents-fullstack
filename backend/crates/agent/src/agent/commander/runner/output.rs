@@ -282,7 +282,7 @@ mod tests {
     fn final_worker_message_uses_readable_empty_fallback() {
         let output = final_worker_message(&TaskId("task-empty".to_string()), None);
 
-        assert!(output.contains("没有拿到可直接展示的完整内容"));
+        assert!(output.contains("还没有整理出可以直接交付给你的内容"));
         assert!(!output.contains("task-empty"));
         assert!(!output.contains("任务已完成"));
     }
@@ -415,7 +415,7 @@ mod tests {
 
         let output = direct_chat_report_output(&report, &context, None);
 
-        assert!(output.contains("没有拿到可直接展示的完整内容"));
+        assert!(output.contains("还没有整理出可以直接交付给你的内容"));
         assert!(!output.contains("可直接执行表"));
     }
 

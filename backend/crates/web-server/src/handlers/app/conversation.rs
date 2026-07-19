@@ -14,6 +14,7 @@ use service::api::{
     briefing_ops::BriefingOpsApi,
     campaign::CampaignApi,
     conversation::ConversationApi,
+    conversation_report::ConversationReportApi,
     document_text_extraction_manager::{
         DOCUMENT_TEXT_EXTRACTION_PROMPT_KEY, DOCUMENT_TEXT_EXTRACTION_PROMPT_VERSION,
     },
@@ -50,22 +51,25 @@ use crate::{
         CompetitorChangeResponse, ConsumeBackgroundEventsRequest, ConversationDetailResponse,
         ConversationFileAccessResponse, ConversationFileExtractionJobResponse,
         ConversationFileExtractionStatusResponse, ConversationFileResponse,
-        ConversationMessageResponse, ConversationResponse, CreateAlertRequest,
-        CreateAuditLogRequest, CreateBackgroundEventRequest, CreateCampaignRequest,
-        CreateCompetitorChangeRequest, CreateConversationRequest, CreateExecutionQueueRequest,
-        CreateLongTaskRequest, CreateProductCompetitorRequest, CreateProductKnowledgeRequest,
-        CreateProductMaterialRequest, CreateProductRequest, CreateToolApprovalRequest,
-        CreateWorkspaceRequest, CreateWorkspaceRunRequest, CreateWorkspaceRunTaskRequest,
-        CreateWorkspaceTaskRequest, CurrentUserPermissionsResponse, DailyBriefingListResponse,
-        DailyBriefingQuery, DailyBriefingResponse, DailyBriefingSummaryResponse,
-        DecideExecutionQueueRequest, DecideToolApprovalRequest, DismissAlertRequest,
-        DismissAllAlertsRequest, ExecutionQueueListResponse, ExecutionQueueResponse,
-        ListAlertsQuery, ListAuditLogsQuery, ListBackgroundEventsQuery, ListCampaignsQuery,
-        ListChannelConnectionsQuery, ListCompetitorChangesQuery, ListDailyBriefingRecordsQuery,
-        ListExecutionQueueQuery, ListLongTasksQuery, ListPackageCatalogQuery,
-        ListPackageHistoryQuery, ListPlatformConnectionsQuery, ListProductAssetsQuery,
-        ListProductCompetitorsQuery, ListProductKnowledgeQuery, ListProductMaterialsQuery,
-        ListProductsQuery, ListStoreMetricsQuery, ListToolApprovalsQuery, ListUserFilesQuery,
+        ConversationMessageResponse, ConversationResponse, ConversationTranscriptExportResponse,
+        CreateAlertRequest, CreateAuditLogRequest, CreateBackgroundEventRequest,
+        CreateCampaignRequest, CreateCompetitorChangeRequest, CreateConversationRequest,
+        CreateExecutionQueueRequest, CreateLongTaskRequest, CreateProductCompetitorRequest,
+        CreateProductKnowledgeRequest, CreateProductMaterialRequest, CreateProductRequest,
+        CreateToolApprovalRequest, CreateWorkspaceRequest, CreateWorkspaceRunRequest,
+        CreateWorkspaceRunTaskRequest, CreateWorkspaceTaskRequest, CurrentUserPermissionsResponse,
+        DailyBriefingListResponse, DailyBriefingQuery, DailyBriefingResponse,
+        DailyBriefingSummaryResponse, DecideExecutionQueueRequest, DecideToolApprovalRequest,
+        DismissAlertRequest, DismissAllAlertsRequest, ExecutionQueueListResponse,
+        ExecutionQueueResponse, ExportConversationTranscriptQuery,
+        GenerateConversationReportRequest, GenerateConversationReportResponse,
+        GeneratedConversationReportExportResponse, ListAlertsQuery, ListAuditLogsQuery,
+        ListBackgroundEventsQuery, ListCampaignsQuery, ListChannelConnectionsQuery,
+        ListCompetitorChangesQuery, ListDailyBriefingRecordsQuery, ListExecutionQueueQuery,
+        ListLongTasksQuery, ListPackageCatalogQuery, ListPackageHistoryQuery,
+        ListPlatformConnectionsQuery, ListProductAssetsQuery, ListProductCompetitorsQuery,
+        ListProductKnowledgeQuery, ListProductMaterialsQuery, ListProductsQuery,
+        ListStoreMetricsQuery, ListToolApprovalsQuery, ListUserFilesQuery,
         ListWorkspaceRunTasksQuery, ListWorkspaceRunsQuery, ListWorkspaceTasksQuery,
         ListWorkspacesQuery, LongTaskListResponse, LongTaskResponse, PackageCatalogResponse,
         PackageHistoryListResponse, PackageLockDriftResponse, PackageLockListResponse,
@@ -87,8 +91,9 @@ use crate::{
         UpdateProductKnowledgeRequest, UpdateProductMaterialRequest, UpdateProductRequest,
         UpdateWorkspaceRequest, UpdateWorkspaceRunRequest, UpdateWorkspaceRunTaskRequest,
         UpdateWorkspaceTaskRequest, UpsertDailyBriefingRecordRequest, UpsertPackageRequest,
-        WorkspaceListResponse, WorkspaceResponse, WorkspaceRunListResponse, WorkspaceRunResponse,
-        WorkspaceRunTaskResponse, WorkspaceTaskListResponse, WorkspaceTaskResponse,
+        WorkspaceArtifactResponse, WorkspaceListResponse, WorkspaceResponse,
+        WorkspaceRunListResponse, WorkspaceRunResponse, WorkspaceRunTaskResponse,
+        WorkspaceTaskListResponse, WorkspaceTaskResponse,
     },
     error::{Error, from_biz_error},
     handlers::sse::build_conversation_history_summary,
@@ -153,6 +158,64 @@ pub async fn get_conversation(
         .map_err(from_biz_error)?;
 
     Ok(map_conversation_detail_response(detail)
+        .into_common_response()
+        .to_json())
+}
+
+pub async fn export_conversation_transcript(
+    Extension(auth_user): Extension<AuthUser>,
+    Path(conversation_id): Path<String>,
+    Query(req): Query<ExportConversationTranscriptQuery>,
+) -> ResponseResult<ConversationTranscriptExportResponse> {
+    req.validate().map_err(Error::from)?;
+    let api = ConversationReportApi::new(get_app_ctx());
+    let response = api
+        .export_transcript(
+            service::dto::conversation_report::ExportConversationTranscriptRequest {
+                user_id: auth_user.user_id,
+                conversation_id,
+                format: req.format,
+                include_files: req.include_files,
+                include_runtime_events: req.include_runtime_events,
+                scope: req.scope,
+            },
+        )
+        .await
+        .map_err(from_biz_error)?;
+
+    Ok(map_conversation_transcript_export_response(response)
+        .into_common_response()
+        .to_json())
+}
+
+pub async fn generate_conversation_report(
+    Extension(auth_user): Extension<AuthUser>,
+    Path(conversation_id): Path<String>,
+    Json(req): Json<GenerateConversationReportRequest>,
+) -> ResponseResult<GenerateConversationReportResponse> {
+    req.validate().map_err(Error::from)?;
+    let api = ConversationReportApi::new(get_app_ctx());
+    let response = api
+        .generate_report(
+            service::dto::conversation_report::GenerateConversationReportRequest {
+                user_id: auth_user.user_id,
+                conversation_id,
+                workspace_id: req.workspace_id,
+                run_id: req.run_id,
+                report_type: req.report_type,
+                scope: req.scope,
+                format: req.format,
+                include_process: req.include_process,
+                include_sources: req.include_sources,
+                include_transcript_appendix: req.include_transcript_appendix,
+                artifact_ids: req.artifact_ids,
+                file_ids: req.file_ids,
+            },
+        )
+        .await
+        .map_err(from_biz_error)?;
+
+    Ok(map_generate_conversation_report_response(response)
         .into_common_response()
         .to_json())
 }
@@ -1185,6 +1248,70 @@ fn map_conversation_detail_response(
             .map(map_message_response)
             .collect(),
         files: detail.files.into_iter().map(map_file_response).collect(),
+    }
+}
+
+fn map_conversation_transcript_export_response(
+    item: service::dto::conversation_report::ConversationTranscriptExportResponse,
+) -> ConversationTranscriptExportResponse {
+    ConversationTranscriptExportResponse {
+        conversation_id: item.conversation_id,
+        file_name: item.file_name,
+        mime_type: item.mime_type,
+        format: item.format,
+        content: item.content,
+        content_chars: item.content_chars,
+        message_count: item.message_count,
+        file_count: item.file_count,
+        warnings: item.warnings,
+    }
+}
+
+fn map_generate_conversation_report_response(
+    item: service::dto::conversation_report::GenerateConversationReportResponse,
+) -> GenerateConversationReportResponse {
+    GenerateConversationReportResponse {
+        artifact: map_workspace_artifact_response(item.artifact),
+        export: GeneratedConversationReportExportResponse {
+            file_name: item.export.file_name,
+            mime_type: item.export.mime_type,
+            format: item.export.format,
+            content: item.export.content,
+            content_chars: item.export.content_chars,
+            warnings: item.export.warnings,
+        },
+    }
+}
+
+fn map_workspace_artifact_response(
+    item: service::dto::workspace::WorkspaceArtifactResponse,
+) -> WorkspaceArtifactResponse {
+    WorkspaceArtifactResponse {
+        id: item.id,
+        workspace_id: item.workspace_id,
+        run_id: item.run_id,
+        workspace_task_id: item.workspace_task_id,
+        run_task_id: item.run_task_id,
+        user_id: item.user_id,
+        artifact_type: item.artifact_type,
+        title: item.title,
+        content: item.content,
+        preview: item.preview,
+        mime_type: item.mime_type,
+        format: item.format,
+        storage_kind: item.storage_kind,
+        bucket: item.bucket,
+        object_key: item.object_key,
+        file_name: item.file_name,
+        file_size: item.file_size,
+        sha256: item.sha256,
+        source: item.source,
+        status: item.status,
+        validation_status: item.validation_status,
+        validation_report: item.validation_report,
+        metadata: item.metadata,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
     }
 }
 

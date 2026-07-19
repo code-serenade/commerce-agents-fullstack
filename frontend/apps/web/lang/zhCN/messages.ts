@@ -42,6 +42,7 @@ const messages = {
         logout: "退出登录",
         actions: {
           profile: "个人资料",
+          teamSchool: "队伍学校",
         },
       },
     },
@@ -50,9 +51,11 @@ const messages = {
     common: {
       all: "全部",
       archive: "归档",
+      delete: "删除",
       approve: "通过",
       reject: "拒绝",
       edit: "编辑",
+      view: "查看",
       save: "保存",
       cancel: "取消",
       download: "下载",
@@ -70,6 +73,7 @@ const messages = {
       smartFill: "智能补全",
       templateSmartFill: "模板补全",
       agentSmartFill: "智能体补全",
+      breadcrumb: "面包屑导航",
       smartFillReviewNotice:
         "智能补全只会把草稿填入表单，不会直接保存；请核对字段后再点击保存写入记录。",
       smartFillProcess: {
@@ -101,6 +105,8 @@ const messages = {
       reason: "原因",
       none: "未设置",
       noContent: "无内容",
+      no: "否",
+      yes: "是",
       manualApprove: "前端人工通过",
       manualReject: "前端人工拒绝",
       manualCancel: "前端人工取消",
@@ -113,9 +119,184 @@ const messages = {
       countRunning: "{{count}} 个运行中",
       countEnabled: "{{count}} 个启用",
       countUnread: "{{count}} 个未读",
-      countActive: "{{count}} 个 active",
+      countActive: "{{count}} 个进行中",
       countDone: "{{count}} 个完成",
       driftCount: "发现 {{count}} 个漂移项",
+    },
+    statusOptions: {
+      active: "启用中",
+      archived: "已归档",
+      approved: "已通过",
+      blocked: "受阻",
+      cancelled: "已取消",
+      completed: "已完成",
+      configured: "已配置",
+      critical: "严重",
+      degraded: "能力受限",
+      deprecated: "已停用",
+      dismissed: "已关闭",
+      disabled: "已禁用",
+      done: "已完成",
+      draft: "草稿",
+      empty: "暂无数据",
+      enabled: "已启用",
+      ended: "已结束",
+      executed: "已执行",
+      failed: "失败",
+      idle: "空闲",
+      inProgress: "进行中",
+      missing: "缺失",
+      partial: "部分可用",
+      pending: "待处理",
+      pendingApproval: "待审核",
+      paused: "已暂停",
+      planned: "待提交",
+      ready: "就绪",
+      rejected: "已拒绝",
+      running: "运行中",
+      skipped: "已跳过",
+      snoozed: "已暂缓",
+      success: "成功",
+      succeeded: "成功",
+      syncing: "同步中",
+      unsupported: "暂不支持",
+      warning: "需注意",
+    },
+    enumLabels: {
+      other: "其他",
+      actionType: {
+        approve: "通过",
+        archive: "归档",
+        execute: "执行",
+        publish: "发布",
+        reject: "拒绝",
+        update: "更新",
+      },
+      adapterStatus: {
+        notImplemented: "适配器尚未实现",
+        required: "需要适配器",
+        degraded: "能力受限",
+        disabled: "适配器已停用",
+        live: "适配器可用",
+      },
+      alertType: {
+        approvalRequired: "需要人工审核",
+        budgetRisk: "预算风险",
+        dataAnomaly: "数据异常",
+        policyRisk: "规则风险",
+        system: "系统提醒",
+        taskFailed: "任务失败",
+      },
+      assetType: {
+        docs: "文档",
+        images: "图片",
+        videos: "视频",
+      },
+      campaignType: {
+        content: "内容活动",
+        flashSale: "限时促销",
+        launch: "新品活动",
+        live: "直播活动",
+        promotion: "促销活动",
+        seasonal: "节日活动",
+      },
+      changeType: {
+        description: "描述变化",
+        price: "价格变化",
+        rating: "评分变化",
+        sales: "销量变化",
+        stock: "库存变化",
+        title: "标题变化",
+      },
+      connectionStatus: {
+        connected: "已连接",
+        disabled: "已停用",
+        missing: "未连接",
+        disconnected: "连接已断开",
+      },
+      eventType: {
+        campaignUpdated: "活动已更新",
+        reportCreated: "报告已生成",
+        system: "系统事件",
+        taskCompleted: "任务已完成",
+        taskCreated: "任务已创建",
+        taskFailed: "任务失败",
+      },
+      executionMode: {
+        adapter: "平台适配器",
+        deferred: "延后执行",
+        manual: "人工执行",
+        native: "系统直接执行",
+      },
+      materialType: {
+        context: "上下文资料",
+        copy: "文案素材",
+        document: "文档素材",
+        sheet: "表格素材",
+        image: "图片素材",
+        text: "文本素材",
+        video: "视频素材",
+      },
+      ownerRole: {
+        creative: "内容创意",
+        data: "数据分析",
+        delivery: "交付整理",
+        design: "视觉设计",
+        engineering: "技术支持",
+        finance: "财务分析",
+        ops: "电商运营",
+        planning: "活动策划",
+        search: "资料检索",
+        seo: "搜索优化",
+        service: "客户服务",
+      },
+      readiness: {
+        blocked: "暂不可用",
+        empty: "暂无数据",
+        missing: "缺少必要条件",
+        partial: "部分可用",
+        ready: "可以执行",
+        unsupported: "暂不支持",
+      },
+      riskLevel: {
+        low: "低风险",
+        medium: "中风险",
+        high: "高风险",
+      },
+      severity: {
+        blocking: "阻断",
+        critical: "严重",
+        high: "高",
+        info: "提示",
+        low: "低",
+        medium: "中",
+        warning: "警告",
+      },
+      source: {
+        agent: "AI 生成",
+        api: "接口同步",
+        imported: "导入",
+        manual: "人工登记",
+        platformSync: "平台同步",
+        system: "系统生成",
+      },
+      targetType: {
+        campaign: "活动",
+        execution: "执行建议",
+        product: "商品",
+        run: "运行记录",
+        task: "任务",
+        tool: "工具调用",
+        workspace: "实训任务",
+      },
+      taskType: {
+        analysis: "分析任务",
+        campaign: "活动任务",
+        export: "导出任务",
+        manual: "人工任务",
+        report: "报告任务",
+        sync: "同步任务",
+      },
     },
     fields: {
       productName: "商品名称",
@@ -358,6 +539,15 @@ const messages = {
           name: "星河杯温显保温杯",
         },
       },
+      templates: {
+        title: "示例商品",
+        description:
+          "从内置案例快速载入商品资料，方便一进入产品就能开始资料库和实训分析。",
+        loading: "正在读取示例商品",
+        noDescription: "这个案例暂无简介",
+        import: "载入案例",
+        importing: "载入中",
+      },
       metrics: {
         active: "有效商品",
         activeTail: "全部 {{total}}，归档 {{archived}}",
@@ -370,8 +560,7 @@ const messages = {
       },
       panels: {
         list: "可分析商品",
-        listDesc:
-          "先选一个商品，再查看卖点、素材、价格带和竞品，形成选品判断。",
+        listDesc: "集中管理用于选品分析的商品，查看商品资料、素材和竞品信息。",
         create: "添加实训商品",
         search: "搜索商品、平台、类目、品牌",
         empty: "还没有商品资料，先添加一个用于实训分析的商品。",
@@ -380,6 +569,7 @@ const messages = {
         noProduct: "暂无可分析商品",
         selectedDesc: "围绕这个商品整理知识、素材、竞品和变化记录。",
         edit: "编辑商品资料",
+        moreDetails: "更多详情",
         archive: "归档商品",
         knowledgeTab: "商品知识",
         assetsTab: "文件资料",
@@ -428,6 +618,25 @@ const messages = {
         change: "记录竞品变化",
         uploadFile: "上传文件",
       },
+      knowledgeContentTypes: {
+        sellingPoint: "商品卖点",
+        text: "通用文本",
+        spec: "规格参数",
+        faq: "常见问答",
+        competitive: "竞品对比",
+      },
+      knowledgeSourceTypes: {
+        manual: "人工登记",
+        agentGenerated: "智能体生成",
+        platformSync: "平台同步",
+        imported: "文件导入",
+      },
+      knowledgeConfidence: {
+        label: "可信程度",
+        low: "低（置信度 0.5）",
+        medium: "中（置信度 0.8）",
+        high: "高（置信度 0.95）",
+      },
       notify: {
         created: "商品已创建",
         updated: "商品已更新",
@@ -446,6 +655,8 @@ const messages = {
         competitorArchived: "竞品已归档",
         changeCreated: "竞品变化已记录",
         draftFilled: "商品草稿已填入表单，请确认后保存",
+        templateImported: "示例商品已载入",
+        templateOpened: "示例商品已打开",
       },
     },
     campaigns: {
@@ -498,6 +709,13 @@ const messages = {
       },
     },
     workspaces: {
+      typeOptions: {
+        general: "通用实训",
+        agentChat: "AI 对话生成",
+        productAnalysis: "选品与商品分析",
+        campaignPlanning: "活动策划训练",
+        dataDiagnosis: "数据诊断分析",
+      },
       metrics: {
         workspaces: "实训任务",
         workspacesTail: "学生提交与修改记录",
@@ -513,6 +731,8 @@ const messages = {
         masterDesc:
           "每个实训任务都可以绑定商品和活动，并沉淀提交记录、复盘材料和改进建议。",
         createWorkspace: "新建实训任务",
+        viewDetail: "查看详情",
+        backToList: "返回列表",
         search: "搜索实训任务标题或类型",
         empty: "还没有实训任务，先从 AI 实训助手生成或新建一个任务。",
         detail: "实训任务详情",
@@ -593,13 +813,23 @@ const messages = {
       },
       dialogs: {
         workspace: "新建实训任务",
+        editWorkspace: "编辑实训任务",
+        productBinding: "绑定商品",
+        campaignBinding: "绑定活动",
+        workspaceTypeLocked:
+          "实训任务类型创建后固定。修改类型可能导致已有任务项、提交记录和复盘材料的语义不一致，因此这里仅允许修改标题和绑定关系。",
         task: "新增任务项",
         run: "新增提交记录",
         runTask: "新增任务快照",
         execution: "新增改进建议",
       },
+      confirm: {
+        deleteWorkspace:
+          "确定删除实训任务“{{title}}”吗？该操作会归档任务并从列表中隐藏。",
+      },
       notify: {
         workspaceCreated: "实训任务已创建",
+        workspaceUpdated: "实训任务已更新",
         workspaceArchived: "实训任务已归档",
         taskCreated: "任务项已创建",
         taskUpdated: "任务状态已更新",
@@ -761,7 +991,7 @@ const messages = {
         createNotification: "新建通知",
         emptyNotifications: "还没有实训通知",
         alerts: "告警中心",
-        activeAlerts: "当前 active：{{count}}",
+        activeAlerts: "当前待处理：{{count}}",
         dismissAll: "批量关闭",
         createAlert: "新建告警",
         emptyAlerts: "还没有告警",
@@ -805,6 +1035,19 @@ const messages = {
       panelTitle: "上传文件资料库",
       panelDescription:
         "查看上传文件的读取状态、使用状态，并选择哪些资料参与本轮 AI 问答。",
+      imageViewer: {
+        preview: "预览图片",
+        close: "关闭图片预览",
+        previous: "上一张图片",
+        next: "下一张图片",
+        mirror: "镜像翻转",
+        rotate: "旋转图片",
+        zoomOut: "缩小",
+        zoomIn: "放大",
+        reset: "重置图片",
+        download: "下载图片",
+        loadError: "图片无法显示",
+      },
       searchPlaceholder: "搜索文件名、类型、对象 Key 或状态",
       deleteSelected: "删除 {{count}} 个文件",
       clearSelection: "清空勾选",
@@ -841,12 +1084,12 @@ const messages = {
         },
       },
       turnSelection: {
-        title: "本轮 AI 将读取 {{count}} 个资料文件",
+        title: "本轮已选 {{count}} 个文件",
         files: "{{names}}{{hiddenText}}",
         hiddenSuffix: "，另有 {{count}} 个",
-        empty: "当前还没有为本轮问答选择资料。",
-        action: "只看本轮资料",
-        clearAction: "清空本轮选择",
+        empty: "本轮未选择资料",
+        action: "查看已选",
+        clearAction: "清空",
       },
       filters: {
         kind: {
@@ -878,8 +1121,8 @@ const messages = {
       },
       table: {
         name: "文件",
-        status: "读取状态",
-        useStateHeader: "使用状态",
+        status: "AI 读取",
+        useStateHeader: "本轮状态",
         size: "大小",
         createdAt: "上传时间",
         actions: "操作",
@@ -1094,6 +1337,20 @@ const messages = {
       inline: "登录后继续分析并保存历史",
       action: "去登录",
     },
+    reportActions: {
+      currentConversation: "当前会话",
+      exportMenu: "导出",
+      exportMenuLabel: "导出当前会话",
+      exportReport: "导出报告",
+      exportTranscript: "导出原文",
+      exportingTranscript: "正在导出",
+      generatingReport: "正在生成",
+      openReportCenter: "报告中心",
+      reportExported: "当前会话报告已生成并下载。",
+      reportFailed: "报告生成失败，请稍后重试。",
+      transcriptExported: "原文已导出。",
+      transcriptFailed: "原文导出失败，请稍后重试。",
+    },
     quota: {
       loading: "正在读取账号问答额度...",
       availableBadge: "额度可用",
@@ -1130,7 +1387,8 @@ const messages = {
       collapseHistory: "收起历史会话",
       expandFunctionNav: "展开常用入口",
       collapseFunctionNav: "收起常用入口",
-      empty: "还没有历史对话",
+      empty: "还没有历史会话",
+      guestEmpty: "登录以同步历史会话",
     },
     shell: {
       brandEyebrow: "电商多智能体平台",
@@ -1155,7 +1413,7 @@ const messages = {
         smartOps: "电商多智能体平台",
         productBoard: "选品分析",
         materials: "资料和图片",
-        campaigns: "做活动",
+        campaigns: "活动策划",
         platform: "平台数据连接",
         briefing: "每日简报",
         alerts: "预警中心",
@@ -1206,6 +1464,13 @@ const messages = {
       attachShort: "上传",
       attachPrompt:
         "请在这里补充文件或数据约束，例如商品价格、预算、库存、目标人群、当前转化率和平台账号状态。",
+      uploadValidation: {
+        empty: "文件“{{fileName}}”为空，无法提供给 AI 读取。",
+        mimeMismatch: "文件“{{fileName}}”的实际类型与扩展名不一致，请检查文件后重试。",
+        tooLarge: "文件“{{fileName}}”超过 {{maxSize}} 的大小限制。",
+        unsupportedFormat:
+          "文件“{{fileName}}”格式不支持。仅可上传 PNG、JPG、JPEG、WebP、PDF、DOCX、XLS、XLSX、CSV、TXT、MD、Markdown、JSON、TSV、HTML 和 HTM。",
+      },
       agentTitle: "本轮参考",
       agentName: "电商多智能体平台",
       contextPreview: {
@@ -1612,6 +1877,7 @@ const messages = {
       closePanel: "收起右侧过程",
       progress: "进度",
       activity: "本轮动态",
+      summary: "协作摘要",
       adaptiveDispatch: "自适应调度",
       record: "本轮记录",
       recordCountSuffix: "条",
@@ -1717,38 +1983,70 @@ const messages = {
         },
       },
       studentTaskEntries: {
-        title: "先从这里开始",
+        title: "试着问我",
         subtitle: "点一下就能把问题放进输入框。",
         openIdeas: "更多提问灵感",
         start: {
-          title: "看看这个商品能不能卖",
+          title: "判断商品能不能卖",
           detail: "信息不完整也可以先聊，先看毛利、需求和售后风险。",
           prompt:
-            "我现在有一个商品想卖，但资料还不完整。先帮我看它能不能做，以及最关键还差什么。",
+            "我想卖一个商品，但资料还不完整。帮我判断值不值得做，并告诉我还缺哪些关键信息。",
         },
         analyze: {
-          title: "帮我改标题/卖点",
+          title: "优化标题和卖点",
           detail: "先把用户为什么会点、为什么会买说清楚。",
-          prompt:
-            "帮我看看这个商品标题和卖点哪里不够吸引人，并直接改一版更自然的。",
+          prompt: "帮我优化这个商品的标题和卖点，直接给我 3 版。",
+        },
+        campaign: {
+          title: "制定活动方案",
+          detail: "把目标、预算、节奏和执行动作整理清楚。",
+          prompt: "按目标、预算、节奏和执行清单，帮我制定一份活动方案。",
         },
         plan: {
-          title: "帮我写客服回复",
+          title: "生成客服话术",
           detail: "语气自然，但不替店铺承诺没有证据的结果。",
-          prompt:
-            "客户觉得价格贵，我想回复得自然一点。帮我写一段不生硬、也不乱承诺的客服话术。",
+          prompt: "客户提出了一个问题，帮我写一段自然、合规、不乱承诺的回复。",
         },
         data: {
-          title: "帮我复盘数据",
+          title: "诊断经营数据",
           detail: "不用先懂指标，我会帮你看哪里最影响结果。",
           prompt:
-            "我有一些浏览、点击、加购、成交或退款数据。请先帮我看问题可能卡在哪里，以及下一步最该看什么。",
+            "根据浏览、点击、加购、成交和退款数据，找出主要问题并给出下一步。",
         },
         review: {
-          title: "把方案说得更靠谱",
-          detail: "适合作业、汇报或老师反馈后继续修改。",
-          prompt:
-            "老师说我的方案太空。请帮我把它改得更有证据、更像能执行的电商方案。",
+          title: "整理复盘报告",
+          detail: "把结论、过程、问题和改进建议整理成可交付材料。",
+          prompt: "把本次结论、过程、问题和改进建议整理成一份复盘报告。",
+        },
+        competitor: {
+          title: "分析竞品差异",
+          detail: "从价格、卖点、人群和风险找到竞争机会。",
+          prompt: "对比我的商品和竞品，从价格、卖点、人群和风险找出差异。",
+        },
+        visual: {
+          title: "生成主图文案",
+          detail: "突出真实卖点和目标人群最关心的信息。",
+          prompt: "根据商品卖点和目标人群，给我 3 版主图文案。",
+        },
+        live: {
+          title: "优化直播脚本",
+          detail: "完善开场、卖点、互动和成交承接。",
+          prompt: "帮我优化直播脚本，给出开场、卖点、互动和成交引导。",
+        },
+        budget: {
+          title: "规划投放预算",
+          detail: "明确预算分配、测试节奏和止损边界。",
+          prompt: "根据预算和目标，规划投放分配、测试节奏和止损线。",
+        },
+        refund: {
+          title: "分析退款原因",
+          detail: "拆解主要退款问题和优先改进动作。",
+          prompt: "根据退款原因和金额，找出主要问题并给出改进顺序。",
+        },
+        execution: {
+          title: "拆解执行任务",
+          detail: "把方案变成有顺序、有负责人、有检查项的任务。",
+          prompt: "把这个方案拆成执行任务，列出顺序、负责人和检查项。",
         },
       },
       receivingOutput: "正在整理可用回答",
@@ -2131,6 +2429,13 @@ const messages = {
             warnings: "{{warnings}} 条资料提示",
           },
         },
+        materialReadiness: {
+          ready: "已就绪",
+          partial: "部分就绪",
+          pending: "等待加载",
+          empty: "暂无可用资料",
+          unknown: "状态待确认",
+        },
         contextBudget: {
           label: "上下文预算",
           detail: "{{history}} 条历史消息，{{materials}} 个已选资料信号",
@@ -2202,6 +2507,10 @@ const messages = {
         routeType: "处理方式",
         studentReadTitle: "本轮结论说明",
         roleClusterTitle: "正在参与处理的岗位",
+        expandRoleCluster: "展开",
+        collapseRoleCluster: "收起",
+        expandRoleClusterCards: "展开岗位卡片",
+        collapseRoleClusterCards: "收起岗位卡片",
         roleClusterSummary: "这些岗位会按问题需要分工检查、补充和整理回答",
         emptyTask: "等待本轮任务输入",
         waitingStepTitle: "准备处理脉络",
@@ -2754,6 +3063,9 @@ const messages = {
     },
   },
   agentOutput: {
+    header: {
+      description: "查看并整理问答生成的报告与交付材料。",
+    },
     prompt:
       "我是做咖啡运营的，主要营销平台是抖音，现在马上就五一了，可以帮我像一个运营方案吗提升我的转化率",
     sectionsNavigation: "阅读导航",
@@ -2765,6 +3077,7 @@ const messages = {
       refresh: "刷新",
       loading: "正在读取对话整理报告",
       listTitle: "对话报告列表",
+      backToList: "返回报告列表",
       listDesc: "{{artifacts}} 份报告 / {{workspaces}} 个实训任务",
       emptyTitle: "还没有对话整理报告",
       emptyDescription:
@@ -2777,6 +3090,42 @@ const messages = {
       copy: "复制",
       download: "下载",
       downloadFileName: "对话整理报告",
+      reportActions: {
+        exportTranscript: "导出原文",
+        exportingTranscript: "正在导出",
+        generate: "生成报告",
+        generateCurrent: "生成当前会话报告",
+        generating: "正在生成",
+        reportFailed: "报告生成失败，请稍后重试。",
+        reportGenerated: "报告已生成。",
+        transcriptExported: "原文已导出。",
+        transcriptFailed: "原文导出失败，请稍后重试。",
+      },
+      reportDialog: {
+        cancel: "取消",
+        generating: "正在生成",
+        submit: "生成报告",
+        title: "生成会话报告",
+        fields: {
+          includeProcess: "纳入多智能体过程材料",
+          includeSources: "纳入附件和交付物来源",
+          includeTranscriptAppendix: "附加对话原文节选",
+          reportType: "报告类型",
+          scope: "材料范围",
+        },
+        reportTypes: {
+          conversation_report: "通用对话整理报告",
+          commerce_conversation_report: "电商运营报告",
+          teaching_conversation_report: "教学实训复盘报告",
+          process_evidence_pack: "过程证据报告",
+        },
+        scopes: {
+          conversation_all: "完整会话",
+          conversation_recent: "最近会话",
+          selected_sources: "已选材料",
+          workspace_run: "本次任务运行",
+        },
+      },
       meta: {
         workspace: "实训任务",
         source: "来源",
@@ -2803,6 +3152,7 @@ const messages = {
         source: {
           agentSession: "问答生成",
           agentSkillResult: "参考核对",
+          manualReportGeneration: "手动生成报告",
         },
         status: {
           active: "可查看",
@@ -2815,10 +3165,14 @@ const messages = {
           inline: "已保存正文",
         },
         type: {
+          conversationReport: "通用对话整理报告",
+          commerceConversationReport: "电商运营报告",
           finalReport: "对话整理报告",
           learningMaterial: "学习材料",
+          processEvidencePack: "过程证据报告",
           report: "整理报告",
           searchEvidence: "参考核对记录",
+          teachingConversationReport: "教学实训复盘报告",
         },
         validation: {
           failed: "需复核",
@@ -2865,8 +3219,8 @@ const messages = {
     },
     plan: {
       eyebrow: "执行工作流",
-      title: "从引流到复盘的 4 步路径",
-      actionsTitle: "24 小时内动作",
+      title: "报告中的执行路径",
+      actionsTitle: "下一步行动",
     },
     steps: {
       sku: {
@@ -2983,11 +3337,238 @@ const messages = {
     },
   },
   agentCapabilities: {
+    final: {
+      intro: {
+        title: "这个系统能帮你解决什么问题？",
+        description:
+          "它不是一个只回答问题的聊天工具，而是帮助你把电商任务做完、形成成果并保留过程的 AI 工作台。",
+        columns: {
+          problem: "你遇到的问题",
+          action: "系统怎么处理",
+          result: "最后得到什么",
+        },
+        items: [
+          {
+            problem: "不知道任务从哪里开始",
+            action: "说出任务目标，系统补问缺少的信息并整理重点。",
+            result: "明确分析方向和下一步执行步骤。",
+          },
+          {
+            problem: "有商品和资料，但不知道怎么结合使用",
+            action: "选择本轮需要的商品、文件或活动，系统根据这些资料进行分析。",
+            result: "获得贴合当前任务的判断和建议。",
+          },
+          {
+            problem: "普通 AI 只给一段文字，难以直接使用",
+            action: "系统从运营、数据、创意等岗位视角协同分析并整理内容。",
+            result: "获得可执行或提交的方案、清单、文案和报告。",
+          },
+          {
+            problem: "任务完成后，过程和成果容易丢失",
+            action: "系统保留对话、修改过程和最终成果。",
+            result: "任务可以继续执行、提交审核和复盘复用。",
+          },
+        ],
+      },
+      flow: {
+        title: "一次任务的完整流程",
+        description:
+          "左侧菜单不是互不相关的功能，而是一次任务从开始到完成的不同阶段。",
+        items: [
+          {
+            stage: "开始前",
+            title: "准备资料",
+            detail: "选择商品、资料、图片或活动。",
+          },
+          {
+            stage: "开始",
+            title: "说出问题",
+            detail: "写清目标、限制和想要的结果。",
+          },
+          {
+            stage: "处理中",
+            title: "AI 岗位协作",
+            detail: "系统自动选择运营、数据等岗位。",
+          },
+          {
+            stage: "完成时",
+            title: "查看成果",
+            detail: "获得结论、方案、清单或报告。",
+          },
+          {
+            stage: "完成后",
+            title: "提交与复盘",
+            detail: "保存任务、审核记录和经营结果。",
+          },
+        ],
+      },
+      tasks: {
+        title: "选择当前要完成的任务",
+        description:
+          "选择活动策划、商品分析或数据复盘，查看需要准备的信息和可获得的结果。",
+        resultLabel: "你会得到",
+        items: [
+          {
+            title: "活动策划",
+            shortDescription: "目标、预算、节奏与执行",
+            description:
+              "准备商品资料，说明活动目标、预算和周期，让系统生成活动节奏、内容方向、执行清单和复盘指标。",
+            results: ["活动方案", "执行清单", "风险提醒"],
+          },
+          {
+            title: "分析商品",
+            shortDescription: "卖点、竞品、价格与机会",
+            description:
+              "选择商品并补充价格、卖点和竞品资料，让系统从需求、利润、内容和售后风险等角度共同分析。",
+            results: ["机会判断", "卖点建议", "测试计划"],
+          },
+          {
+            title: "数据复盘",
+            shortDescription: "异常、原因、证据与动作",
+            description:
+              "上传浏览、点击、加购、成交或退款数据，让系统定位最可能的问题，并给出下一步验证动作。",
+            results: ["诊断结论", "证据缺口", "优化动作"],
+          },
+        ],
+      },
+      journey: {
+        title: "一次完整任务怎么做",
+        description:
+          "下面按实际操作顺序说明，图片中的功能位置与现在产品保持一致。",
+        steps: [
+          {
+            navLabel: "准备资料",
+            title: "先准备本轮真正要分析的商品和资料",
+            description:
+              "可以先在“选品分析”添加商品、卖点、素材和竞品；没有完整资料时，也可以先进入问答。",
+            screenshotAlt: "登录后的选品分析页面",
+            note: "1 添加或选择商品；2 查看商品卖点、素材、知识和竞品资料。",
+          },
+          {
+            navLabel: "进入问答",
+            title: "从“新建对话”进入问答入口",
+            description:
+              "在输入框写下任务，并按需要加入资料、商品或活动；只有明确选择的内容才会进入本轮。",
+            screenshotAlt: "登录后的问答入口页面",
+            note: "1 新建对话；2 输入任务；3 选择资料、商品、活动和回答方式。",
+          },
+          {
+            navLabel: "选择方式",
+            title: "第一次保持“系统自动选”即可",
+            description:
+              "需要控制回答风格或岗位时，再打开“回答方式”选择讲解深度、处理速度和参与岗位。",
+            screenshotAlt: "登录后的回答方式设置面板",
+            note: "1 选择回答偏好；2 系统自动选、指定一个或指定多个岗位。",
+          },
+          {
+            navLabel: "写清问题",
+            title: "按 4 项信息把问题说清楚",
+            description:
+              "依次说明要完成什么、可以提供什么、有哪些限制和想得到什么；信息不完整时，系统会继续询问关键细节。",
+          },
+          {
+            navLabel: "保存成果",
+            title: "回答完成后，按用途保存到对应页面",
+            description:
+              "需要继续执行、整理下载或提交审核时，分别进入相应页面保存成果。",
+            screenshotAlt: "登录后的实训任务与交付页面",
+            note: "1 新建实训任务；2 查看、编辑或继续完善已有任务。",
+          },
+        ],
+        recipeTitle: "AI 需要先了解这 4 类信息",
+        recipeDescription:
+          "任务目标决定分析方向，已有资料提供判断依据，限制条件明确执行边界，期望结果决定回答形式；信息不完整时，系统会继续询问。",
+        recipe: [
+          {
+            title: "要完成什么",
+            detail: "判断商品、生成方案、优化内容或复盘数据",
+          },
+          {
+            title: "可以提供什么",
+            detail: "商品信息、预算、平台数据或课程要求",
+          },
+          { title: "有哪些限制", detail: "时间、预算、格式和必须遵守的规则" },
+          { title: "想得到什么", detail: "方案、清单、报告或下一步动作" },
+        ],
+        promptLabel: "完整问题示例",
+        prompt:
+          "请结合我选择的商品和现有资料，判断这个商品最值得强调的三个卖点，并给出活动方向、执行清单、主要风险和后续需要补充的数据。",
+        destinationsTitle: "根据下一步用途选择保存位置",
+        destinations: [
+          {
+            purpose: "继续执行任务",
+            title: "实训任务与交付",
+            detail: "保存任务、运行记录、执行建议和可检查的提交内容。",
+          },
+          {
+            purpose: "整理、复制或下载",
+            title: "对话报告与复盘",
+            detail: "预览、复制、下载和归档本轮生成的方案或报告。",
+          },
+          {
+            purpose: "提交老师审核",
+            title: "老师审核与记录",
+            detail: "查看提交、审核结论、退回修改和关键操作记录。",
+          },
+        ],
+      },
+      reference: {
+        title: "按当前任务进入对应功能",
+        description: "选择你接下来要做的事，直接进入对应页面。",
+        items: [
+          {
+            title: "问答入口",
+            detail: "启动任务，输入问题并查看 AI 协作过程。",
+          },
+          {
+            title: "选品与商品分析",
+            detail: "管理商品、卖点、素材、知识和竞品资料。",
+          },
+          { title: "资料和图片", detail: "上传可供本轮问答选择和读取的文件。" },
+          {
+            title: "活动策划训练",
+            detail: "围绕目标、预算、周期和产出完成策划。",
+          },
+          {
+            title: "复盘报告",
+            detail: "预览、复制、下载和归档本轮生成的方案或报告。",
+          },
+          {
+            title: "实训任务与交付",
+            detail: "沉淀任务过程、修改记录和交付成果。",
+          },
+          {
+            title: "老师审核与记录",
+            detail: "跟踪提交、审核、退回修改和处理记录。",
+          },
+          {
+            title: "经营结果跟踪",
+            detail: "查看长任务、通知、告警和阶段结果。",
+          },
+        ],
+      },
+      boundary: {
+        title: "系统会做什么，不会做什么",
+        description: "重要数据、预算和真实平台动作始终需要人工核对。",
+        supportedTitle: "系统会做",
+        guardedTitle: "系统不会擅自做",
+        supported: [
+          "读取本轮明确选择的商品、文件和活动资料。",
+          "生成方案、清单、报告、话术和表单草稿。",
+          "保留对话、任务、交付物和复盘过程。",
+        ],
+        guarded: [
+          "不会默认读取账号中的全部资料。",
+          "不会把建议冒充成真实平台执行结果。",
+          "不会绕过审核执行发布、预算调整或删除。",
+        ],
+      },
+    },
     header: {
       eyebrow: "使用说明",
       title: "电商多智能体平台使用说明",
       description:
-        "这里说明学生如何围绕一次电商实训任务使用 AI 问答、商品分析、活动策划、数据诊断和复盘报告。",
+        "这里说明学生如何围绕一次电商实训任务使用 AI 问答、商品分析、活动策划、任务交付和复盘报告。",
       action: "进入问答入口",
     },
     principle: {
@@ -3177,6 +3758,7 @@ const messages = {
     footer: {
       toRegisterPrefix: "还没有账号？",
       toRegisterAction: "去注册",
+      backToChat: "返回对话",
     },
     error: {
       title: "登录没有完成",
@@ -3189,9 +3771,16 @@ const messages = {
     },
   },
   profile: {
+    teamSchoolPage: {
+      title: "队伍学校设置",
+      description: "设置当前账号所属的院校和队伍，用于实训归属和问答额度识别。",
+    },
     appProfile: {
       title: "学校与团队",
       description: "这些信息用于识别实训归属，也会影响你的 AI 问答总次数。",
+      summaryTitle: "队伍学校",
+      summaryDescription:
+        "这里展示当前账号的实训归属信息，修改请进入队伍学校设置。",
       loading: "正在读取学校与团队信息...",
       loadFailed: "学校与团队信息读取失败。",
       missingAppUser:
@@ -3205,6 +3794,10 @@ const messages = {
       save: "保存学校与团队",
       saving: "保存中...",
       saved: "学校与团队已保存",
+      manageTeamSchool: "管理队伍学校",
+      setupTeamSchool: "去设置",
+      summaryHelp: "绑定后可用于实训归属识别，并提升 AI 问答额度。",
+      unsetValue: "未填写",
       boundStatus: "已绑定",
       unboundStatus: "未绑定",
       quotaRule:
@@ -3222,7 +3815,7 @@ const messages = {
     },
     welcome: "创建新账号",
     title: "注册实训账号",
-    subtitle: "创建账号后即可进入电商多智能体平台，开始你的电商实训任务。",
+    subtitle: "注册后即可进入平台，开始电商实训。",
     form: {
       password: {
         label: "密码",

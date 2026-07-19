@@ -56,6 +56,9 @@ html[data-theme="dark"],
   --agent-chat-inset-shadow: none;
   --agent-chat-accent-soft: var(--muted);
   --agent-chat-accent-foreground: var(--accent-foreground);
+  --agent-chat-suggestion-background: var(--agent-chat-accent-soft);
+  --agent-chat-suggestion-hover-background: var(--agent-chat-accent-soft);
+  --agent-chat-suggestion-foreground: var(--foreground);
   --agent-chat-muted-control: var(--card);
   --agent-chat-placeholder: var(--muted-foreground);
 }

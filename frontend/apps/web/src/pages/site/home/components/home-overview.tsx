@@ -8,8 +8,8 @@ import {
 import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router"
-import { Avatar } from "@workspace/ui-components/stable/avatar"
 import { Button } from "@workspace/ui-components/stable/button"
+import { CommerceAgentLogo } from "@/components/brand"
 import type { UserInfo } from "@/models/userModel"
 import { HomeStudentPath } from "./home-student-path"
 import { useAuthDialog } from "@/components/auth/AuthDialogProvider"
@@ -51,14 +51,12 @@ export interface HomeOverviewProps {
   user: UserInfo | null
   displayName: string
   displayId: string
-  avatarFallback: string
 }
 
 export function HomeOverview({
   user,
   displayName,
   displayId,
-  avatarFallback,
 }: HomeOverviewProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -86,11 +84,7 @@ export function HomeOverview({
       >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-4">
-            <Avatar
-              src={user?.avatar}
-              alt={displayName}
-              fallback={avatarFallback}
-            />
+            <CommerceAgentLogo className="size-12 rounded-xl" size="lg" />
             <div className="min-w-0 space-y-1">
               <p className="text-xs font-medium text-(--app-muted-text)">
                 {t(isLogin ? "home.welcome" : "home.publicWelcome")}

@@ -147,9 +147,9 @@ export function AgentChatThread({
       ref={scrollRootRef}
       data-agent-chat-thread-scroll-root="true"
       onScroll={handleScroll}
-      className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-transparent px-4 pt-20 pb-6 [scrollbar-gutter:stable] sm:px-7 sm:pt-24 sm:pb-7"
+      className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-transparent px-4 py-6 [scrollbar-gutter:stable] sm:p-7"
     >
-      <div className="mx-auto flex w-full max-w-[48rem] flex-col gap-6">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
         {messages.length <= 1 && !hasOnlyWelcomeMessage ? (
           <div className="flex justify-center">
             <StrategyStatusPill strategy={selectedStrategy} />

@@ -26,10 +26,10 @@ export function WelcomeCard({
   const { t } = useTranslation()
 
   return (
-    <div className="overflow-hidden rounded-[28px] border border-(--agent-chat-strong-border) bg-(--agent-chat-elevated-surface) bg-[image:var(--agent-chat-card-background)] shadow-[var(--agent-chat-card-shadow)] ring-1 ring-(--agent-chat-soft-border) backdrop-blur-xl">
-      <div className="bg-[image:var(--agent-chat-card-header)] px-6 py-5">
+    <div className="overflow-hidden rounded-[28px] border border-(--agent-chat-strong-border) bg-(--agent-chat-elevated-surface) bg-(image:--agent-chat-card-background) shadow-(--agent-chat-card-shadow) ring-1 ring-(--agent-chat-soft-border) backdrop-blur-xl">
+      <div className="bg-(image:--agent-chat-card-header) px-6 py-5">
         <div className="flex items-start gap-4">
-          <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-(--agent-chat-primary-gradient) text-primary-foreground shadow-[var(--agent-chat-button-shadow)]">
+          <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-(--agent-chat-primary-gradient) text-primary-foreground shadow-(--agent-chat-button-shadow)">
             <BrainCircuit className="size-5" />
           </div>
           <div className="min-w-0">
@@ -43,7 +43,6 @@ export function WelcomeCard({
       <div className="px-6 py-5">
         <AgentChatWelcomeContent
           onSelectExamplePrompt={onSelectExamplePrompt}
-          surface="card"
         />
       </div>
     </div>
@@ -166,6 +165,7 @@ export function StudentNextActions({
   const { t } = useTranslation()
   const prompts = getStudentNextActionPrompts(t, message, previousUserContent)
   const meta = getStudentNextActionMeta(t, message, previousUserContent)
+  const showMetaLabel = meta.group !== "productFollowup"
 
   return (
     <div className="mt-3 w-full">
@@ -179,9 +179,11 @@ export function StudentNextActions({
             {meta.detail}
           </p>
         </div>
-        <span className="shrink-0 rounded-full bg-(--agent-chat-accent-soft) px-2 py-1 text-[11px] font-medium text-(--agent-chat-accent-foreground)">
-          {meta.label}
-        </span>
+        {showMetaLabel ? (
+          <span className="shrink-0 rounded-full bg-(--agent-chat-accent-soft) px-2 py-1 text-[11px] font-medium text-(--agent-chat-accent-foreground)">
+            {meta.label}
+          </span>
+        ) : null}
       </div>
       <div className="mt-2 flex flex-col gap-2">
         {prompts.map((prompt) => (
@@ -189,9 +191,8 @@ export function StudentNextActions({
             key={prompt}
             type="button"
             onClick={() => onSelectPrompt?.(prompt)}
-            className="group flex w-fit max-w-full min-w-0 cursor-pointer items-start gap-2 rounded-lg bg-(--agent-chat-accent-soft) px-2.5 py-1.5 text-left text-xs/5 text-foreground transition-colors hover:bg-(--agent-chat-accent-soft) hover:text-primary"
+            className="group flex w-fit max-w-full min-w-0 cursor-pointer items-start rounded-lg bg-(--agent-chat-suggestion-background) px-2.5 py-1.5 text-left text-xs/5 text-(--agent-chat-suggestion-foreground) transition-colors hover:bg-(--agent-chat-suggestion-hover-background) hover:text-(--agent-chat-suggestion-foreground)"
           >
-            <Sparkles className="mt-0.5 size-3.5 shrink-0 text-primary" />
             <span className="min-w-0 flex-1">{prompt}</span>
           </button>
         ))}

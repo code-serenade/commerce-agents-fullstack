@@ -86,6 +86,83 @@ describe("streamAgentSessionApi", () => {
     expect(onDone).toHaveBeenCalledTimes(1)
   })
 
+  it("streams llm_chunk events as chat deltas before final output", async () => {
+    const onAgentEvent = vi.fn()
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          streamFromSse([
+            'event: llm_chunk\ndata: {"type":"llm_chunk","content":"chunk-one"}\n\n',
+            'event: llm_chunk\ndata: {"type":"llm_chunk","content":"chunk-two"}\n\n',
+            'event: output\ndata: {"type":"output","content":"chunk-onechunk-two"}\n\n',
+            "event: done\ndata: {}\n\n",
+          ]),
+          {
+            status: 200,
+            headers: { "Content-Type": "text/event-stream" },
+          }
+        )
+      )
+    )
+
+    const deltas: string[] = []
+    const onDone = vi.fn()
+    await streamAgentSessionApi(
+      { input: "continue streaming the final answer" },
+      {
+        onAgentEvent,
+        onDelta: (content) => deltas.push(content),
+        onDone,
+        onError: (message) => {
+          throw new Error(message)
+        },
+      }
+    )
+
+    expect(deltas).toEqual(["chunk-one", "chunk-two"])
+    expect(onAgentEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ content: "chunk-one", type: "llm_chunk" })
+    )
+    expect(onDone).toHaveBeenCalledTimes(1)
+  })
+
+  it("deduplicates legacy delta events that mirror llm_chunk events", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          streamFromSse([
+            'event: llm_chunk\ndata: {"type":"llm_chunk","content":"chunk-one"}\n\n',
+            'event: delta\ndata: {"content":"chunk-one"}\n\n',
+            'event: llm_chunk\ndata: {"type":"llm_chunk","content":"chunk-two"}\n\n',
+            'event: delta\ndata: {"content":"chunk-two"}\n\n',
+            'event: output\ndata: {"type":"output","content":"chunk-onechunk-two"}\n\n',
+            "event: done\ndata: {}\n\n",
+          ]),
+          {
+            status: 200,
+            headers: { "Content-Type": "text/event-stream" },
+          }
+        )
+      )
+    )
+
+    const deltas: string[] = []
+    await streamAgentSessionApi(
+      { input: "continue streaming the final answer" },
+      {
+        onDelta: (content) => deltas.push(content),
+        onDone: vi.fn(),
+        onError: (message) => {
+          throw new Error(message)
+        },
+      }
+    )
+
+    expect(deltas).toEqual(["chunk-one", "chunk-two"])
+  })
+
   it("waits for output after a workspace failure event before completing the chat UI", async () => {
     vi.stubGlobal(
       "fetch",

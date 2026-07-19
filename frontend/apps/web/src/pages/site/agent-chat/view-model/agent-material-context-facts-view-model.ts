@@ -30,6 +30,7 @@ export function appendMaterialContextFacts(
   const omitted = workspace ? getOmittedRefs(workspace) : []
   const warnings = workspace?.warnings ?? []
   const readiness = workspace?.readiness ?? (selected > 0 ? "pending" : "empty")
+  const readinessLabel = formatMaterialReadiness(readiness, t)
   const packedRefsAvailable = workspace ? hasWorkspaceContextPackItemRefs(workspace) : false
   const missingSelected = workspace
     ? packedRefsAvailable
@@ -58,7 +59,7 @@ export function appendMaterialContextFacts(
         omitted: omitted.length,
         packed,
         readable,
-        readiness,
+        readiness: readinessLabel,
         selected,
         summary,
         unreadable: unreadablePacked,
@@ -82,8 +83,8 @@ export function appendMaterialContextFacts(
   if (!workspace) return
 
   facts.push({
-    detail: t("agentChat.thread.dispatchFacts.workspace.detail", {
-      readiness,
+      detail: t("agentChat.thread.dispatchFacts.workspace.detail", {
+      readiness: readinessLabel,
       readable,
       total: packed,
     }),
@@ -210,13 +211,30 @@ function getMaterialAuditSummary(
   }
   if (["empty", "partial", "pending"].includes(input.readiness)) {
     return t("agentChat.thread.dispatchFacts.materialAudit.summary.notReady", {
-      readiness: input.readiness,
+      readiness: formatMaterialReadiness(input.readiness, t),
     })
   }
   if (input.readable > 0) {
     return t("agentChat.thread.dispatchFacts.materialAudit.summary.ready")
   }
   return t("agentChat.thread.dispatchFacts.materialAudit.summary.empty")
+}
+
+function formatMaterialReadiness(readiness: string, t: TFunction) {
+  const normalized = readiness.trim().toLowerCase()
+  if (normalized === "ready") {
+    return t("agentChat.thread.dispatchFacts.materialReadiness.ready")
+  }
+  if (normalized === "partial") {
+    return t("agentChat.thread.dispatchFacts.materialReadiness.partial")
+  }
+  if (normalized === "pending") {
+    return t("agentChat.thread.dispatchFacts.materialReadiness.pending")
+  }
+  if (normalized === "empty") {
+    return t("agentChat.thread.dispatchFacts.materialReadiness.empty")
+  }
+  return t("agentChat.thread.dispatchFacts.materialReadiness.unknown")
 }
 
 function getMaterialAuditTone(input: {

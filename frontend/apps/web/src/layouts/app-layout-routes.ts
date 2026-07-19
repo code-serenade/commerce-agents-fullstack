@@ -15,6 +15,7 @@ const AGENT_SHELL_ROUTE_PATHS = new Set([
   "/operations",
   "/agent-output",
   "/profile",
+  "/team-school",
 ])
 
 export function isAgentShellRoute(pathname: string) {

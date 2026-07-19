@@ -32,6 +32,14 @@ export const dispatchFactTestLabels = {
   workspaceWarningLabel: "Material note",
 }
 
+const materialReadinessLabels = {
+  empty: "No usable material",
+  partial: "Partially ready",
+  pending: "Waiting to load",
+  ready: "Ready",
+  unknown: "Status to confirm",
+} as const
+
 const materialAuditSummaries = {
   empty: "no material",
   missingPack: "missing pack",
@@ -187,6 +195,21 @@ export const t = ((key: string, params?: Record<string, unknown>) => {
   }
   if (key === "agentChat.thread.dispatchFacts.materialAudit.summary.warnings") {
     return `${materialAuditSummaries.warnings} ${params?.warnings}`
+  }
+  if (key === "agentChat.thread.dispatchFacts.materialReadiness.ready") {
+    return materialReadinessLabels.ready
+  }
+  if (key === "agentChat.thread.dispatchFacts.materialReadiness.partial") {
+    return materialReadinessLabels.partial
+  }
+  if (key === "agentChat.thread.dispatchFacts.materialReadiness.pending") {
+    return materialReadinessLabels.pending
+  }
+  if (key === "agentChat.thread.dispatchFacts.materialReadiness.empty") {
+    return materialReadinessLabels.empty
+  }
+  if (key === "agentChat.thread.dispatchFacts.materialReadiness.unknown") {
+    return materialReadinessLabels.unknown
   }
   if (key === "agentChat.thread.dispatchFacts.memory.label") {
     return dispatchFactTestLabels.memoryLabel

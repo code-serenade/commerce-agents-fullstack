@@ -10,21 +10,24 @@ import type { AgentChatRuntimeSelection } from "../domain/agent-runtime-options"
 import type { AgentChatStrategy } from "../domain/agent-chat-strategy"
 import type {
   AgentChatAttachmentItem,
-  AgentChatConversationItem,
   AgentChatMessage,
 } from "../types"
+import type {
+  EnsureAgentChatConversation,
+  PromoteAgentChatConversationTitle,
+} from "./use-agent-chat-conversation-identity"
 
 export interface SendAgentChatMessageInput {
   attachments: AgentChatAttachmentItem[]
   content: string
   conversationId: string | null
+  conversationTitle?: string | null
   fallbackConversationTitle: string
+  ensureConversation: EnsureAgentChatConversation
   messageFormatCopy: AgentChatMessageFormatCopy
   onController: (controller: AbortController) => void
-  onConversationCreated?: (conversationId: string) => void
+  promoteConversationTitle: PromoteAgentChatConversationTitle
   sessionIdRef: MutableRefObject<string>
-  setConversationId: Dispatch<SetStateAction<string | null>>
-  setConversations: Dispatch<SetStateAction<AgentChatConversationItem[]>>
   setError: Dispatch<SetStateAction<string | null>>
   setInput: Dispatch<SetStateAction<string>>
   setIsStreaming: Dispatch<SetStateAction<boolean>>

@@ -79,8 +79,21 @@ export function formatAgentUiMessage(
   return sanitizeAgentUiMessage(text, copy)
 }
 
+const CONVERSATION_TITLE_MAX_CHARS = 40
+
 export function createConversationTitle(content: string) {
-  return content.length > 40 ? `${content.slice(0, 40)}...` : content
+  const chars = Array.from(content.trim())
+  if (chars.length <= CONVERSATION_TITLE_MAX_CHARS) return chars.join("")
+  return `${chars.slice(0, CONVERSATION_TITLE_MAX_CHARS).join("")}...`
+}
+
+export function isFallbackConversationTitle(
+  title: string | null | undefined,
+  fallbackTitle: string
+) {
+  const normalizedTitle = title?.trim()
+  if (!normalizedTitle) return true
+  return normalizedTitle === fallbackTitle.trim()
 }
 
 export function createSessionId() {

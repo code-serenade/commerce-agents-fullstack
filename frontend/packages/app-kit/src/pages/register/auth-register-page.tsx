@@ -14,6 +14,15 @@ import {
   FieldLabel,
 } from "@workspace/ui-components/stable/field"
 import { Input } from "@workspace/ui-components/stable/input"
+import {
+  MinimalAuthLayout,
+  minimalAuthFooterLinkClassName,
+  minimalAuthIconButtonClassName,
+  minimalAuthInputClassName,
+  minimalAuthLabelClassName,
+  minimalAuthPasswordInputClassName,
+  minimalAuthSubmitClassName,
+} from "../auth-minimal-layout"
 import type {
   AuthRegisterExtraFieldDefinition,
   AuthRegisterPageProps,
@@ -28,27 +37,11 @@ const authAsideClassName =
 const authContentClassName = "p-8 sm:p-10"
 const authFooterClassName = "mt-6 text-sm text-(--app-muted-text)"
 const authLinkClassName =
-  "font-medium text-(--app-text) underline-offset-4 transition hover:underline"
-const minimalBrandClassName =
-  "m-0 text-[22px] font-bold tracking-normal text-(--auth-minimal-heading-foreground) drop-shadow-[var(--auth-minimal-brand-shadow)]"
-const minimalSubtitleClassName =
-  "mx-auto my-0 max-w-[440px] text-[15px] leading-[1.8] text-(--auth-minimal-muted-foreground)"
-const minimalInputClassName =
-  "h-12 w-full rounded-xl border border-(--auth-minimal-field-border) [background:var(--auth-minimal-field-background)] px-3.5 text-[15px] text-(--auth-minimal-field-foreground) shadow-[var(--auth-minimal-field-shadow)] transition outline-none focus:border-(--auth-minimal-field-focus-border) focus:shadow-[var(--auth-minimal-field-focus-shadow)]"
-const minimalLabelClassName =
-  "mb-[9px] block text-sm font-bold text-(--auth-minimal-label-foreground)"
+  "cursor-pointer border-0 bg-transparent p-0 font-medium text-(--app-text) underline-offset-4 transition hover:underline"
 const minimalHelpIconClassName =
   "inline-flex size-4.5 items-center justify-center rounded-full text-(--auth-minimal-muted-foreground) transition hover:text-(--auth-minimal-action-foreground) focus-visible:ring-2 focus-visible:ring-ring/25 focus-visible:outline-none"
 const minimalTooltipClassName =
-  "pointer-events-none invisible absolute bottom-6 left-1/2 z-20 -translate-x-1/2 rounded-xl border border-(--auth-minimal-notice-border) bg-(--auth-minimal-popover-background) px-3 py-2 text-xs leading-relaxed font-medium text-(--auth-minimal-label-foreground) opacity-0 shadow-[var(--auth-minimal-popover-shadow)] backdrop-blur-xl transition group-focus-within/help:visible group-focus-within/help:opacity-100 group-hover/help:visible group-hover/help:opacity-100"
-const minimalIconButtonClassName =
-  "absolute top-1/2 right-3 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-lg text-(--auth-minimal-muted-foreground) transition hover:bg-(--auth-minimal-icon-hover-background) hover:text-(--auth-minimal-action-foreground) focus-visible:ring-2 focus-visible:ring-ring/25 focus-visible:outline-none"
-const minimalSubmitClassName =
-  "mt-[26px] h-12 w-full rounded-xl border-0 bg-[image:var(--auth-minimal-submit-background)] text-base font-bold text-(--auth-minimal-submit-foreground) shadow-[var(--auth-minimal-submit-shadow)] transition disabled:cursor-not-allowed disabled:opacity-65"
-const minimalFooterClassName =
-  "mt-6 flex justify-center gap-2 text-sm text-(--auth-minimal-muted-foreground)"
-const minimalFooterLinkClassName =
-  "font-bold text-(--auth-minimal-action-foreground) underline-offset-4 transition hover:underline"
+  "pointer-events-none invisible absolute bottom-6 left-0 z-20 rounded-xl border border-(--auth-minimal-notice-border) bg-(--auth-minimal-popover-background) px-3 py-2 text-xs leading-relaxed font-medium text-(--auth-minimal-label-foreground) opacity-0 shadow-[var(--auth-minimal-popover-shadow)] backdrop-blur-xl transition group-focus-within/help:visible group-focus-within/help:opacity-100 group-hover/help:visible group-hover/help:opacity-100"
 
 function createAuthRegisterSchema(
   t: Translate,
@@ -119,7 +112,11 @@ function createAuthRegisterSchema(
 export function AuthRegisterPage({
   brandLogo,
   extraFields = [],
+  showProfileFields = true,
   loginPath = "/login",
+  footerExtraAction,
+  onLoginClick,
+  redirectAfterRegister = true,
   variant = "split",
   onRegistered,
 }: AuthRegisterPageProps) {
@@ -168,11 +165,16 @@ export function AuthRegisterPage({
       await registerApi(payload)
       await onRegistered?.({
         username: payload.username,
+        password: values.password,
         displayName: values.displayName.trim(),
         email: values.email.trim(),
         extraFields: normalizeExtraFieldValues(values.extraFields),
       })
-      navigate(loginPath, { replace: true })
+      if (redirectAfterRegister) {
+        navigate(loginPath, { replace: true })
+      } else {
+        onLoginClick?.()
+      }
     } catch (err) {
       console.error("Register failed:", err)
     }
@@ -180,25 +182,44 @@ export function AuthRegisterPage({
 
   if (variant === "minimal") {
     return (
-      <section className="relative z-10 mx-auto mt-[-4px] w-full max-w-[680px]">
-        <div className="mb-[18px] flex items-center justify-center gap-3">
-          {brandLogo ? <div className="shrink-0">{brandLogo}</div> : null}
-          <p className={minimalBrandClassName}>
-            {t("authRegister.brand", { ns: "pages" })}
-          </p>
-        </div>
-
-        <header className="mb-[28px] text-center">
-          <p className={minimalSubtitleClassName}>
-            {t("authRegister.subtitle", { ns: "pages" })}
-          </p>
-        </header>
-
+      <MinimalAuthLayout
+        brand={t("authRegister.brand", { ns: "pages" })}
+        brandLogo={brandLogo}
+        subtitle={t("authRegister.subtitle", { ns: "pages" })}
+        footer={
+          <>
+            <span>
+              {t("authRegister.footer.toLoginPrefix", { ns: "pages" })}{" "}
+              {onLoginClick ? (
+                <button
+                  type="button"
+                  className={minimalAuthFooterLinkClassName}
+                  onClick={onLoginClick}
+                >
+                  {t("authRegister.footer.toLoginAction", { ns: "pages" })}
+                </button>
+              ) : (
+                <Link to={loginPath} className={minimalAuthFooterLinkClassName}>
+                  {t("authRegister.footer.toLoginAction", { ns: "pages" })}
+                </Link>
+              )}
+            </span>
+            {footerExtraAction ? (
+              <>
+                <span className="text-(--auth-minimal-muted-foreground) opacity-50">
+                  |
+                </span>
+                {footerExtraAction}
+              </>
+            ) : null}
+          </>
+        }
+      >
         <form onSubmit={handleRegister} className="px-0.5 pt-1">
-          <div className="grid gap-[18px] sm:grid-cols-2">
+          <div className="grid gap-[19px]">
             <label className="block">
               <span
-                className={`${minimalLabelClassName} flex items-center gap-1.5`}
+                className={`${minimalAuthLabelClassName} flex items-center gap-1.5`}
               >
                 <span>
                   {t("authRegister.form.username.label", { ns: "pages" })}
@@ -230,62 +251,68 @@ export function AuthRegisterPage({
                     placeholder={t("authRegister.form.username.placeholder", {
                       ns: "pages",
                     })}
-                    className={minimalInputClassName}
+                    className={minimalAuthInputClassName}
                   />
                 )}
               />
               <FieldError>{errors.username?.message}</FieldError>
             </label>
 
-            <label className="block">
-              <span className={minimalLabelClassName}>
-                {t("authRegister.form.displayName.label", { ns: "pages" })}
-              </span>
-              <Controller
-                control={control}
-                name="displayName"
-                render={({ field }) => (
-                  <input
-                    value={field.value}
-                    onChange={(event) => field.onChange(event.target.value)}
-                    type="text"
-                    placeholder={t(
-                      "authRegister.form.displayName.placeholder",
-                      { ns: "pages" }
-                    )}
-                    className={minimalInputClassName}
-                  />
-                )}
-              />
-              <FieldError>{errors.displayName?.message}</FieldError>
-            </label>
-
-            <label className="block">
-              <span className={minimalLabelClassName}>
-                {t("authRegister.form.email.label", { ns: "pages" })}
-              </span>
-              <Controller
-                control={control}
-                name="email"
-                render={({ field }) => (
-                  <input
-                    value={field.value}
-                    onChange={(event) => field.onChange(event.target.value)}
-                    type="email"
-                    placeholder={t("authRegister.form.email.placeholder", {
+            {showProfileFields ? (
+              <>
+                <label className="block">
+                  <span className={minimalAuthLabelClassName}>
+                    {t("authRegister.form.displayName.label", {
                       ns: "pages",
                     })}
-                    className={minimalInputClassName}
+                  </span>
+                  <Controller
+                    control={control}
+                    name="displayName"
+                    render={({ field }) => (
+                      <input
+                        value={field.value}
+                        onChange={(event) => field.onChange(event.target.value)}
+                        type="text"
+                        placeholder={t(
+                          "authRegister.form.displayName.placeholder",
+                          { ns: "pages" }
+                        )}
+                        className={minimalAuthInputClassName}
+                      />
+                    )}
                   />
-                )}
-              />
-              <FieldError>{errors.email?.message}</FieldError>
-            </label>
+                  <FieldError>{errors.displayName?.message}</FieldError>
+                </label>
+
+                <label className="block">
+                  <span className={minimalAuthLabelClassName}>
+                    {t("authRegister.form.email.label", { ns: "pages" })}
+                  </span>
+                  <Controller
+                    control={control}
+                    name="email"
+                    render={({ field }) => (
+                      <input
+                        value={field.value}
+                        onChange={(event) => field.onChange(event.target.value)}
+                        type="email"
+                        placeholder={t("authRegister.form.email.placeholder", {
+                          ns: "pages",
+                        })}
+                        className={minimalAuthInputClassName}
+                      />
+                    )}
+                  />
+                  <FieldError>{errors.email?.message}</FieldError>
+                </label>
+              </>
+            ) : null}
 
             {extraFields.map((extraField) => (
               <label key={extraField.name} className="block">
                 <span
-                  className={`${minimalLabelClassName} flex items-center gap-1.5`}
+                  className={`${minimalAuthLabelClassName} flex items-center gap-1.5`}
                 >
                   <span>{extraField.label}</span>
                   {extraField.helpText ? (
@@ -313,7 +340,7 @@ export function AuthRegisterPage({
                       onChange={(event) => field.onChange(event.target.value)}
                       type="text"
                       placeholder={extraField.placeholder}
-                      className={minimalInputClassName}
+                      className={minimalAuthInputClassName}
                     />
                   )}
                 />
@@ -324,7 +351,7 @@ export function AuthRegisterPage({
             ))}
 
             <label className="block">
-              <span className={minimalLabelClassName}>
+              <span className={minimalAuthLabelClassName}>
                 {t("authRegister.form.password.label", { ns: "pages" })}
               </span>
               <Controller
@@ -339,11 +366,11 @@ export function AuthRegisterPage({
                       placeholder={t("authRegister.form.password.placeholder", {
                         ns: "pages",
                       })}
-                      className={`${minimalInputClassName} pr-12`}
+                      className={minimalAuthPasswordInputClassName}
                     />
                     <button
                       type="button"
-                      className={minimalIconButtonClassName}
+                      className={minimalAuthIconButtonClassName}
                       aria-label={
                         isPasswordVisible
                           ? t("auth.passwordVisibility.hidePassword", {
@@ -371,7 +398,7 @@ export function AuthRegisterPage({
             </label>
 
             <label className="block">
-              <span className={minimalLabelClassName}>
+              <span className={minimalAuthLabelClassName}>
                 {t("authRegister.form.confirmPassword.label", { ns: "pages" })}
               </span>
               <Controller
@@ -387,11 +414,11 @@ export function AuthRegisterPage({
                         "authRegister.form.confirmPassword.placeholder",
                         { ns: "pages" }
                       )}
-                      className={`${minimalInputClassName} pr-12`}
+                      className={minimalAuthPasswordInputClassName}
                     />
                     <button
                       type="button"
-                      className={minimalIconButtonClassName}
+                      className={minimalAuthIconButtonClassName}
                       aria-label={
                         isConfirmPasswordVisible
                           ? t("auth.passwordVisibility.hideConfirmPassword", {
@@ -422,24 +449,14 @@ export function AuthRegisterPage({
           <button
             type="submit"
             disabled={isSubmitting}
-            className={minimalSubmitClassName}
+            className={minimalAuthSubmitClassName}
           >
             {isSubmitting
               ? t("authRegister.form.submitting", { ns: "pages" })
               : t("authRegister.form.submit", { ns: "pages" })}
           </button>
         </form>
-
-        <p className={minimalFooterClassName}>
-          {t("authRegister.footer.toLoginPrefix", { ns: "pages" })}{" "}
-          <Link
-            to={loginPath}
-            className={minimalFooterLinkClassName}
-          >
-            {t("authRegister.footer.toLoginAction", { ns: "pages" })}
-          </Link>
-        </p>
-      </section>
+      </MinimalAuthLayout>
     )
   }
 
@@ -512,50 +529,56 @@ export function AuthRegisterPage({
               <FieldError>{errors.username?.message}</FieldError>
             </Field>
 
-            <Field>
-              <FieldLabel>
-                {t("authRegister.form.displayName.label", { ns: "pages" })}
-              </FieldLabel>
-              <Controller
-                control={control}
-                name="displayName"
-                render={({ field }) => (
-                  <Input
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    type="text"
-                    placeholder={t(
-                      "authRegister.form.displayName.placeholder",
-                      {
-                        ns: "pages",
-                      }
-                    )}
-                  />
-                )}
-              />
-              <FieldError>{errors.displayName?.message}</FieldError>
-            </Field>
-
-            <Field>
-              <FieldLabel>
-                {t("authRegister.form.email.label", { ns: "pages" })}
-              </FieldLabel>
-              <Controller
-                control={control}
-                name="email"
-                render={({ field }) => (
-                  <Input
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    type="email"
-                    placeholder={t("authRegister.form.email.placeholder", {
+            {showProfileFields ? (
+              <>
+                <Field>
+                  <FieldLabel>
+                    {t("authRegister.form.displayName.label", {
                       ns: "pages",
                     })}
+                  </FieldLabel>
+                  <Controller
+                    control={control}
+                    name="displayName"
+                    render={({ field }) => (
+                      <Input
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        type="text"
+                        placeholder={t(
+                          "authRegister.form.displayName.placeholder",
+                          {
+                            ns: "pages",
+                          }
+                        )}
+                      />
+                    )}
                   />
-                )}
-              />
-              <FieldError>{errors.email?.message}</FieldError>
-            </Field>
+                  <FieldError>{errors.displayName?.message}</FieldError>
+                </Field>
+
+                <Field>
+                  <FieldLabel>
+                    {t("authRegister.form.email.label", { ns: "pages" })}
+                  </FieldLabel>
+                  <Controller
+                    control={control}
+                    name="email"
+                    render={({ field }) => (
+                      <Input
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        type="email"
+                        placeholder={t("authRegister.form.email.placeholder", {
+                          ns: "pages",
+                        })}
+                      />
+                    )}
+                  />
+                  <FieldError>{errors.email?.message}</FieldError>
+                </Field>
+              </>
+            ) : null}
 
             {extraFields.map((extraField) => (
               <Field key={extraField.name}>
@@ -634,11 +657,29 @@ export function AuthRegisterPage({
           </FieldGroup>
         </form>
 
-        <p className={authFooterClassName}>
-          {t("authRegister.footer.toLoginPrefix", { ns: "pages" })}{" "}
-          <Link to={loginPath} className={authLinkClassName}>
-            {t("authRegister.footer.toLoginAction", { ns: "pages" })}
-          </Link>
+        <p className={`${authFooterClassName} flex flex-wrap gap-2`}>
+          <span>
+            {t("authRegister.footer.toLoginPrefix", { ns: "pages" })}{" "}
+            {onLoginClick ? (
+              <button
+                type="button"
+                className={authLinkClassName}
+                onClick={onLoginClick}
+              >
+                {t("authRegister.footer.toLoginAction", { ns: "pages" })}
+              </button>
+            ) : (
+              <Link to={loginPath} className={authLinkClassName}>
+                {t("authRegister.footer.toLoginAction", { ns: "pages" })}
+              </Link>
+            )}
+          </span>
+          {footerExtraAction ? (
+            <>
+              <span className="text-(--app-muted-text) opacity-50">|</span>
+              {footerExtraAction}
+            </>
+          ) : null}
         </p>
       </section>
     </div>

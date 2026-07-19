@@ -808,14 +808,11 @@ mod tests {
         .expect("business analysis should still match a graph");
 
         assert_ne!(graph.graph_id.0, "direct_teacher_feedback_boundary");
-        assert!(
-            graph.nodes.iter().any(|node| node.role == "data"),
-            "business analysis should keep commerce graph data role"
-        );
-        assert!(
-            graph.nodes.iter().any(|node| node.id.0 == "ops_final"),
-            "commerce graph should keep final synthesis node"
-        );
+        assert_eq!(graph.nodes.len(), 1, "{:#?}", graph.nodes);
+        assert_eq!(graph.nodes[0].role, "ops");
+        assert_eq!(graph.nodes[0].title, "商品资料直答分析");
+        assert_eq!(graph.nodes[0].llm_usage.as_deref(), Some("fast"));
+        assert_eq!(graph.nodes[0].skill_autosuggest, Some(false));
         assert!(
             graph
                 .nodes
@@ -826,7 +823,7 @@ mod tests {
     }
 
     #[test]
-    fn generic_product_analysis_routes_to_commerce_team_with_final_synthesis() {
+    fn generic_product_analysis_routes_to_direct_selected_context_answer() {
         let rules =
             load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
         let graph = plan_task_graph_from_rules(
@@ -835,25 +832,20 @@ mod tests {
             None,
             &rules,
         )
-        .expect("product analysis should match commerce team graph");
+        .expect("product analysis should match direct selected-context graph");
 
         let roles = graph
             .nodes
             .iter()
             .map(|node| node.role.as_str())
             .collect::<Vec<_>>();
-        assert!(roles.contains(&"data"), "{roles:?}");
-        assert!(roles.contains(&"creative"), "{roles:?}");
-        let final_node = graph
-            .nodes
-            .iter()
-            .find(|node| node.id.0 == "ops_final")
-            .expect("commerce graph must schedule a distinct final synthesis node");
-        assert_readable_answer_layout_objective(&final_node.objective);
-        assert!(
-            graph.nodes.iter().filter(|node| node.id.0 == "ops").count() <= 1,
-            "ops worker node must not collide with ops_final synthesis"
-        );
+        assert_eq!(roles, vec!["ops"], "{roles:?}");
+        assert_eq!(graph.nodes[0].id.0, "ops");
+        assert_eq!(graph.nodes[0].title, "商品资料直答分析");
+        assert_eq!(graph.nodes[0].llm_usage.as_deref(), Some("fast"));
+        assert_eq!(graph.nodes[0].skill_autosuggest, Some(false));
+        assert!(graph.nodes[0].objective.contains("直接回答用户"));
+        assert!(!graph.nodes[0].objective.contains("ops_final"));
     }
 
     #[test]
@@ -1021,7 +1013,7 @@ mod tests {
     }
 
     #[test]
-    fn rich_followup_delivery_routes_to_thinking_chat() {
+    fn rich_followup_delivery_routes_to_fast_chat() {
         let rules =
             load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
         let route = manual_route("data", &["creative", "design"]);
@@ -1036,7 +1028,7 @@ mod tests {
         assert_eq!(graph.nodes.len(), 1, "{:#?}", graph.nodes);
         assert_eq!(graph.nodes[0].role, "chat");
         assert_eq!(graph.nodes[0].title, "强制丰富交付");
-        assert_eq!(graph.nodes[0].llm_usage.as_deref(), Some("thinking"));
+        assert_eq!(graph.nodes[0].llm_usage.as_deref(), Some("fast"));
         assert_eq!(graph.nodes[0].skill_autosuggest, Some(false));
         assert!(graph.nodes[0].objective.contains("不要再补资料"));
         assert!(graph.nodes[0].objective.contains("丰富回答"));

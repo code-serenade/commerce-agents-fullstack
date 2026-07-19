@@ -1081,8 +1081,28 @@ export async function streamAgentSessionApi(
   let uiCompleted = false
   let receivedDelta = false
   let fallbackOutput = ""
+  let lastIncrementalDelta: { content: string; source: string } | null = null
   let reader: ReadableStreamDefaultReader<Uint8Array> | null = null
   let idleTimeout: number | undefined
+  const handleStreamMessage = (message: SseMessage) => {
+    const deltaSource = incrementalDeltaSource(message)
+    const result = handleSseMessage(message, {
+      ...handlers,
+      onDelta: (content) => {
+        const duplicateLegacyPair =
+          lastIncrementalDelta?.content === content &&
+          isLegacyChunkDeltaPair(lastIncrementalDelta.source, deltaSource)
+        lastIncrementalDelta = { content, source: deltaSource }
+        if (!duplicateLegacyPair) {
+          handlers.onDelta(content)
+        }
+      },
+    })
+    if (!result.receivedDelta && message.event !== "delta") {
+      lastIncrementalDelta = null
+    }
+    return result
+  }
   const completeUi = () => {
     if (uiCompleted) return
     if (!receivedDelta && fallbackOutput) {
@@ -1154,7 +1174,7 @@ export async function streamAgentSessionApi(
       buffer = buffer.slice(boundary + 2)
 
       for (const block of completed.split("\n\n")) {
-        const result = handleSseMessage(parseSseMessage(block), handlers)
+        const result = handleStreamMessage(parseSseMessage(block))
         if (result.activity) markStreamActivity()
         receivedDelta = receivedDelta || result.receivedDelta
         fallbackOutput = mergeFallbackOutput(fallbackOutput, result.fallbackOutput)
@@ -1172,7 +1192,7 @@ export async function streamAgentSessionApi(
     }
 
     if (buffer.trim()) {
-      const result = handleSseMessage(parseSseMessage(buffer), handlers)
+      const result = handleStreamMessage(parseSseMessage(buffer))
       if (result.activity) markStreamActivity()
       receivedDelta = receivedDelta || result.receivedDelta
       fallbackOutput = mergeFallbackOutput(fallbackOutput, result.fallbackOutput)
@@ -1319,6 +1339,21 @@ function parseSseMessage(block: string): SseMessage {
   }
 }
 
+function incrementalDeltaSource(message: SseMessage) {
+  if (message.event === "delta" || message.event === "llm_chunk") {
+    return message.event
+  }
+  const event = readAgentRuntimeEvent(message.data)
+  return event?.type === "llm_chunk" ? "llm_chunk" : message.event
+}
+
+function isLegacyChunkDeltaPair(previousSource: string, nextSource: string) {
+  return (
+    (previousSource === "llm_chunk" && nextSource === "delta") ||
+    (previousSource === "delta" && nextSource === "llm_chunk")
+  )
+}
+
 function handleSseMessage(
   message: SseMessage,
   handlers: AgentStreamHandlers
@@ -1392,6 +1427,24 @@ function handleSseMessage(
     }
   }
 
+  if (message.event === "llm_chunk") {
+    const event = readAgentRuntimeEvent(message.data)
+    if (event) handlers.onAgentEvent?.(event)
+    const content =
+      event?.type === "llm_chunk"
+        ? event.content
+        : readJsonField(message.data, "content")
+    if (content) handlers.onDelta(content)
+    return {
+      activity: Boolean(event) || Boolean(content),
+      completed: false,
+      fallbackOutput: "",
+      finished: false,
+      receivedDelta: Boolean(content),
+      uiCompleted: false,
+    }
+  }
+
   if (message.event === "output") {
     const event = readAgentRuntimeEvent(message.data)
     if (event) handlers.onAgentEvent?.(event)
@@ -1410,6 +1463,17 @@ function handleSseMessage(
   if (message.event === "agent_event" || AGENT_RUNTIME_EVENT_TYPES.has(message.event)) {
     const event = readAgentRuntimeEvent(message.data)
     if (event) handlers.onAgentEvent?.(event)
+    if (event?.type === "llm_chunk") {
+      if (event.content) handlers.onDelta(event.content)
+      return {
+        activity: Boolean(event.content),
+        completed: false,
+        fallbackOutput: "",
+        finished: false,
+        receivedDelta: Boolean(event.content),
+        uiCompleted: false,
+      }
+    }
     const fallbackOutput = readAgentRuntimeFallbackOutput(event)
     return {
       activity: Boolean(event) || Boolean(fallbackOutput),

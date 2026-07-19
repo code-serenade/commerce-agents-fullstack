@@ -17,6 +17,7 @@ describe("app layout routes", () => {
     expect(isAgentShellRoute("/agent-output")).toBe(true)
     expect(isAgentShellRoute("/home")).toBe(true)
     expect(isAgentShellRoute("/profile")).toBe(true)
+    expect(isAgentShellRoute("/team-school")).toBe(true)
   })
 
   it("keeps auth pages outside the agent chat shell", () => {

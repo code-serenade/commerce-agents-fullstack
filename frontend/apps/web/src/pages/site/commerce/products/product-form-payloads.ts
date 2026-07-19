@@ -1,4 +1,5 @@
 import {
+  normalizeNumericInput,
   toNumberOrNull,
   toOptionalString,
   type SimpleFormValues,
@@ -19,7 +20,7 @@ export function productPayload(values: SimpleFormValues) {
     category: toOptionalString(values.category),
     brand: toOptionalString(values.brand),
     description: toOptionalString(values.description),
-    price: toOptionalString(values.price),
+    price: normalizedProductPrice(values.price),
     currency: values.currency || "CNY",
     metadata: {},
   }
@@ -36,7 +37,7 @@ export function productDraftPayload(
     description: toOptionalString(values.description),
     name: toOptionalString(values.name),
     platform: toOptionalString(values.platform),
-    price: toOptionalString(values.price),
+    price: normalizedProductPrice(values.price),
     prompt: toOptionalString(values.description),
   }
 
@@ -69,8 +70,20 @@ export function productDraftValues(
     externalId: draft.externalId ?? "",
     name: draft.name,
     platform: draft.platform ?? "",
-    price: draft.price ?? "",
+    price: normalizeNumericInput(draft.price ?? "", {
+      decimalScale: 2,
+      nonNegative: true,
+    }),
   }
+}
+
+function normalizedProductPrice(value?: string) {
+  return toOptionalString(
+    normalizeNumericInput(value ?? "", {
+      decimalScale: 2,
+      nonNegative: true,
+    })
+  )
 }
 
 export function productSampleValues(t: CommerceTranslate): SimpleFormValues {

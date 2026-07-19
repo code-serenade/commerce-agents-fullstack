@@ -43,10 +43,11 @@ export interface SidebarShellNavEntry {
   label: ReactNode
   href?: string
   active?: boolean
+  iconSize?: "default" | "xs"
   iconTone?: "default" | "muted"
   tone?: "default" | "muted"
   textSize?: "default" | "lg"
-  variant?: "default" | "primaryAction"
+  variant?: "default" | "primaryAction" | "prominentAction" | "plainText"
   icon?: ReactNode
   onSelect?: () => void
   action?: ReactNode
@@ -71,6 +72,7 @@ export interface SidebarShellSection {
   hideWhenSidebarCollapsed?: boolean
   collapsible?: boolean
   defaultOpen?: boolean
+  fillRemaining?: boolean
   maxContentHeight?: "sm" | "md" | "lg"
   open?: boolean
   toggleLabel?: string
@@ -115,13 +117,19 @@ export interface SidebarShellProps {
   children: ReactNode
 }
 
-const sidebarMenuSpacingClassName = "[&_[data-sidebar=menu]]:gap-1"
+const sidebarMenuSpacingClassName = "[&_[data-sidebar=menu]]:gap-0"
+
+const collapsedSidebarIconLayoutClassName =
+  "contents group-data-[collapsible=icon]:[&_[data-sidebar=group]]:items-center group-data-[collapsible=icon]:[&_[data-sidebar=group]]:p-0 group-data-[collapsible=icon]:[&_[data-sidebar=group-content]]:flex group-data-[collapsible=icon]:[&_[data-sidebar=group-content]]:justify-center group-data-[collapsible=icon]:[&_[data-sidebar=menu]]:w-10 group-data-[collapsible=icon]:[&_[data-sidebar=menu]]:items-center group-data-[collapsible=icon]:[&_[data-sidebar=menu-item]]:flex group-data-[collapsible=icon]:[&_[data-sidebar=menu-item]]:h-10 group-data-[collapsible=icon]:[&_[data-sidebar=menu-item]]:items-center group-data-[collapsible=icon]:[&_[data-sidebar=menu-item]]:justify-center group-data-[collapsible=icon]:[&_[data-sidebar=menu-button]]:mx-auto group-data-[collapsible=icon]:[&_[data-sidebar=menu-button]]:justify-center"
 
 const sidebarMenuButtonBaseClassName =
-  "[&_[data-sidebar=menu-button]]:cursor-pointer [&_[data-sidebar=menu-button]]:hover:bg-(--shell-sidebar-item-hover-background) [&_[data-sidebar=menu-button]]:hover:text-sidebar-foreground [&_[data-sidebar=menu-button]]:active:bg-(--shell-sidebar-item-hover-background) [&_[data-sidebar=menu-button]]:active:text-sidebar-foreground"
+  "[&_[data-sidebar=menu-button]]:h-10 [&_[data-sidebar=menu-button]]:cursor-pointer [&_[data-sidebar=menu-button]]:rounded-lg [&_[data-sidebar=menu-button]]:px-3 [&_[data-sidebar=menu-button]]:shadow-none [&_[data-sidebar=menu-button]]:hover:bg-(--shell-sidebar-item-hover-background) [&_[data-sidebar=menu-button]]:hover:text-sidebar-foreground [&_[data-sidebar=menu-button]]:active:bg-(--shell-sidebar-item-hover-background) [&_[data-sidebar=menu-button]]:active:text-sidebar-foreground [&_[data-sidebar=menu-button][data-active=true]]:bg-white [&_[data-sidebar=menu-button][data-active=true]]:shadow-[0_1px_2px_rgba(15,23,42,0.04)] [&_[data-sidebar=menu-button][data-active=true]]:hover:bg-white dark:[&_[data-sidebar=menu-button][data-active=true]]:bg-black dark:[&_[data-sidebar=menu-button][data-active=true]]:shadow-[0_1px_2px_rgba(0,0,0,0.12)] dark:[&_[data-sidebar=menu-button][data-active=true]]:hover:bg-black"
 
 const sidebarPrimaryActionButtonClassName =
-  "[&_[data-sidebar=menu-button]]:h-10 [&_[data-sidebar=menu-button]]:cursor-pointer [&_[data-sidebar=menu-button]]:rounded-lg [&_[data-sidebar=menu-button]]:border [&_[data-sidebar=menu-button]]:border-primary [&_[data-sidebar=menu-button]]:bg-primary/10 [&_[data-sidebar=menu-button]]:text-sm [&_[data-sidebar=menu-button]]:font-bold [&_[data-sidebar=menu-button]]:text-primary [&_[data-sidebar=menu-button]]:hover:border-primary [&_[data-sidebar=menu-button]]:hover:bg-primary/15 [&_[data-sidebar=menu-button]]:hover:text-primary [&_[data-sidebar=menu-button][data-active=true]]:border-primary [&_[data-sidebar=menu-button][data-active=true]]:bg-primary/10 [&_[data-sidebar=menu-button][data-active=true]]:text-primary"
+  "[&_[data-sidebar=menu-button]]:h-10 [&_[data-sidebar=menu-button]]:cursor-pointer [&_[data-sidebar=menu-button]]:rounded-lg [&_[data-sidebar=menu-button]]:border [&_[data-sidebar=menu-button]]:border-primary [&_[data-sidebar=menu-button]]:bg-primary/10 [&_[data-sidebar=menu-button]]:text-sm [&_[data-sidebar=menu-button]]:font-bold [&_[data-sidebar=menu-button]]:text-primary [&_[data-sidebar=menu-button]]:shadow-none [&_[data-sidebar=menu-button]]:hover:border-primary [&_[data-sidebar=menu-button]]:hover:bg-primary/15 [&_[data-sidebar=menu-button]]:hover:text-primary [&_[data-sidebar=menu-button][data-active=true]]:border-primary [&_[data-sidebar=menu-button][data-active=true]]:bg-primary/10 [&_[data-sidebar=menu-button][data-active=true]]:text-primary [&_[data-sidebar=menu-button][data-active=true]]:shadow-[0_1px_2px_rgba(15,23,42,0.04)] [&_[data-sidebar=menu-button][data-active=true]]:hover:bg-primary/10 [&_[data-sidebar=menu-button][data-active=true]]:hover:text-primary"
+
+const sidebarProminentActionButtonClassName =
+  "[&_[data-sidebar=menu-button]]:!h-10 [&_[data-sidebar=menu-button]]:!rounded-lg [&_[data-sidebar=menu-button]]:border [&_[data-sidebar=menu-button]]:border-sidebar-border [&_[data-sidebar=menu-button]]:bg-background [&_[data-sidebar=menu-button]]:!px-3 [&_[data-sidebar=menu-button]]:text-sm [&_[data-sidebar=menu-button]]:font-medium [&_[data-sidebar=menu-button]]:text-sidebar-foreground [&_[data-sidebar=menu-button]]:shadow-[0_1px_3px_rgba(100,116,139,0.18)] [&_[data-sidebar=menu-button]]:hover:border-sidebar-primary/35 [&_[data-sidebar=menu-button]]:hover:bg-background [&_[data-sidebar=menu-button]]:hover:text-sidebar-foreground group-data-[collapsible=icon]:[&_[data-sidebar=menu-button]]:justify-center group-data-[collapsible=icon]:[&_[data-sidebar=menu-button]]:!border-transparent group-data-[collapsible=icon]:[&_[data-sidebar=menu-button]]:!bg-transparent group-data-[collapsible=icon]:[&_[data-sidebar=menu-button]]:!px-2 group-data-[collapsible=icon]:[&_[data-sidebar=menu-button]]:!shadow-none group-data-[collapsible=icon]:[&_[data-sidebar=menu-button][data-active=true]]:!border-transparent group-data-[collapsible=icon]:[&_[data-sidebar=menu-button][data-active=true]]:!bg-transparent group-data-[collapsible=icon]:[&_[data-sidebar=menu-button][data-active=true]]:!shadow-none dark:[&_[data-sidebar=menu-button]]:border-sidebar-border/80 dark:[&_[data-sidebar=menu-button]]:bg-sidebar-accent/55 dark:[&_[data-sidebar=menu-button]]:text-sidebar-foreground dark:[&_[data-sidebar=menu-button]]:shadow-[0_1px_3px_rgba(148,163,184,0.12)] dark:[&_[data-sidebar=menu-button]]:hover:border-sidebar-primary/45 dark:[&_[data-sidebar=menu-button]]:hover:bg-sidebar-accent/75 dark:[&_[data-sidebar=menu-button][data-active=true]]:border-sidebar-primary/50 dark:[&_[data-sidebar=menu-button][data-active=true]]:bg-sidebar-accent/65 dark:[&_[data-sidebar=menu-button][data-active=true]]:text-sidebar-foreground dark:[&_[data-sidebar=menu-button][data-active=true]]:shadow-[0_1px_3px_rgba(148,163,184,0.12)] dark:[&_[data-sidebar=menu-button][data-active=true]]:hover:bg-sidebar-accent/65 [&_[data-sidebar=menu-button][data-active=true]]:border-sidebar-primary/40 [&_[data-sidebar=menu-button][data-active=true]]:bg-background [&_[data-sidebar=menu-button][data-active=true]]:text-sidebar-foreground [&_[data-sidebar=menu-button][data-active=true]]:shadow-[0_1px_3px_rgba(100,116,139,0.18)] [&_[data-sidebar=menu-button][data-active=true]]:hover:bg-background [&_[data-sidebar=menu-button][data-active=true]]:hover:text-sidebar-foreground group-data-[collapsible=icon]:[&_[data-sidebar=menu-button]]:!border-transparent group-data-[collapsible=icon]:[&_[data-sidebar=menu-button]]:!bg-transparent group-data-[collapsible=icon]:[&_[data-sidebar=menu-button]]:!shadow-none group-data-[collapsible=icon]:[&_[data-sidebar=menu-button][data-active=true]]:!border-transparent group-data-[collapsible=icon]:[&_[data-sidebar=menu-button][data-active=true]]:!bg-transparent group-data-[collapsible=icon]:[&_[data-sidebar=menu-button][data-active=true]]:!shadow-none [&_[data-sidebar=menu-button]_svg]:text-sidebar-foreground"
 
 export function SidebarShell({
   brandEyebrow,
@@ -162,89 +170,90 @@ export function SidebarShell({
         <SidebarProvider defaultOpen={defaultSidebarOpen}>
           <div className="hidden md:contents">
             <Sidebar collapsible="icon">
-              <SidebarHeader>
-                <div className="mb-1 flex min-h-10 items-center gap-2 group-data-[collapsible=icon]:min-h-20 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:justify-center">
-                  {onBrandSelect ? (
-                    <button
-                      type="button"
-                      className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-lg text-left outline-hidden transition-colors group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:justify-center focus-visible:ring-2 focus-visible:ring-(--app-primary)"
-                      onClick={onBrandSelect}
-                    >
-                      <BrandContent
-                        brandLogo={brandLogo}
-                        brandSecondaryText={brandSecondaryText}
-                        brandTitle={brandTitle}
-                      />
-                    </button>
-                  ) : (
-                    <div className="flex min-w-0 flex-1 items-center gap-2 group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:justify-center">
-                      <BrandContent
-                        brandLogo={brandLogo}
-                        brandSecondaryText={brandSecondaryText}
-                        brandTitle={brandTitle}
+              <div className={collapsedSidebarIconLayoutClassName}>
+                <SidebarHeader>
+                  <div className="flex h-12 items-center gap-2 group-data-[collapsible=icon]:h-[4.75rem] group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:gap-1.5 group-data-[collapsible=icon]:pt-1">
+                    {onBrandSelect ? (
+                      <button
+                        type="button"
+                        className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-lg text-left outline-hidden transition-colors group-data-[collapsible=icon]:mt-0.5 group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:justify-center focus-visible:ring-2 focus-visible:ring-(--app-primary)"
+                        onClick={onBrandSelect}
+                      >
+                        <BrandContent
+                          brandLogo={brandLogo}
+                          brandSecondaryText={brandSecondaryText}
+                          brandTitle={brandTitle}
+                        />
+                      </button>
+                    ) : (
+                      <div className="flex min-w-0 flex-1 items-center gap-2 group-data-[collapsible=icon]:mt-0.5 group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:justify-center">
+                        <BrandContent
+                          brandLogo={brandLogo}
+                          brandSecondaryText={brandSecondaryText}
+                          brandTitle={brandTitle}
+                        />
+                      </div>
+                    )}
+                    <div className="shrink-0 rounded-lg border border-sidebar-border bg-(--shell-sidebar-trigger-background) shadow-sm transition-colors hover:bg-sidebar-accent [&_[data-sidebar=trigger]]:size-8">
+                      <SidebarTrigger
+                        ariaLabel={t("header.common.toggleSidebar")}
                       />
                     </div>
-                  )}
-                  <div className="shrink-0 rounded-lg border border-sidebar-border bg-(--shell-sidebar-trigger-background) shadow-sm transition-colors hover:bg-sidebar-accent [&_[data-sidebar=trigger]]:size-8">
-                    <SidebarTrigger
-                      ariaLabel={t("header.common.toggleSidebar")}
+                  </div>
+                </SidebarHeader>
+
+                <SidebarContent>
+                  {navigationHeader ? (
+                    <div className="px-2 pt-1 group-data-[collapsible=icon]:hidden">
+                      {navigationHeader}
+                    </div>
+                  ) : null}
+                  <FixedLeadingItems sections={sections} />
+                  <div className="flex min-h-0 flex-1 flex-col overflow-hidden pr-1 [scrollbar-gutter:stable] group-data-[collapsible=icon]:pr-0">
+                    {sections.map((section) => (
+                      <SidebarSectionGroup
+                        key={section.key ?? String(section.label)}
+                        section={section}
+                        showLeadingItems={!section.leadingItemsFixed}
+                      />
+                    ))}
+                  </div>
+                </SidebarContent>
+
+                {footerAccount ? (
+                  <>
+                    <div
+                      aria-hidden="true"
+                      className="h-px bg-sidebar-border"
                     />
-                  </div>
-                </div>
-              </SidebarHeader>
-
-              <div aria-hidden="true" className="h-px bg-sidebar-border" />
-
-              <SidebarContent>
-                {navigationHeader ? (
-                  <div className="px-2 pt-1 group-data-[collapsible=icon]:hidden">
-                    {navigationHeader}
-                  </div>
+                    <SidebarFooter>
+                      <AvatarDropdown
+                        triggerVariant="sidebar"
+                        avatarAlt={footerAccount.avatarAlt}
+                        avatarSrc={footerAccount.avatarSrc}
+                        avatarFallback={footerAccount.avatarFallback}
+                        displayName={footerAccount.displayName}
+                        displayId={footerAccount.displayId}
+                        onTriggerSelect={footerAccount.onSelect}
+                        logout={footerAccount.logout}
+                      >
+                        {footerAccount.actions?.map((action, index) => (
+                          <AvatarDropdownItem
+                            key={index}
+                            icon={action.icon}
+                            label={action.label}
+                            onSelect={action.onSelect}
+                            href={action.href}
+                            disabled={action.disabled}
+                          />
+                        ))}
+                      </AvatarDropdown>
+                    </SidebarFooter>
+                  </>
                 ) : null}
-                <FixedLeadingItems sections={sections} />
-                <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto pr-1 [scrollbar-gutter:stable] group-data-[collapsible=icon]:overflow-hidden group-data-[collapsible=icon]:pr-0">
-                  {sections.map((section) => (
-                    <SidebarSectionGroup
-                      key={section.key ?? String(section.label)}
-                      section={section}
-                      showLeadingItems={
-                        !section.leadingItemsFixed || section.hideLabel
-                      }
-                    />
-                  ))}
-                </div>
-              </SidebarContent>
 
-              {footerAccount ? (
-                <>
-                  <div aria-hidden="true" className="h-px bg-sidebar-border" />
-                  <SidebarFooter>
-                    <AvatarDropdown
-                      triggerVariant="sidebar"
-                      avatarAlt={footerAccount.avatarAlt}
-                      avatarSrc={footerAccount.avatarSrc}
-                      avatarFallback={footerAccount.avatarFallback}
-                      displayName={footerAccount.displayName}
-                      displayId={footerAccount.displayId}
-                      onTriggerSelect={footerAccount.onSelect}
-                      logout={footerAccount.logout}
-                    >
-                      {footerAccount.actions?.map((action, index) => (
-                        <AvatarDropdownItem
-                          key={index}
-                          icon={action.icon}
-                          label={action.label}
-                          onSelect={action.onSelect}
-                          href={action.href}
-                          disabled={action.disabled}
-                        />
-                      ))}
-                    </AvatarDropdown>
-                  </SidebarFooter>
-                </>
-              ) : null}
-
-              {showSidebarRail ? <SidebarRail /> : null}
+                {showSidebarRail ? <SidebarRail /> : null}
+              </div>
             </Sidebar>
           </div>
 
@@ -290,7 +299,9 @@ function BrandContent({
         </div>
       )}
       <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
-        <div>{brandTitle}</div>
+        <div className="auth-login-brand-title text-base leading-tight font-bold">
+          {brandTitle}
+        </div>
         {brandSecondaryText ? (
           <div className="text-[12px] text-(--shell-brand-description-foreground)">
             {brandSecondaryText}
@@ -303,28 +314,28 @@ function BrandContent({
 
 function FixedLeadingItems({ sections }: { sections: SidebarShellSection[] }) {
   const fixedItems = sections.flatMap((section) =>
-    section.leadingItemsFixed && !section.hideLabel
-      ? (section.leadingItems ?? [])
-      : []
+    section.leadingItemsFixed ? (section.leadingItems ?? []) : []
   )
 
   if (!fixedItems.length) return null
 
   return (
-    <SidebarGroup>
-      <SidebarGroupContent>
-        <div className={sidebarMenuSpacingClassName}>
-          <SidebarMenu>
-            {fixedItems.map((item) => (
-              <SidebarNavRow
-                key={item.key ?? item.href ?? String(item.label)}
-                item={item}
-              />
-            ))}
-          </SidebarMenu>
-        </div>
-      </SidebarGroupContent>
-    </SidebarGroup>
+    <div className="group-data-[collapsible=icon]:pt-0">
+      <SidebarGroup>
+        <SidebarGroupContent>
+          <div className={sidebarMenuSpacingClassName}>
+            <SidebarMenu>
+              {fixedItems.map((item) => (
+                <SidebarNavRow
+                  key={item.key ?? item.href ?? String(item.label)}
+                  item={item}
+                />
+              ))}
+            </SidebarMenu>
+          </div>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    </div>
   )
 }
 
@@ -365,15 +376,28 @@ function SidebarSectionGroup({
     section.onOpenChange?.(nextOpen)
   }
 
-  const sectionClassName = section.hideWhenSidebarCollapsed
-    ? "group-data-[collapsible=icon]:hidden"
-    : undefined
+  const sectionClassName = [
+    section.fillRemaining ? "flex min-h-0 flex-1 flex-col" : "",
+    section.hideWhenSidebarCollapsed ? "group-data-[collapsible=icon]:hidden" : "",
+  ]
+    .filter(Boolean)
+    .join(" ")
+  const groupClassName = [
+    "relative flex w-full min-w-0 flex-col p-2 pb-0",
+    section.fillRemaining ? "min-h-0 flex-1 overflow-hidden" : "",
+  ]
+    .filter(Boolean)
+    .join(" ")
 
   return (
     <div className={sectionClassName}>
-      <SidebarGroup>
+      <div
+        data-slot="sidebar-group"
+        data-sidebar="group"
+        className={groupClassName}
+      >
         {showLeadingItems && section.leadingItems?.length ? (
-          <SidebarGroupContent>
+          <SidebarGroupContentFrame>
             <div className={sidebarMenuSpacingClassName}>
               <SidebarMenu>
                 {section.leadingItems.map((item) => (
@@ -384,7 +408,7 @@ function SidebarSectionGroup({
                 ))}
               </SidebarMenu>
             </div>
-          </SidebarGroupContent>
+          </SidebarGroupContentFrame>
         ) : null}
         {section.collapsible ? (
           <div className="flex min-w-0 items-center gap-1 group-data-[collapsible=icon]:hidden">
@@ -423,9 +447,12 @@ function SidebarSectionGroup({
           <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
         )}
         {open ? (
-          <SidebarGroupContent>
+          <SidebarGroupContentFrame fillRemaining={section.fillRemaining}>
             <div
-              className={getSectionContentClassName(section.maxContentHeight)}
+              className={getSectionContentClassName(
+                section.maxContentHeight,
+                section.fillRemaining
+              )}
             >
               <div className={sidebarMenuSpacingClassName}>
                 <SidebarMenu>
@@ -438,15 +465,16 @@ function SidebarSectionGroup({
                 </SidebarMenu>
               </div>
             </div>
-          </SidebarGroupContent>
+          </SidebarGroupContentFrame>
         ) : null}
-      </SidebarGroup>
+      </div>
     </div>
   )
 }
 
 function getSectionContentClassName(
-  maxContentHeight: SidebarShellSection["maxContentHeight"]
+  maxContentHeight: SidebarShellSection["maxContentHeight"],
+  fillRemaining?: boolean
 ) {
   const classNames = [
     "min-w-0",
@@ -455,21 +483,48 @@ function getSectionContentClassName(
     "group-data-[collapsible=icon]:pr-0",
   ]
 
-  if (maxContentHeight === "sm") {
+  if (fillRemaining) {
     classNames.push(
-      "no-scrollbar max-h-56 overflow-x-hidden overflow-y-auto pr-1"
+      "min-h-0 flex-1 overflow-x-hidden overflow-y-auto pr-1 [scrollbar-gutter:stable]"
+    )
+  } else if (maxContentHeight === "sm") {
+    classNames.push(
+      "max-h-56 overflow-x-hidden overflow-y-auto pr-1 [scrollbar-gutter:stable]"
     )
   } else if (maxContentHeight === "md") {
     classNames.push(
-      "no-scrollbar max-h-72 overflow-x-hidden overflow-y-auto pr-1"
+      "max-h-72 overflow-x-hidden overflow-y-auto pr-1 [scrollbar-gutter:stable]"
     )
   } else if (maxContentHeight === "lg") {
     classNames.push(
-      "no-scrollbar max-h-80 overflow-x-hidden overflow-y-auto pr-1"
+      "max-h-80 overflow-x-hidden overflow-y-auto pr-1 [scrollbar-gutter:stable]"
     )
   }
 
   return classNames.join(" ")
+}
+
+function SidebarGroupContentFrame({
+  children,
+  fillRemaining,
+}: {
+  children: ReactNode
+  fillRemaining?: boolean
+}) {
+  return (
+    <div
+      data-slot="sidebar-group-content"
+      data-sidebar="group-content"
+      className={[
+        "w-full text-sm",
+        fillRemaining ? "flex min-h-0 flex-1 flex-col overflow-hidden" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
+      {children}
+    </div>
+  )
 }
 
 function SidebarSectionItems({
@@ -629,16 +684,30 @@ function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
   const navButtonWrapperClassName = [
     sidebarMenuButtonBaseClassName,
     item.variant === "primaryAction" ? sidebarPrimaryActionButtonClassName : "",
+    item.variant === "prominentAction"
+      ? sidebarProminentActionButtonClassName
+      : "",
     item.tone === "muted"
       ? "[&_[data-sidebar=menu-button]]:text-sidebar-foreground/55 [&_[data-sidebar=menu-button]_svg]:text-sidebar-foreground/45"
       : "",
     item.iconTone === "muted"
       ? "[&_[data-sidebar=menu-button]_svg]:text-sidebar-foreground/55"
       : "",
+    item.iconSize === "xs" ? "[&_[data-sidebar=menu-button]_svg]:size-3" : "",
     item.textSize === "lg" ? "[&_[data-sidebar=menu-button]]:text-sm" : "",
   ]
     .filter(Boolean)
     .join(" ")
+
+  if (item.variant === "plainText") {
+    return (
+      <SidebarMenuItem>
+        <div className="flex h-10 items-center px-3 text-sm text-sidebar-foreground/55 group-data-[collapsible=icon]:hidden">
+          <span className="block min-w-0 truncate">{item.label}</span>
+        </div>
+      </SidebarMenuItem>
+    )
+  }
 
   if (!hasSubItems) {
     return (
@@ -647,11 +716,13 @@ function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
           <div className={navButtonWrapperClassName}>
             <div
               className={[
-                "group/item flex min-w-0 items-center gap-1 rounded-xl transition-colors",
+                "group/item relative flex min-w-0 items-center rounded-lg transition-colors",
                 isExpandedActionRow
-                  ? "hover:bg-(--shell-sidebar-item-hover-background) [&_[data-sidebar=menu-button]]:hover:bg-transparent [&_[data-sidebar=menu-button]]:hover:text-sidebar-foreground [&_[data-sidebar=menu-button]]:active:bg-transparent [&_[data-sidebar=menu-button]]:active:text-sidebar-foreground [&_[data-sidebar=menu-button][data-active=true]]:bg-transparent [&_[data-sidebar=menu-button][data-active=true]]:shadow-none"
+                  ? "hover:bg-(--shell-sidebar-item-hover-background) [&_[data-sidebar=menu-button]]:group-focus-within/item:pr-10 [&_[data-sidebar=menu-button]]:group-hover/item:pr-10 [&_[data-sidebar=menu-button]]:hover:bg-transparent [&_[data-sidebar=menu-button]]:hover:text-sidebar-foreground [&_[data-sidebar=menu-button]]:active:bg-transparent [&_[data-sidebar=menu-button]]:active:text-sidebar-foreground [&_[data-sidebar=menu-button][data-active=true]]:bg-transparent [&_[data-sidebar=menu-button][data-active=true]]:pr-10 [&_[data-sidebar=menu-button][data-active=true]]:shadow-none"
                   : "",
-                shouldHighlightActionRow ? "bg-sidebar-accent" : "",
+                shouldHighlightActionRow
+                  ? "bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:bg-white dark:bg-black dark:shadow-[0_1px_2px_rgba(0,0,0,0.12)] dark:hover:bg-black"
+                  : "",
               ]
                 .filter(Boolean)
                 .join(" ")}
@@ -666,14 +737,14 @@ function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
                   onClick={item.onSelect}
                 >
                   {item.icon}
-                  <span className="truncate group-data-[collapsible=icon]:hidden">
+                  <span className="min-w-0 flex-1 truncate group-data-[collapsible=icon]:hidden">
                     {item.label}
                   </span>
                 </SidebarMenuButton>
               </div>
               <div
                 className={[
-                  "shrink-0 transition-opacity group-hover/item:opacity-100 group-data-[collapsible=icon]:hidden focus-within:opacity-100",
+                  "absolute top-1/2 right-1.5 -translate-y-1/2 bg-transparent transition-opacity group-focus-within/item:opacity-100 group-hover/item:opacity-100 group-data-[collapsible=icon]:hidden",
                   shouldHighlightActionRow ? "opacity-100" : "opacity-0",
                 ]
                   .filter(Boolean)
@@ -692,7 +763,7 @@ function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
               onClick={item.onSelect}
             >
               {item.icon}
-              <span className="truncate group-data-[collapsible=icon]:hidden">
+              <span className="min-w-0 flex-1 truncate group-data-[collapsible=icon]:hidden">
                 {item.label}
               </span>
             </SidebarMenuButton>
@@ -736,7 +807,7 @@ function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
           }}
         >
           {item.icon}
-          <span className="truncate group-data-[collapsible=icon]:hidden">
+          <span className="min-w-0 flex-1 truncate group-data-[collapsible=icon]:hidden">
             {item.label}
           </span>
         </SidebarMenuButton>

@@ -25,6 +25,7 @@ export interface MetricCardsProps {
   variant?: MetricCardsVariant
   layout?: MetricCardsLayout
   card?: ComponentType<MetricCardsCardProps>
+  className?: string
 }
 
 export interface MetricCardsCardClassNames {
@@ -50,7 +51,8 @@ const metricCardVariantClassNames: Record<
 > = {
   default: {
     card: "bg-[var(--surface)] ring-0 shadow-none",
-    iconWrap: "bg-[color:color-mix(in_oklab,var(--foreground)_8%,var(--surface))]",
+    iconWrap:
+      "bg-[color:color-mix(in_oklab,var(--foreground)_8%,var(--surface))]",
     icon: "text-[var(--foreground)]",
     label: "text-[var(--muted-foreground)]",
     value: "text-[var(--foreground)]",
@@ -58,15 +60,15 @@ const metricCardVariantClassNames: Record<
   },
   accent: {
     card: "bg-[var(--accent)] ring-0 shadow-none",
-    iconWrap: "bg-[color:color-mix(in_oklab,var(--foreground)_8%,var(--accent))]",
+    iconWrap:
+      "bg-[color:color-mix(in_oklab,var(--foreground)_8%,var(--accent))]",
     icon: "text-[var(--foreground)]",
     label: "text-[var(--muted-foreground)]",
     value: "text-[var(--foreground)]",
     tail: "text-[var(--muted-foreground)]",
   },
   success: {
-    card:
-      "bg-[color:color-mix(in_oklab,var(--success)_10%,var(--surface))] ring-0 shadow-none",
+    card: "bg-[color:color-mix(in_oklab,var(--success)_10%,var(--surface))] ring-0 shadow-none",
     iconWrap:
       "bg-[color:color-mix(in_oklab,var(--success)_18%,var(--surface))]",
     icon: "text-[var(--success)]",
@@ -75,8 +77,7 @@ const metricCardVariantClassNames: Record<
     tail: "text-[var(--foreground)]",
   },
   warning: {
-    card:
-      "bg-[color:color-mix(in_oklab,var(--warning,#d97706)_10%,var(--surface))] ring-0 shadow-none",
+    card: "bg-[color:color-mix(in_oklab,var(--warning,#d97706)_10%,var(--surface))] ring-0 shadow-none",
     iconWrap:
       "bg-[color:color-mix(in_oklab,var(--warning,#d97706)_18%,var(--surface))]",
     icon: "text-[var(--warning,#b45309)]",
@@ -85,8 +86,7 @@ const metricCardVariantClassNames: Record<
     tail: "text-[var(--foreground)]",
   },
   danger: {
-    card:
-      "bg-[color:color-mix(in_oklab,var(--destructive)_10%,var(--surface))] ring-0 shadow-none",
+    card: "bg-[color:color-mix(in_oklab,var(--destructive)_10%,var(--surface))] ring-0 shadow-none",
     iconWrap:
       "bg-[color:color-mix(in_oklab,var(--destructive)_18%,var(--surface))]",
     icon: "text-[var(--destructive)]",
@@ -96,18 +96,16 @@ const metricCardVariantClassNames: Record<
   },
 }
 
-function DefaultMetricCard({
-  item,
-  layout,
-  classNames,
-}: MetricCardsCardProps) {
+function DefaultMetricCard({ item, layout, classNames }: MetricCardsCardProps) {
   if (layout === "inline") {
     return (
       <Card className={`min-w-34 ${classNames.card}`}>
         <CardContent className="px-4 py-0">
           <div className="flex min-h-10 items-center gap-2.5">
             {item.icon ? (
-              <span className={`flex size-4 shrink-0 items-center justify-center ${classNames.icon}`}>
+              <span
+                className={`flex size-4 shrink-0 items-center justify-center ${classNames.icon}`}
+              >
                 {item.icon}
               </span>
             ) : null}
@@ -136,7 +134,9 @@ function DefaultMetricCard({
             <div
               className={`hidden size-8 shrink-0 items-center justify-center rounded-lg sm:flex sm:size-9 ${classNames.iconWrap}`}
             >
-              <span className={`flex items-center justify-center ${classNames.icon}`}>
+              <span
+                className={`flex items-center justify-center ${classNames.icon}`}
+              >
                 {item.icon}
               </span>
             </div>
@@ -168,11 +168,19 @@ export function MetricCards({
   layout = "grid",
   variant = "default",
   card: CardComponent = DefaultMetricCard,
+  className,
 }: MetricCardsProps) {
   const rootClassName =
     layout === "inline"
-      ? "inline-flex w-fit max-w-full flex-wrap gap-2 sm:gap-3"
-      : "grid w-full min-w-0 grid-cols-4 gap-2 sm:gap-3 xl:gap-4"
+      ? ["inline-flex w-fit max-w-full flex-wrap gap-2 sm:gap-3", className]
+          .filter(Boolean)
+          .join(" ")
+      : [
+          "grid w-full min-w-0 gap-2 sm:gap-3 xl:gap-4",
+          className ?? "grid-cols-4",
+        ]
+          .filter(Boolean)
+          .join(" ")
 
   return (
     <div className={rootClassName}>
@@ -182,7 +190,9 @@ export function MetricCards({
 
         return (
           <CardComponent
-            key={item.key ?? (typeof item.label === "string" ? item.label : index)}
+            key={
+              item.key ?? (typeof item.label === "string" ? item.label : index)
+            }
             item={item}
             index={index}
             layout={layout}

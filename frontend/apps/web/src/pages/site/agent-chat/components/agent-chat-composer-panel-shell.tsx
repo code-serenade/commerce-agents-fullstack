@@ -54,13 +54,17 @@ export function AgentChatComposerPanelShell({
     placement === "bottom"
       ? "top-[calc(100%+1.25rem)] origin-top"
       : "bottom-[calc(100%+1.25rem)] origin-bottom"
+  const widthClassName =
+    size === "wide"
+      ? "inset-x-0 sm:inset-x-auto sm:left-1/2 sm:w-[min(calc(100vw_-_var(--sidebar-width)_-_2rem),72rem)] sm:-translate-x-1/2"
+      : "inset-x-0 sm:inset-x-auto sm:left-1/2 sm:w-[min(calc(100vw_-_var(--sidebar-width)_-_2rem),60rem)] sm:-translate-x-1/2"
   const hiddenTransformClassName =
     placement === "bottom" ? "-translate-y-3" : "translate-y-3"
 
   return (
     <div
       aria-hidden={!open}
-      className={`absolute inset-x-0 z-50 overflow-hidden rounded-2xl border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) bg-(image:--agent-chat-card-background) shadow-(--agent-chat-card-shadow) backdrop-blur-xl transition-[opacity,transform] duration-200 ease-out ${positionClassName} ${
+      className={`absolute z-50 overflow-hidden rounded-2xl border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) bg-(image:--agent-chat-card-background) shadow-(--agent-chat-card-shadow) backdrop-blur-xl transition-[opacity,transform] duration-200 ease-out ${widthClassName} ${positionClassName} ${
         open
           ? "translate-y-0 scale-100 opacity-100"
           : `pointer-events-none ${hiddenTransformClassName} scale-[0.97] opacity-0`
@@ -73,7 +77,7 @@ export function AgentChatComposerPanelShell({
     >
       <div className="relative flex max-h-(--agent-chat-composer-panel-max-height) min-h-0 flex-col overflow-hidden">
         <div
-          className="flex max-h-[calc(var(--agent-chat-composer-panel-max-height)-1.5rem)] min-h-0 flex-1 flex-col overflow-hidden p-3"
+          className="flex max-h-[calc(var(--agent-chat-composer-panel-max-height)-1.5rem)] min-h-0 flex-1 flex-col overflow-hidden p-4"
           data-agent-chat-composer-panel-content="true"
         >
           {onClose ? (

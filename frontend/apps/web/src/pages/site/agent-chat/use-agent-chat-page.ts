@@ -1,43 +1,36 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
-import { useSelector } from "react-redux"
 import { useLocation, useNavigate, useParams } from "react-router"
-import type { RootState } from "@/store"
-import type { AgentRuntimeEvent } from "./agent-chat-data"
-import { createSessionId } from "./domain/agent-chat-message-mapping"
-import { DEFAULT_AGENT_CHAT_STRATEGY_ID, getAgentChatStrategy, type AgentChatStrategyId } from "./domain/agent-chat-strategy"
+import { getAgentChatStrategy } from "./domain/agent-chat-strategy"
 import { runtimeSelectionForStrategy } from "./domain/agent-runtime-options"
-import type { AgentChatAttachmentItem, AgentChatConversationItem, AgentChatMessage } from "./types"
-import {
-  loadAgentConversationById,
-  loadAgentConversationList,
-  resetActiveConversation,
-} from "./view-model/agent-chat-conversation-actions"
-import { resetGuestAgentChatState } from "./view-model/agent-chat-page-actions"
-import { useAgentChatAttachmentUploads } from "./view-model/use-agent-chat-attachment-uploads"
-import { createAgentChatPageViewModel } from "./view-model/agent-chat-page-view-model"
+import { createAgentChatPageModel } from "./view-model/agent-chat-page-model-composer"
 import { useAgentChatActionState } from "./view-model/use-agent-chat-action-state"
+import { useAgentChatBootstrap, useAgentChatRouteActions } from "./view-model/use-agent-chat-bootstrap"
+import { useAgentChatAttachmentUploads } from "./view-model/use-agent-chat-attachment-uploads"
+import { useAgentChatCampaignContext } from "./view-model/use-agent-chat-campaign-context"
+import { useAgentChatContextPreview } from "./view-model/use-agent-chat-context-preview"
+import { useAgentChatConversationIdentity } from "./view-model/use-agent-chat-conversation-identity"
 import { useAgentChatPageCommands } from "./view-model/use-agent-chat-page-commands"
 import { useAgentChatPlaybooks } from "./view-model/use-agent-chat-playbooks"
-import { useAgentChatCampaignContext } from "./view-model/use-agent-chat-campaign-context"
 import { useAgentChatProductContext } from "./view-model/use-agent-chat-product-context"
-import { useAgentRuntimeOptions } from "./view-model/use-agent-runtime-options"
-import { useAgentRunFeedback } from "./view-model/use-agent-run-feedback"
-import { useAgentChatContextPreview } from "./view-model/use-agent-chat-context-preview"
+import { useAgentChatQuota } from "./view-model/use-agent-chat-quota"
 import { useAgentChatSend } from "./view-model/use-agent-chat-send"
-import { useAgentChatSourceContext } from "./view-model/use-agent-chat-source-context"
+import { useAgentChatSessionState } from "./view-model/use-agent-chat-session-state"
 import { useAgentChatSourceActions } from "./view-model/use-agent-chat-source-actions"
+import { useAgentChatSourceContext } from "./view-model/use-agent-chat-source-context"
 import { useAgentChatSourceLibrary } from "./view-model/use-agent-chat-source-library"
 import { useAgentChatStrategyRuntime } from "./view-model/use-agent-chat-strategy-runtime"
-import { useAgentChatQuota } from "./view-model/use-agent-chat-quota"
+import { useAgentRunFeedback } from "./view-model/use-agent-run-feedback"
+import { useAgentRuntimeOptions } from "./view-model/use-agent-runtime-options"
+import { isAgentChatPath } from "./view-model/agent-chat-route-path"
 
 export function useAgentChatPage() {
   const { t } = useTranslation()
   const location = useLocation()
   const navigate = useNavigate()
-  const { conversationId: routeConversationId } = useParams<{
-    conversationId?: string
-  }>()
+  const { conversationId: routeConversationId } = useParams<{ conversationId?: string }>()
+  const sessionState = useAgentChatSessionState(t("agentChat.welcomeMessage"))
+  const { isLoggedIn, isStreaming } = sessionState
   const fallbackConversationTitle = t("agentChat.sidebar.newChat")
   const loginRequiredMessage = t("agentChat.loginRequired.message")
   const messageFormatCopy = useMemo(
@@ -50,35 +43,33 @@ export function useAgentChatPage() {
     }),
     [t]
   )
-  const user = useSelector((state: RootState) => state.auth.user)
-  const [input, setInput] = useState("")
-  const [strategyId, setStrategyId] = useState<AgentChatStrategyId>(DEFAULT_AGENT_CHAT_STRATEGY_ID)
-  const [messages, setMessages] = useState<AgentChatMessage[]>(() => [
-    {
-      id: "welcome",
-      role: "assistant",
-      content: t("agentChat.welcomeMessage"),
-    },
-  ])
-  const [conversationId, setConversationId] = useState<string | null>(null)
-  const [conversations, setConversations] = useState<AgentChatConversationItem[]>([])
-  const [attachments, setAttachments] = useState<AgentChatAttachmentItem[]>([])
-  const [isStreaming, setIsStreaming] = useState(false)
-  const [runtimeEvents, setRuntimeEvents] = useState<AgentRuntimeEvent[]>([])
-  const [error, setError] = useState<string | null>(null)
-  const abortRef = useRef<AbortController | null>(null)
-  const sessionIdRef = useRef(createSessionId())
-  const isLoggedIn = Boolean(user)
-  const productContext = useAgentChatProductContext({ enabled: isLoggedIn, isStreaming })
-  const campaignContext = useAgentChatCampaignContext({ enabled: isLoggedIn, isStreaming })
-  const sourceContext = useAgentChatSourceContext({ attachments, isStreaming })
-  const { isLoadingSourceLibrary, sourceLibrary, sourceLibraryError } = useAgentChatSourceLibrary({ availableSources: sourceContext.availableSources, enabled: isLoggedIn })
+  const isAgentChatRoute = isAgentChatPath(location.pathname)
+  const productContext = useAgentChatProductContext({
+    enabled: isLoggedIn,
+    isStreaming,
+  })
+  const campaignContext = useAgentChatCampaignContext({
+    enabled: isLoggedIn,
+    isStreaming,
+  })
+  const sourceContext = useAgentChatSourceContext({
+    attachments: sessionState.attachments,
+    isStreaming,
+  })
+  const sourceLibraryContext = useAgentChatSourceLibrary({
+    availableSources: sourceContext.availableSources,
+    enabled: isLoggedIn,
+  })
   const playbookContext = useAgentChatPlaybooks({ enabled: isLoggedIn })
   const runtimeContext = useAgentRuntimeOptions({ enabled: isLoggedIn })
   const quotaContext = useAgentChatQuota({ enabled: isLoggedIn })
-  const feedback = useAgentRunFeedback({ isLoggedIn: Boolean(user), isStreaming, runtimeEvents })
+  const feedback = useAgentRunFeedback({
+    isLoggedIn,
+    isStreaming,
+    runtimeEvents: sessionState.runtimeEvents,
+  })
   const { actionState } = useAgentChatActionState({
-    abortRef,
+    abortRef: sessionState.abortRef,
     clearSelectedCampaigns: campaignContext.clearSelectedCampaigns,
     clearSelectedProducts: productContext.clearSelectedProducts,
     clearSelectedSources: sourceContext.clearSelectedSources,
@@ -89,199 +80,139 @@ export function useAgentChatPage() {
     restoreSelectedCampaigns: campaignContext.restoreSelectedCampaigns,
     restoreSelectedProducts: productContext.restoreSelectedProducts,
     restoreSelectedSources: sourceContext.restoreSelectedSources,
-    sessionIdRef,
-    setAttachments, setConversationId, setConversations, setError, setInput,
-    setIsStreaming, setMessages, setRuntimeEvents, setStrategyId,
+    sessionIdRef: sessionState.sessionIdRef,
+    setAttachments: sessionState.setAttachments,
+    setConversationId: sessionState.setActiveConversationId,
+    setConversations: sessionState.setConversations,
+    setError: sessionState.setError,
+    setInput: sessionState.setInput,
+    setIsStreaming: sessionState.setIsStreaming,
+    setMessages: sessionState.setMessages,
+    setRuntimeEvents: sessionState.setRuntimeEvents,
+    setStrategyId: sessionState.setStrategyId,
     tError: t("agentChat.error"),
     welcomeMessage: t("agentChat.welcomeMessage"),
   })
-  const actionStateRef = useRef(actionState)
-  const conversationIdRef = useRef(conversationId)
-  const userBootstrapKey = user?.id ?? null
-  const isAgentChatRoute = isAgentChatPath(location.pathname)
-
-  useEffect(() => {
-    actionStateRef.current = actionState
-  }, [actionState])
-
-  useEffect(() => {
-    conversationIdRef.current = conversationId
-  }, [conversationId])
-
-  useEffect(() => {
-    let cancelled = false
-    const latestActionState = actionStateRef.current
-
-    if (!userBootstrapKey) {
-      resetGuestAgentChatState(latestActionState, () => cancelled)
-    } else {
-      void (async () => {
-        try {
-          if (cancelled || !isAgentChatRoute) return
-
-          if (routeConversationId) {
-            if (routeConversationId === conversationIdRef.current) {
-              await loadAgentConversationList(latestActionState, () => cancelled)
-              return
-            }
-
-            await Promise.all([
-              loadAgentConversationList(latestActionState, () => cancelled),
-              loadAgentConversationById(
-                routeConversationId,
-                latestActionState,
-                () => cancelled
-              ),
-            ])
-            return
-          }
-
-          await loadAgentConversationList(latestActionState, () => cancelled)
-          if (cancelled) return
-          resetActiveConversation(latestActionState)
-        } catch (err) {
-          if (cancelled) return
-          latestActionState.setError(
-            err instanceof Error ? err.message : t("agentChat.error")
-          )
-        }
-      })()
-    }
-
-    return () => { cancelled = true }
-  }, [isAgentChatRoute, routeConversationId, t, userBootstrapKey])
-
-  const syncConversationRoute = useCallback((nextConversationId: string) => {
-    if (!isAgentChatRoute) return
-    navigate(`/commerce/${nextConversationId}`, { replace: true })
-  }, [isAgentChatRoute, navigate])
-
-  const replaceWithNewConversationRoute = useCallback(() => {
-    if (!isAgentChatRoute) return
-    navigate("/commerce", { replace: true })
-  }, [isAgentChatRoute, navigate])
-
-  const canSend = input.trim().length > 0 && !isStreaming
-  const selectedStrategy = useMemo(() => getAgentChatStrategy(strategyId), [strategyId])
-  const selectedRuntime = useMemo(() => runtimeSelectionForStrategy(runtimeContext.runtimeSelection), [runtimeContext.runtimeSelection])
+  useAgentChatBootstrap({
+    actionState,
+    conversationId: sessionState.conversationId,
+    conversationIdRef: sessionState.conversationIdRef,
+    isAgentChatRoute,
+    routeConversationId,
+    tError: t("agentChat.error"),
+    userBootstrapKey: sessionState.user?.id ?? null,
+  })
+  const { replaceWithNewConversationRoute, syncConversationRoute } =
+    useAgentChatRouteActions({ isAgentChatRoute, navigate })
+  const { ensureConversation, promoteConversationTitle } =
+    useAgentChatConversationIdentity({
+      conversationIdRef: sessionState.conversationIdRef,
+      fallbackConversationTitle,
+      onConversationCreated: syncConversationRoute,
+      setConversationId: sessionState.setActiveConversationId,
+      setConversations: sessionState.setConversations,
+    })
+  const selectedStrategy = useMemo(() => getAgentChatStrategy(sessionState.strategyId), [sessionState.strategyId])
+  const selectedRuntime = useMemo(
+    () => runtimeSelectionForStrategy(runtimeContext.runtimeSelection),
+    [runtimeContext.runtimeSelection]
+  )
+  const activeConversationTitle = sessionState.conversations.find((item) => item.id === sessionState.conversationId)?.title ?? null
   const setStrategyAndRuntime = useAgentChatStrategyRuntime({
     runtimeSelection: runtimeContext.runtimeSelection,
     setRoutingMode: runtimeContext.setRoutingMode,
-    setStrategyId,
+    setStrategyId: sessionState.setStrategyId,
   })
   const commands = useAgentChatPageCommands({
     actionState,
-    conversationId,
+    conversationId: sessionState.conversationId,
     isLoggedIn,
     isStreaming,
     onActiveConversationDeleted: replaceWithNewConversationRoute,
-    setInput,
+    setInput: sessionState.setInput,
     setStrategyId: setStrategyAndRuntime,
   })
   const uploadAttachments = useAgentChatAttachmentUploads({
-    conversationId,
+    conversationId: sessionState.conversationId,
+    ensureConversation,
     fallbackConversationTitle,
     isLoggedIn,
     isStreaming,
     messageFormatCopy,
-    onConversationCreated: syncConversationRoute,
     restoreSelectedSources: sourceContext.restoreSelectedSources,
     selectedSources: sourceContext.selectedSources,
-    sessionIdRef,
-    setAttachments, setConversationId, setConversations, setError,
+    sessionIdRef: sessionState.sessionIdRef,
+    setAttachments: sessionState.setAttachments,
+    setError: sessionState.setError,
     tError: t("agentChat.error"),
   })
   const sourceActions = useAgentChatSourceActions({
-    conversationId,
+    conversationId: sessionState.conversationId,
+    ensureConversation,
     fallbackConversationTitle,
     isLoggedIn,
     isStreaming,
     restoreSelectedSources: sourceContext.restoreSelectedSources,
-    onConversationCreated: syncConversationRoute,
     selectedSources: sourceContext.selectedSources,
-    sessionIdRef,
-    setAttachments, setConversationId, setConversations, setError,
+    sessionIdRef: sessionState.sessionIdRef,
+    setAttachments: sessionState.setAttachments,
+    setError: sessionState.setError,
   })
   const contextPreview = useAgentChatContextPreview({
-    conversationId, inputValue: input, isLoggedIn, isStreaming,
-    selectedCampaigns: campaignContext.selectedCampaigns, selectedProducts: productContext.selectedProducts, selectedSources: sourceContext.selectedSources,
+    conversationId: sessionState.conversationId,
+    inputValue: sessionState.input,
+    isLoggedIn,
+    isStreaming,
+    selectedCampaigns: campaignContext.selectedCampaigns,
+    selectedProducts: productContext.selectedProducts,
+    selectedSources: sourceContext.selectedSources,
     tError: t("agentChat.composer.contextPreview.error"),
   })
-
   const sendMessage = useAgentChatSend({
-    abortRef,
-    attachments,
-    conversationId,
+    abortRef: sessionState.abortRef,
+    attachments: sessionState.attachments,
+    conversationId: sessionState.conversationId,
+    conversationTitle: activeConversationTitle,
     fallbackConversationTitle,
-    inputValue: input,
+    inputValue: sessionState.input,
     isLoggedIn,
     isStreaming,
     loginRequiredMessage,
     messageFormatCopy,
-    onConversationCreated: syncConversationRoute,
+    ensureConversation,
+    promoteConversationTitle,
     runtimeSelection: selectedRuntime,
     selectedCampaigns: campaignContext.selectedCampaigns,
     selectedProducts: productContext.selectedProducts,
     selectedSources: sourceContext.selectedSources,
-    sessionIdRef,
-    setConversationId, setConversations, setError, setInput, setIsStreaming,
-    setMessages, setRuntimeEvents,
+    sessionIdRef: sessionState.sessionIdRef,
+    setError: sessionState.setError,
+    setInput: sessionState.setInput,
+    setIsStreaming: sessionState.setIsStreaming,
+    setMessages: sessionState.setMessages,
+    setRuntimeEvents: sessionState.setRuntimeEvents,
     strategy: selectedStrategy,
     tError: t("agentChat.error"),
   })
-  return createAgentChatPageViewModel({
-    attachments,
-    availableCampaigns: campaignContext.availableCampaigns,
-    availableProducts: productContext.availableProducts,
-    availableSources: sourceContext.availableSources,
-    canSend,
-    clearSelectedCampaigns: campaignContext.clearSelectedCampaigns, clearSelectedProducts: productContext.clearSelectedProducts, clearSelectedSources: sourceContext.clearSelectedSources,
-    conversationId, conversations, contextPreview, commands,
-    error,
+
+  return createAgentChatPageModel({
+    campaignContext,
+    canSend: sessionState.input.trim().length > 0 && !isStreaming,
+    commands,
+    contextPreview,
     feedback,
-    input,
-    isLoggedIn,
-    isLoadingCampaigns: campaignContext.isLoadingCampaigns,
-    isLoadingPlaybooks: playbookContext.isLoadingPlaybooks,
-    isLoadingProducts: productContext.isLoadingProducts,
-    isLoadingRuntimeOptions: runtimeContext.isLoadingRuntimeOptions,
-    isLoadingSourceLibrary, isLoadingQuota: quotaContext.isLoadingQuota,
-    isStreaming, messages,
-    playbooks: playbookContext.playbooks,
-    runtimeOptions: runtimeContext.runtimeOptions,
-    runtimeSelection: selectedRuntime,
-    runtimeEvents,
-    quota: quotaContext.quota,
-    selectedProducts: productContext.selectedProducts,
-    selectedCampaigns: campaignContext.selectedCampaigns,
+    playbookContext,
+    productContext,
+    quotaContext,
+    runtimeContext,
+    selectedRuntime,
     selectedStrategy,
-    selectedSources: sourceContext.selectedSources,
-    sendMessage: () => quotaContext.refreshQuotaAfter(sendMessage),
-    sourceLibrary,
-    sourceLibraryError,
-    setInput,
-    setRuntimeCollaborationMode: runtimeContext.setCollaborationMode,
-    setRuntimeLearningLevel: runtimeContext.setLearningLevel,
-    setRuntimePrimaryRole: runtimeContext.setPrimaryRole,
-    setRuntimeRoutingMode: runtimeContext.setRoutingMode,
-    setStrategyId: setStrategyAndRuntime,
-    strategyId,
-    toggleProductContext: productContext.toggleProductContext,
-    toggleCampaignContext: campaignContext.toggleCampaignContext,
-    toggleRuntimeRole: runtimeContext.toggleRole,
-    toggleSourceContext: sourceContext.toggleSourceContext,
-    deleteSelectedSources: sourceActions.deleteSelectedSources,
-    attachExistingSource: sourceActions.attachExistingSource,
-    removeSourcesByObjects: sourceActions.removeSourcesByObjects,
+    sendMessage,
+    sessionState,
+    setStrategyAndRuntime,
+    sourceActions,
+    sourceContext,
+    sourceLibraryContext,
     uploadAttachments,
   })
-}
-
-function isAgentChatPath(pathname: string) {
-  return (
-    pathname === "/" ||
-    pathname === "/agent" ||
-    pathname === "/commerce" ||
-    pathname.startsWith("/commerce/")
-  )
 }

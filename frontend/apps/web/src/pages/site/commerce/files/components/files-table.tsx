@@ -1,6 +1,6 @@
-import { Eye, FileCheck2, MinusCircle, Plus, RefreshCw } from "lucide-react"
+import { Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { Badge, Button, Checkbox } from "@workspace/ui-components"
+import { Button, Checkbox } from "@workspace/ui-components"
 import {
   CommerceTable,
   type CommerceColumn,
@@ -11,6 +11,9 @@ import {
 } from "../domain/logic"
 import type { TrainingFileItem } from "../types"
 import { FilesNameCell } from "./files-name-cell"
+import { FilesMobileList } from "./files-mobile-list"
+import { FilesReadableStatus } from "./files-readable-status"
+import { FilesRowActions } from "./files-row-actions"
 import { FilesUseStateBadge } from "./files-use-state-badge"
 
 export function FilesTable({
@@ -68,14 +71,20 @@ export function FilesTable({
       key: "name",
       header: t("commerce.files.table.name"),
       render: (file) => (
-        <FilesNameCell file={file} getFileName={getFileName} t={t} />
+        <FilesNameCell
+          file={file}
+          formatFileSize={formatFileSize}
+          getFileName={getFileName}
+          onOpenFileDetail={onOpenFileDetail}
+          t={t}
+        />
       ),
       minWidth: "18rem",
     },
     {
       key: "status",
       header: t("commerce.files.table.status"),
-      render: (file) => <ReadableBadge state={fileReadableState(file)} />,
+      render: (file) => <FilesReadableStatus state={fileReadableState(file)} />,
       width: "7rem",
     },
     {
@@ -87,21 +96,11 @@ export function FilesTable({
       width: "7.5rem",
     },
     {
-      key: "size",
-      header: t("commerce.files.table.size"),
-      render: (file) => (
-        <span className="text-sm text-muted-foreground">
-          {formatFileSize(file.fileSize)}
-        </span>
-      ),
-      width: "6rem",
-    },
-    {
       key: "created",
       header: t("commerce.files.table.createdAt"),
       render: (file) => (
         <span className="text-sm text-muted-foreground">
-          {new Date(file.createdAt).toLocaleString()}
+          {new Date(file.createdAt).toLocaleDateString()}
         </span>
       ),
       width: "11rem",
@@ -111,38 +110,15 @@ export function FilesTable({
       header: t("commerce.files.table.actions"),
       render: (file) => {
         const state = getFileConversationUseState(file)
-        const isSelectedForTurn = state === "selectedForTurn"
-        const isUsing = usingFileIds.has(file.id)
         return (
-          <div className="flex flex-nowrap items-center justify-end gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onOpenFileDetail(file)}
-            >
-              <Eye className="size-4" />
-              {t("commerce.files.table.detail")}
-            </Button>
-            <Button
-              size="sm"
-              variant={isSelectedForTurn ? "outline" : "default"}
-              disabled={isUsing || !turnActionsEnabled}
-              onClick={() => onToggleCurrentTurn(file)}
-            >
-              {isUsing ? (
-                <RefreshCw className="size-4 animate-spin" />
-              ) : state === "selectedForTurn" ? (
-                <MinusCircle className="size-4" />
-              ) : state === "attached" ? (
-                <FileCheck2 className="size-4" />
-              ) : (
-                <Plus className="size-4" />
-              )}
-              {isUsing
-                ? t("commerce.files.table.using")
-                : t(`commerce.files.table.useState.${state}`)}
-            </Button>
-          </div>
+          <FilesRowActions
+            file={file}
+            isUsing={usingFileIds.has(file.id)}
+            onOpenFileDetail={onOpenFileDetail}
+            onToggleCurrentTurn={onToggleCurrentTurn}
+            state={state}
+            turnActionsEnabled={turnActionsEnabled}
+          />
         )
       },
       sticky: "right",
@@ -181,6 +157,7 @@ export function FilesTable({
         </div>
         <Button
           size="sm"
+          variant="primary"
           disabled={!canUploadEmpty}
           className="disabled:border-primary/35 disabled:bg-(--agent-chat-accent-soft) disabled:text-(--agent-chat-accent-foreground) disabled:opacity-70"
           onClick={onUploadEmpty ?? onClearFilters}
@@ -193,23 +170,29 @@ export function FilesTable({
   }
 
   return (
-    <CommerceTable
-      columns={columns}
-      emptyText={t("commerce.files.empty")}
-      getRowId={(file) => file.id}
-      items={files}
-      loading={loading}
-    />
+    <>
+      <FilesMobileList
+        files={files}
+        formatFileSize={formatFileSize}
+        getFileConversationUseState={getFileConversationUseState}
+        getFileName={getFileName}
+        onOpenFileDetail={onOpenFileDetail}
+        onToggleCurrentTurn={onToggleCurrentTurn}
+        onToggleFileSelection={onToggleFileSelection}
+        selectedFileIds={selectedFileIds}
+        t={t}
+        turnActionsEnabled={turnActionsEnabled}
+        usingFileIds={usingFileIds}
+      />
+      <div className="hidden md:block">
+        <CommerceTable
+          columns={columns}
+          emptyText={t("commerce.files.empty")}
+          getRowId={(file) => file.id}
+          items={files}
+          loading={loading}
+        />
+      </div>
+    </>
   )
-}
-
-function ReadableBadge({
-  state,
-}: {
-  state: "readable" | "pending" | "failed" | "unsupported"
-}) {
-  const { t } = useTranslation()
-  const variant = state === "failed" ? "destructive" : "secondary"
-
-  return <Badge variant={variant}>{t(`commerce.files.status.${state}`)}</Badge>
 }

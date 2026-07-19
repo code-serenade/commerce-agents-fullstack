@@ -1,4 +1,5 @@
 import { request } from "@workspace/services/api/base"
+import type { WorkspaceArtifactResponse } from "./commerce"
 
 export interface ConversationResponse {
   id: string
@@ -43,6 +44,13 @@ export interface ConversationFileResponse {
   status: string
   metadata: Record<string, unknown>
   createdAt: string
+}
+
+export interface ConversationFileAccessResponse {
+  file: ConversationFileResponse
+  method: string
+  downloadUrl: string
+  expiresSecs: number
 }
 
 export interface RegisterConversationFileRequest {
@@ -107,6 +115,64 @@ export interface AttachConversationFileRequest {
 
 export interface BulkDeleteUserFilesRequest {
   fileIds: string[]
+}
+
+export type ConversationReportType =
+  | "conversation_report"
+  | "commerce_conversation_report"
+  | "teaching_conversation_report"
+  | "process_evidence_pack"
+
+export type ConversationReportScope =
+  | "conversation_all"
+  | "conversation_recent"
+  | "workspace_run"
+  | "selected_sources"
+
+export interface ExportConversationTranscriptRequest {
+  format?: "markdown" | "text" | "json" | string
+  includeFiles?: boolean
+  includeRuntimeEvents?: boolean
+  scope?: ConversationReportScope | string
+}
+
+export interface ConversationTranscriptExportResponse {
+  conversationId: string
+  fileName: string
+  mimeType: string
+  format: string
+  content: string
+  contentChars: number
+  messageCount: number
+  fileCount: number
+  warnings: string[]
+}
+
+export interface GenerateConversationReportRequest {
+  workspaceId?: string | null
+  runId?: string | null
+  reportType?: ConversationReportType | string
+  scope?: ConversationReportScope | string
+  format?: "markdown" | string
+  includeProcess?: boolean
+  includeSources?: boolean
+  includeTranscriptAppendix?: boolean
+  artifactIds?: string[]
+  fileIds?: string[]
+}
+
+export interface GeneratedConversationReportExportResponse {
+  fileName: string
+  mimeType: string
+  format: string
+  content: string
+  contentChars: number
+  warnings: string[]
+}
+
+export interface GenerateConversationReportResponse {
+  artifact: WorkspaceArtifactResponse
+  export: GeneratedConversationReportExportResponse
 }
 
 export interface ConversationFileExtractionStatusResponse {
@@ -195,6 +261,34 @@ export const deleteConversationApi = async (
   })
 }
 
+export const exportConversationTranscriptApi = async (
+  conversationId: string,
+  query: ExportConversationTranscriptRequest = {}
+): Promise<ConversationTranscriptExportResponse> => {
+  return request<
+    ExportConversationTranscriptRequest,
+    ConversationTranscriptExportResponse
+  >({
+    method: "GET",
+    url: `/api/app/conversations/${conversationId}/transcript/export`,
+    body: query,
+  })
+}
+
+export const generateConversationReportApi = async (
+  conversationId: string,
+  body: GenerateConversationReportRequest
+): Promise<GenerateConversationReportResponse> => {
+  return request<
+    GenerateConversationReportRequest,
+    GenerateConversationReportResponse
+  >({
+    method: "POST",
+    url: `/api/app/conversations/${conversationId}/reports/generate`,
+    body,
+  })
+}
+
 export const registerConversationFileApi = async (
   conversationId: string,
   body: RegisterConversationFileRequest
@@ -213,6 +307,16 @@ export const listUserFilesApi = async (
     method: "GET",
     url: "/api/app/files",
     body: query,
+    suppressGlobalError: true,
+  })
+}
+
+export const getConversationFileAccessApi = async (
+  fileId: string
+): Promise<ConversationFileAccessResponse> => {
+  return request<undefined, ConversationFileAccessResponse>({
+    method: "GET",
+    url: `/api/app/conversation-files/${fileId}/access`,
     suppressGlobalError: true,
   })
 }

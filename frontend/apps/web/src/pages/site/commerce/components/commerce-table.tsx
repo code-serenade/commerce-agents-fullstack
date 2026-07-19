@@ -63,8 +63,8 @@ export function CommerceTable<T>({
 
   return (
     <div className="max-w-full overflow-x-auto">
-      <div style={{ minWidth: tableMinWidth }}>
-        <table className="w-full caption-bottom text-sm">
+      <div style={{ minWidth: tableMinWidth, width: "100%" }}>
+        <table className="w-full table-fixed caption-bottom text-sm">
           <thead className="[&_tr]:border-b">
             <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
               {resolvedColumns.map((column) => (
@@ -88,7 +88,7 @@ export function CommerceTable<T>({
             {items.map((item, index) => (
               <tr
                 key={getRowId(item, index)}
-                className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
+                className="group/commerce-table-row border-b"
               >
                 {resolvedColumns.map((column) => (
                   <td
@@ -114,6 +114,7 @@ function getColumnStyle<T>(column: CommerceColumn<T>): CSSProperties {
   return {
     minWidth,
     ...(column.width ? { width: column.width } : null),
+    ...(column.width ? { maxWidth: column.width } : null),
     ...(column.sticky === "left" ? { left: STICKY_LEFT_OFFSET } : null),
     ...(column.sticky === "right" ? { right: STICKY_RIGHT_OFFSET } : null),
   }
@@ -121,14 +122,14 @@ function getColumnStyle<T>(column: CommerceColumn<T>): CSSProperties {
 
 function getHeadClassName(sticky: CommerceColumn<unknown>["sticky"]) {
   return cx(
-    "h-10 whitespace-nowrap px-2 text-left align-middle font-medium text-foreground",
+    "h-10 overflow-hidden whitespace-nowrap bg-(--surface) px-2 text-left align-middle font-medium text-foreground",
     sticky ? getStickyCellClassName(sticky, "head") : undefined
   )
 }
 
 function getCellClassName(sticky: CommerceColumn<unknown>["sticky"]) {
   return cx(
-    "whitespace-normal p-2 align-top wrap-anywhere",
+    "overflow-hidden whitespace-normal bg-background p-2 align-top wrap-anywhere transition-colors duration-500 group-hover/commerce-table-row:bg-[color-mix(in_oklch,var(--background)_88%,var(--primary)_12%)] *:max-w-full",
     sticky ? getStickyCellClassName(sticky, "cell") : undefined
   )
 }

@@ -39,6 +39,7 @@ import type {
   DataTableColumn,
   DataTableProps,
   DataTableQueryConfig,
+  DataTableQueryField,
   DataTableRenderedQueryField,
   DataTableStickyColumnsConfig,
   DataTableSortState,
@@ -88,6 +89,12 @@ export type {
 
 const DEFAULT_AUDIT_FIELD_KEY = "auditField"
 const DEFAULT_AUDIT_RANGE_KEY = "auditRange"
+const EMPTY_AUDIT_COLUMNS: readonly DataTableAuditColumnKey[] = []
+const EMPTY_BUILT_IN_QUERY_FIELDS: readonly DataTableBuiltInQueryField<object>[] =
+  []
+const EMPTY_QUERY_CONFIG: DataTableQueryConfig<object> = {}
+const EMPTY_QUERY_FIELDS: readonly DataTableQueryField<object>[] = []
+const EMPTY_STICKY_COLUMNS_CONFIG: DataTableStickyColumnsConfig = {}
 
 function getAuditRawValue<T>(row: T, column: DataTableAuditColumnKey) {
   if (typeof row !== "object" || row === null) return undefined
@@ -169,7 +176,7 @@ function areMeasuredWidthsEqual(
 
 export function DataTable<T, TQuery extends object = object>({
   columns,
-  auditColumns = [],
+  auditColumns,
   stickyColumns,
   fetchData,
   getRowId,
@@ -199,12 +206,14 @@ export function DataTable<T, TQuery extends object = object>({
   const { i18n } = useTranslation()
   const language = normalizeLanguage(i18n.language)
   const copy = getDataTableCopy(language)
-  const queryConfig: DataTableQueryConfig<TQuery> = query ?? {}
-  const stickyColumnsConfig: DataTableStickyColumnsConfig = stickyColumns ?? {}
+  const queryConfig = (query ?? EMPTY_QUERY_CONFIG) as DataTableQueryConfig<TQuery>
+  const stickyColumnsConfig = stickyColumns ?? EMPTY_STICKY_COLUMNS_CONFIG
   const fixedLeftColumns = stickyColumnsConfig.left ?? 0
   const fixedRightColumns = stickyColumnsConfig.right ?? 0
-  const builtInQueryFields = queryConfig.builtInFields ?? []
-  const queryFields = queryConfig.fields ?? []
+  const builtInQueryFields = (queryConfig.builtInFields ??
+    EMPTY_BUILT_IN_QUERY_FIELDS) as readonly DataTableBuiltInQueryField<TQuery>[]
+  const queryFields = (queryConfig.fields ??
+    EMPTY_QUERY_FIELDS) as readonly DataTableQueryField<TQuery>[]
   const auditQuery = queryConfig.audit ?? false
   const queryTools = queryConfig.tools ?? true
 
@@ -298,7 +307,10 @@ export function DataTable<T, TQuery extends object = object>({
   const resolvedCreatedAtRangePlaceholder = copy.createdAtRangePlaceholder
   const resolvedUpdatedAtRangePlaceholder = copy.updatedAtRangePlaceholder
   const resolvedAuditEmptyText = localeText?.auditEmptyText ?? copy.auditEmptyText
-  const auditColumnKeys = useMemo(() => [...auditColumns], [auditColumns])
+  const auditColumnKeys = useMemo(
+    () => [...(auditColumns ?? EMPTY_AUDIT_COLUMNS)],
+    [auditColumns]
+  )
   const auditQueryField = useMemo<DataTableRenderedQueryField<TQuery> | null>(
     () => {
       if (auditQuery !== true) return null

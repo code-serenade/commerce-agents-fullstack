@@ -156,10 +156,8 @@ describe("InlineSwarmTaskCard", () => {
     ).toBeTruthy()
     expect(screen.getByText("Step 1")).toBeInTheDocument()
     expect(
-      screen.getByText(
-        i18n.t("agentChat.thread.roleClusterActivity.working.search")
-      )
-    ).toBeInTheDocument()
+      screen.getAllByText(i18n.t("agentChat.thread.agents.search.name")).length
+    ).toBeGreaterThan(0)
     expect(
       screen.getByText(i18n.t("agentChat.thread.dispatchFacts.roleAudit.label"))
     ).toBeInTheDocument()

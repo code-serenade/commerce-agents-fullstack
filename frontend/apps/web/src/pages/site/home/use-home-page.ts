@@ -10,6 +10,5 @@ export function useHomePage() {
     user,
     displayName,
     displayId,
-    avatarFallback: displayName.charAt(0).toUpperCase() || "U",
   }
 }

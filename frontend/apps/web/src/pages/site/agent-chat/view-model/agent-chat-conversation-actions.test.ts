@@ -13,6 +13,11 @@ vi.mock("../agent-chat-data", () => ({
   },
 }))
 
+const DEFAULT_TITLE = ["New", "chat"].join(" ")
+const LEGACY_ZH_DEFAULT_TITLE = String.fromCharCode(26032, 24314, 23545, 35805)
+const MANUAL_TITLE = "conversation-title"
+const MESSAGE_CONTENT = "message-content"
+
 describe("agent chat conversation actions", () => {
   it("loads the conversation list without selecting the first conversation", async () => {
     const state = createState()
@@ -26,6 +31,78 @@ describe("agent chat conversation actions", () => {
     expect(state.setConversations).toHaveBeenCalledTimes(1)
     expect(state.setConversationId).not.toHaveBeenCalled()
     expect(agentChatData.getConversation).not.toHaveBeenCalled()
+  })
+
+  it("hides empty default-title conversations and names contentful ones", async () => {
+    const state = createState()
+    vi.mocked(agentChatData.listConversations).mockResolvedValue([
+      createConversation("conversation-empty", DEFAULT_TITLE),
+      createConversation("conversation-with-message", DEFAULT_TITLE),
+      createConversation("conversation-titled", MANUAL_TITLE),
+    ] as Awaited<ReturnType<typeof agentChatData.listConversations>>)
+    vi.mocked(agentChatData.getConversation).mockImplementation(
+      async (conversationId) => {
+        if (conversationId === "conversation-with-message") {
+          return createConversationDetail(conversationId, {
+            messages: [
+              {
+                id: "message-1",
+                role: "user",
+                contentText: MESSAGE_CONTENT,
+              },
+            ],
+          })
+        }
+
+        return createConversationDetail(conversationId)
+      }
+    )
+
+    const conversations = await loadAgentConversationList(state, () => false)
+
+    expect(conversations.map((item) => item.id)).toEqual([
+      "conversation-with-message",
+      "conversation-titled",
+    ])
+    expect(state.setConversations).toHaveBeenCalledWith([
+      {
+        id: "conversation-with-message",
+        title: MESSAGE_CONTENT,
+        updatedAt: "2026-07-10T00:00:00.000Z",
+      },
+      {
+        id: "conversation-titled",
+        title: MANUAL_TITLE,
+        updatedAt: "2026-07-10T00:00:00.000Z",
+      },
+    ])
+    expect(agentChatData.getConversation).toHaveBeenCalledTimes(2)
+    expect(agentChatData.getConversation).not.toHaveBeenCalledWith(
+      "conversation-titled"
+    )
+  })
+
+  it("keeps default-title conversations when detail loading fails", async () => {
+    const state = createState()
+    vi.mocked(agentChatData.listConversations).mockResolvedValue([
+      createConversation("conversation-fallback", LEGACY_ZH_DEFAULT_TITLE),
+    ] as Awaited<ReturnType<typeof agentChatData.listConversations>>)
+    vi.mocked(agentChatData.getConversation).mockRejectedValue(
+      new Error("network failed")
+    )
+
+    const conversations = await loadAgentConversationList(state, () => false)
+
+    expect(conversations.map((item) => item.id)).toEqual([
+      "conversation-fallback",
+    ])
+    expect(state.setConversations).toHaveBeenCalledWith([
+      {
+        id: "conversation-fallback",
+        title: LEGACY_ZH_DEFAULT_TITLE,
+        updatedAt: "2026-07-10T00:00:00.000Z",
+      },
+    ])
   })
 
   it("loads the route conversation id as the active conversation", async () => {
@@ -53,7 +130,7 @@ function createState() {
 
   return {
     createWelcomeMessage: () => welcomeMessage,
-    fallbackConversationTitle: "New chat",
+    fallbackConversationTitle: DEFAULT_TITLE,
     messageFormatCopy: {
       boundaryNotice: "boundary notice",
       missingStructuredOutput: "missing structured output",
@@ -78,10 +155,20 @@ function createConversation(id: string, title: string) {
   }
 }
 
-function createConversationDetail(id: string) {
+function createConversationDetail(
+  id: string,
+  overrides?: {
+    messages?: Array<{
+      id: string
+      role: "user" | "assistant" | "system" | "tool"
+      contentText: string | null
+    }>
+    files?: unknown[]
+  }
+) {
   return ({
     conversation: createConversation(id, "Route conversation"),
-    files: [],
-    messages: [],
+    files: overrides?.files ?? [],
+    messages: overrides?.messages ?? [],
   } as unknown) as Awaited<ReturnType<typeof agentChatData.getConversation>>
 }

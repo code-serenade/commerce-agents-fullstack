@@ -1,10 +1,7 @@
 import { useEffect } from "react"
 import { trackProductEvent } from "@/analytics/product-analytics"
-import { OutputHero } from "./components/output-hero"
+import { ConversationReportDialog } from "./components/conversation-report-dialog"
 import { OutputBackendDeliverables } from "./components/output-backend-deliverables"
-import { OutputMetrics } from "./components/output-metrics"
-import { OutputPlan } from "./components/output-plan"
-import { OutputSections } from "./components/output-sections"
 import { useAgentOutputPage } from "./use-agent-output-page"
 
 export default function AgentOutputPage() {
@@ -18,16 +15,9 @@ export default function AgentOutputPage() {
   }, [])
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-5">
+    <div className="flex size-full min-h-0 flex-1 bg-white dark:bg-background">
       <OutputBackendDeliverables backend={page.backend} />
-      <div className="overflow-visible rounded-lg border border-(--document-card-border) bg-(image:--document-card-background) shadow-(--document-card-shadow) backdrop-blur-md">
-        <OutputHero prompt={page.prompt} />
-        <div className="space-y-5 p-5">
-          <OutputMetrics metrics={page.metrics} />
-          <OutputPlan actions={page.actions} steps={page.steps} />
-          <OutputSections sections={page.sections} />
-        </div>
-      </div>
+      <ConversationReportDialog backend={page.backend} />
     </div>
   )
 }

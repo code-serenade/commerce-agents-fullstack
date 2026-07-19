@@ -13,6 +13,8 @@ vi.mock("../agent-chat-data", () => ({
   },
 }))
 
+const titleKey = "title"
+
 describe("sendAgentChatMessage stream abort fallback", () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -45,6 +47,9 @@ describe("sendAgentChatMessage stream abort fallback", () => {
       content: "Analyze live commerce conversion.",
       attachments: [],
       conversationId: null,
+      ensureConversation: async () =>
+        (await createConversation({ [titleKey]: "New chat", agentId: "web-agent" }))
+          .conversation.id,
       fallbackConversationTitle: "New chat",
       messageFormatCopy: {
         boundaryNotice: "boundary notice",
@@ -52,6 +57,7 @@ describe("sendAgentChatMessage stream abort fallback", () => {
         streamTimedOut: "stream timed out",
       },
       onController: vi.fn(),
+      promoteConversationTitle: vi.fn(),
       runtimeSelection: {
         collaborationMode: "manual",
         learningLevel: "higher_vocational",
@@ -63,8 +69,6 @@ describe("sendAgentChatMessage stream abort fallback", () => {
       selectedCampaigns: [],
       selectedSources: [],
       sessionIdRef: { current: "session-d" },
-      setConversationId: vi.fn(),
-      setConversations: vi.fn(),
       setError: (value) => {
         errors.push(
           typeof value === "function" ? value(errors.at(-1) ?? null) : value
@@ -127,6 +131,9 @@ describe("sendAgentChatMessage stream abort fallback", () => {
       content: "Analyze live commerce conversion.",
       attachments: [],
       conversationId: null,
+      ensureConversation: async () =>
+        (await createConversation({ [titleKey]: "New chat", agentId: "web-agent" }))
+          .conversation.id,
       fallbackConversationTitle: "New chat",
       messageFormatCopy: {
         boundaryNotice: "boundary notice",
@@ -134,6 +141,7 @@ describe("sendAgentChatMessage stream abort fallback", () => {
         streamTimedOut: "stream timed out",
       },
       onController: vi.fn(),
+      promoteConversationTitle: vi.fn(),
       runtimeSelection: {
         collaborationMode: "manual",
         learningLevel: "higher_vocational",
@@ -145,8 +153,6 @@ describe("sendAgentChatMessage stream abort fallback", () => {
       selectedCampaigns: [],
       selectedSources: [],
       sessionIdRef: { current: "session-e" },
-      setConversationId: vi.fn(),
-      setConversations: vi.fn(),
       setError: (value) => {
         errors.push(
           typeof value === "function" ? value(errors.at(-1) ?? null) : value

@@ -205,7 +205,7 @@ export function AgentChatComposerSendButton({
       onClick={onSend}
       aria-label={t("agentChat.composer.send")}
       classNameMode="replace"
-      className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-(--agent-chat-primary-gradient) text-primary-foreground shadow-[var(--agent-chat-button-shadow)] transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:scale-100"
+      className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-(--agent-chat-primary-gradient) text-primary-foreground shadow-(--agent-chat-button-shadow) transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:scale-100"
       title={t("agentChat.composer.send")}
     >
       {canSend ? (

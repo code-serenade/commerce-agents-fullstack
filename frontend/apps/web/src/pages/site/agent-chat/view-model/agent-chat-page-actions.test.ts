@@ -21,6 +21,20 @@ describe("agent chat page actions", () => {
     expect(calls).toContain("sources:clear")
   })
 
+  it("does not append placeholder history when starting a new conversation", () => {
+    const calls: string[] = []
+    const state = createPageState(calls)
+    let conversationsWereMutated = false
+    state.setConversations = () => {
+      conversationsWereMutated = true
+    }
+
+    startNewAgentConversation(state)
+
+    expect(conversationsWereMutated).toBe(false)
+    expect(calls).toContain("strategy:learning")
+  })
+
   it("resets only the conversation-level runtime context", () => {
     const calls: string[] = []
 

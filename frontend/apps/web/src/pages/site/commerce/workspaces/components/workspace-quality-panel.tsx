@@ -11,6 +11,19 @@ import type { WorkspacesPageState } from "../use-workspaces-page"
 
 export function WorkspaceQualityPanel({ page }: { page: WorkspacesPageState }) {
   const { t } = useTranslation()
+
+  return (
+    <CommercePanel
+      title={t("commerce.workspaces.panels.qualityLoop")}
+      description={t("commerce.workspaces.panels.qualityLoopDesc")}
+    >
+      <WorkspaceQualityContent page={page} />
+    </CommercePanel>
+  )
+}
+
+export function WorkspaceQualityContent({ page }: { page: WorkspacesPageState }) {
+  const { t } = useTranslation()
   const latestQuality = page.qualityChecks[0]
   const latestTrust = page.trustScores[0]
   const latestLearningRecords = useMemo(
@@ -19,10 +32,7 @@ export function WorkspaceQualityPanel({ page }: { page: WorkspacesPageState }) {
   )
 
   return (
-    <CommercePanel
-      title={t("commerce.workspaces.panels.qualityLoop")}
-      description={t("commerce.workspaces.panels.qualityLoopDesc")}
-    >
+    <div>
       <div className="grid gap-3 md:grid-cols-3">
         <QualityMetric
           label={t("commerce.workspaces.quality.latestCheck")}
@@ -74,7 +84,7 @@ export function WorkspaceQualityPanel({ page }: { page: WorkspacesPageState }) {
           detail={t("commerce.workspaces.quality.learningRecordsDesc")}
         />
       </div>
-      <div className="mt-3 grid gap-3 xl:grid-cols-2">
+      <div className="mt-3 grid gap-3">
         <div className="rounded-lg border border-(--app-border) bg-background p-3">
           <div className="mb-2 text-sm font-medium">
             {t("commerce.workspaces.quality.issues")}
@@ -111,7 +121,7 @@ export function WorkspaceQualityPanel({ page }: { page: WorkspacesPageState }) {
           )}
         </div>
       </div>
-    </CommercePanel>
+    </div>
   )
 }
 

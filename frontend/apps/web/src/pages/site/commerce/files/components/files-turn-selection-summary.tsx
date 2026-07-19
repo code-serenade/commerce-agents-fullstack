@@ -1,4 +1,4 @@
-import { CheckCircle2, Filter, MinusCircle } from "lucide-react"
+import { CheckCircle2, Filter, X } from "lucide-react"
 import { Button } from "@workspace/ui-components"
 import type { TrainingFilesTurnSelectionSummary } from "../domain/turn-selection-summary"
 
@@ -18,47 +18,31 @@ export function FilesTurnSelectionSummary({
   t,
 }: FilesTurnSelectionSummaryProps) {
   const hasSelectedFiles = summary.total > 0
-  const selectedNames = summary.selectedNames.join(" / ")
-  const hiddenText =
-    summary.hiddenNames > 0
-      ? t("commerce.files.turnSelection.hiddenSuffix", {
-          count: summary.hiddenNames,
-        })
-      : ""
-
   return (
-    <div className="flex min-w-0 flex-col gap-2 rounded-lg border border-(--app-border) bg-muted/40 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex min-w-0 items-start gap-2">
-        <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-foreground">
-            {t("commerce.files.turnSelection.title", {
-              count: summary.total,
-            })}
-          </p>
-          <p className="truncate text-xs text-muted-foreground">
-            {hasSelectedFiles
-              ? t("commerce.files.turnSelection.files", {
-                  hiddenText,
-                  names: selectedNames,
-                })
-              : t("commerce.files.turnSelection.empty")}
-          </p>
-        </div>
+    <div className="flex min-w-0 flex-wrap items-center gap-2 sm:justify-end">
+      <div className="flex min-w-0 items-center gap-2 text-sm">
+        <CheckCircle2
+          className={hasSelectedFiles ? "size-4 text-primary" : "size-4 text-muted-foreground"}
+        />
+        <span className={hasSelectedFiles ? "font-medium text-foreground" : "text-muted-foreground"}>
+          {hasSelectedFiles
+            ? t("commerce.files.turnSelection.title", { count: summary.total })
+            : t("commerce.files.turnSelection.empty")}
+        </span>
       </div>
       {hasSelectedFiles ? (
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <Button size="sm" variant="outline" onClick={onShowSelectedForTurn}>
+        <div className="flex shrink-0 items-center gap-1">
+          <Button size="xs" variant="ghost" onClick={onShowSelectedForTurn}>
             <Filter className="size-4" />
             {t("commerce.files.turnSelection.action")}
           </Button>
           <Button
-            size="sm"
-            variant="outline"
+            size="xs"
+            variant="ghost"
             disabled={!canClearSelectedForTurn}
             onClick={onClearSelectedForTurn}
           >
-            <MinusCircle className="size-4" />
+            <X className="size-4" />
             {t("commerce.files.turnSelection.clearAction")}
           </Button>
         </div>
