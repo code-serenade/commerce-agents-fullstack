@@ -38,7 +38,7 @@ export function AgentChatConversationArea({
     <div
       className={
         isWelcomeMode
-          ? "relative z-10 flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col overflow-x-hidden overflow-y-auto px-4 py-6 sm:px-7 lg:px-10"
+          ? "relative z-10 flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col overflow-y-auto px-4 pt-[clamp(3rem,12svh,8rem)] pb-8 sm:px-7"
           : "relative z-10 flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col overflow-hidden"
       }
     >

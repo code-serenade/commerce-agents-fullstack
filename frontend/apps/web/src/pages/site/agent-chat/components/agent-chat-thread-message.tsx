@@ -129,14 +129,14 @@ function createAssistantAvatarActivity(
     action: summary,
     agent: {
       name,
-      nodeId: "box",
+      nodeId: "service",
       state,
       status: state,
       summary,
     },
     contribution: summary,
     lane: 0,
-    role: "box",
+    role: "service",
     state,
   }
 }

@@ -147,18 +147,43 @@ function getAgentRoleKey(nodeId: string): AgentRoleKey {
     return "service"
   }
   if (
+    normalized.includes("search") ||
+    normalized.includes("rag") ||
+    normalized.includes("source") ||
+    normalized.includes("evidence") ||
+    normalized.includes("material") ||
+    normalized.includes("policy") ||
+    normalized.includes("rule") ||
+    normalized.includes("compliance") ||
+    normalized.includes("boundary") ||
+    normalized.includes("target") ||
+    normalized.includes("verify") ||
+    normalized.includes("check") ||
+    normalized.includes("research") ||
+    normalized.includes("read")
+  ) {
+    return "search"
+  }
+  if (
     normalized.includes("delivery") ||
     normalized.includes("report") ||
-    normalized.includes("document")
+    normalized.includes("document") ||
+    normalized.includes("handoff") ||
+    normalized.includes("output")
   ) {
     return "delivery"
   }
   if (
-    normalized.includes("search") ||
-    normalized.includes("rag") ||
-    normalized.includes("source")
+    normalized.includes("product") ||
+    normalized.includes("sku") ||
+    normalized.includes("item") ||
+    normalized.includes("listing") ||
+    normalized.includes("title") ||
+    normalized.includes("price") ||
+    normalized.includes("category") ||
+    normalized.includes("selection")
   ) {
-    return "search"
+    return "box"
   }
   if (
     normalized.includes("ops") ||
@@ -167,7 +192,7 @@ function getAgentRoleKey(nodeId: string): AgentRoleKey {
   ) {
     return "ops"
   }
-  return "box"
+  return "search"
 }
 
 function getDisplayAgent(
@@ -175,7 +200,6 @@ function getDisplayAgent(
   role: AgentRoleKey,
   t: TFunction
 ): InlineAgent {
-  if (role === "box") return agent
   return {
     ...agent,
     name: t(`agentChat.thread.agents.${role}.name`),

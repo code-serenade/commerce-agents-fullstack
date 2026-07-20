@@ -62,7 +62,7 @@ export function AgentRoleClusterPanel({
       <div
         className={
           isShowcase && isPlain
-            ? "mb-3 flex min-w-0 flex-wrap items-center justify-between gap-2"
+            ? "mb-3 flex min-w-0 flex-wrap items-start justify-between gap-2"
             : isShowcase
               ? "flex min-w-0 flex-wrap items-end justify-between gap-2"
               : isCompact
@@ -70,45 +70,43 @@ export function AgentRoleClusterPanel({
                 : "flex min-w-0 items-center gap-2 text-xs"
         }
       >
-        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-          <div
-            className={`flex min-w-0 ${
-              isShowcase && isPlain ? "items-start" : "items-center gap-2"
-            }`}
-          >
-            <div className="min-w-0">
-              {eyebrow ? (
-                <p
-                  className={
-                    isShowcase && isPlain
-                      ? "text-base font-bold text-foreground"
-                      : "text-[10px] font-semibold text-muted-foreground uppercase"
-                  }
-                >
-                  {eyebrow}
-                </p>
-              ) : null}
+        <div
+          className={`flex min-w-0 ${
+            isShowcase && isPlain ? "items-start" : "items-center gap-2"
+          }`}
+        >
+          <div className="min-w-0">
+            {eyebrow ? (
               <p
                 className={
                   isShowcase && isPlain
-                    ? "mt-0.5 truncate text-xs text-muted-foreground"
-                    : "truncate text-sm font-medium text-foreground"
+                    ? "text-base font-bold text-foreground"
+                    : "text-[10px] font-semibold text-muted-foreground uppercase"
                 }
               >
-                {title ?? t("agentChat.thread.roleClusterActivity.title")}
+                {eyebrow}
               </p>
-            </div>
+            ) : null}
+            <p
+              className={
+                isShowcase && isPlain
+                  ? "mt-0.5 truncate text-xs text-muted-foreground"
+                  : "truncate text-sm font-medium text-foreground"
+              }
+            >
+              {title ?? t("agentChat.thread.roleClusterActivity.title")}
+            </p>
           </div>
-          <span
-            className={
-              isShowcase
-                ? "min-w-0 text-xs text-muted-foreground"
-                : "min-w-0 truncate text-muted-foreground"
-            }
-          >
-            {summary ?? getAgentRoleSummary(activities, t)}
-          </span>
         </div>
+        <span
+          className={
+            isShowcase
+              ? "min-w-0 text-xs text-muted-foreground"
+              : "min-w-0 truncate text-muted-foreground"
+          }
+        >
+          {summary ?? getAgentRoleSummary(activities, t)}
+        </span>
         {headerAction ? <div className="shrink-0">{headerAction}</div> : null}
       </div>
       {isCollapsed ? null : (

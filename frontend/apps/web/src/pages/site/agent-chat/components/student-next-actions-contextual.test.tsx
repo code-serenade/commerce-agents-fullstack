@@ -106,7 +106,7 @@ describe("StudentNextActions contextual suggestions", () => {
     expect(screen.getAllByText(new RegExp(student)).length).toBeGreaterThan(0)
     expect(screen.getByText(/main image expression/i)).toBeInTheDocument()
     expect(screen.queryByText(reportPrompts[0]!)).not.toBeInTheDocument()
-    expect(screen.queryByText(productFollowupLabel)).not.toBeInTheDocument()
+    expect(screen.getByText(productFollowupLabel)).toBeInTheDocument()
   })
 })
 

@@ -42,7 +42,7 @@ const task = mockAgentChatContext.task
 
 describe("AgentProcessDrawer", () => {
   it(
-    "shows pixel role workers inside the process dialog",
+    "shows role portrait workers inside the process dialog",
     async () => {
       const i18n = await createAgentChatTestI18n()
 

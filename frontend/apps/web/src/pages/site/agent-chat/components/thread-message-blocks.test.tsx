@@ -71,8 +71,11 @@ describe("WelcomeCard", () => {
       screen.getByText(i18n.t("agentChat.welcomeMessage"))
     ).toBeInTheDocument()
     expect(
+      screen.getByText(i18n.t("agentChat.homeRoleCluster.title"))
+    ).toBeInTheDocument()
+    expect(
       document.querySelector("[data-agent-portrait-asset]")
-    ).not.toBeInTheDocument()
+    ).toBeInTheDocument()
   })
 
   it("lets students start from task-type entries", async () => {

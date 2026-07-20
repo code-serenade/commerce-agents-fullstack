@@ -2287,6 +2287,11 @@ const messages = {
           summary:
             "Read customer sentiment, service flow, and response boundaries",
         },
+        box: {
+          name: "Product material specialist",
+          summary:
+            "Organize product information, sample selling points, and basic specs",
+        },
         ops: {
           name: "Operations strategist",
           summary:
@@ -2373,6 +2378,7 @@ const messages = {
         web: "Web/SEO plan",
         douyin_ads: "Operations plan",
         ops: "Operations plan",
+        box: "Product material prep",
       },
       artifactSpecs: {
         dataStatus: "Data diagnosis, metric attribution, platform context",

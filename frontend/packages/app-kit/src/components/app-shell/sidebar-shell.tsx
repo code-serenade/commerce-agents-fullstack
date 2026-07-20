@@ -156,7 +156,7 @@ export function SidebarShell({
       : "overflow-x-hidden overflow-y-auto [scrollbar-gutter:stable] md:pr-1",
   ].join(" ")
   const contentFrameClassName = [
-    "flex min-h-0 min-w-0 flex-1 overflow-hidden p-0 pb-[calc(4.25rem+env(safe-area-inset-bottom))]",
+    "flex min-h-0 min-w-0 flex-1 overflow-hidden p-0 pb-[calc(4.25rem+env(safe-area-inset-bottom))] md:pb-0",
     contentPadding === "default" ? "md:p-3" : "md:p-0",
   ].join(" ")
   const brandSecondaryText = getDistinctBrandSecondaryText(
@@ -165,7 +165,7 @@ export function SidebarShell({
   )
 
   return (
-    <div className="h-svh overflow-hidden [&_[data-sidebar=trigger]]:max-md:hidden">
+    <div className="app-shell-root h-dvh overflow-hidden [&_[data-sidebar=trigger]]:max-md:hidden">
       <TooltipProvider>
         <SidebarProvider defaultOpen={defaultSidebarOpen}>
           <div className="hidden md:contents">
@@ -209,7 +209,7 @@ export function SidebarShell({
                     </div>
                   ) : null}
                   <FixedLeadingItems sections={sections} />
-                  <div className="flex min-h-0 flex-1 flex-col overflow-hidden pr-1 [scrollbar-gutter:stable] group-data-[collapsible=icon]:pr-0">
+                  <div className="flex min-h-0 flex-1 basis-0 flex-col overflow-hidden group-data-[collapsible=icon]:overflow-hidden">
                     {sections.map((section) => (
                       <SidebarSectionGroup
                         key={section.key ?? String(section.label)}
@@ -226,29 +226,31 @@ export function SidebarShell({
                       aria-hidden="true"
                       className="h-px bg-sidebar-border"
                     />
-                    <SidebarFooter>
-                      <AvatarDropdown
-                        triggerVariant="sidebar"
-                        avatarAlt={footerAccount.avatarAlt}
-                        avatarSrc={footerAccount.avatarSrc}
-                        avatarFallback={footerAccount.avatarFallback}
-                        displayName={footerAccount.displayName}
-                        displayId={footerAccount.displayId}
-                        onTriggerSelect={footerAccount.onSelect}
-                        logout={footerAccount.logout}
-                      >
-                        {footerAccount.actions?.map((action, index) => (
-                          <AvatarDropdownItem
-                            key={index}
-                            icon={action.icon}
-                            label={action.label}
-                            onSelect={action.onSelect}
-                            href={action.href}
-                            disabled={action.disabled}
-                          />
-                        ))}
-                      </AvatarDropdown>
-                    </SidebarFooter>
+                    <div className="z-20 shrink-0 bg-sidebar bg-[image:var(--shell-sidebar-background)] group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:bg-none">
+                      <SidebarFooter>
+                        <AvatarDropdown
+                          triggerVariant="sidebar"
+                          avatarAlt={footerAccount.avatarAlt}
+                          avatarSrc={footerAccount.avatarSrc}
+                          avatarFallback={footerAccount.avatarFallback}
+                          displayName={footerAccount.displayName}
+                          displayId={footerAccount.displayId}
+                          onTriggerSelect={footerAccount.onSelect}
+                          logout={footerAccount.logout}
+                        >
+                          {footerAccount.actions?.map((action, index) => (
+                            <AvatarDropdownItem
+                              key={index}
+                              icon={action.icon}
+                              label={action.label}
+                              onSelect={action.onSelect}
+                              href={action.href}
+                              disabled={action.disabled}
+                            />
+                          ))}
+                        </AvatarDropdown>
+                      </SidebarFooter>
+                    </div>
                   </>
                 ) : null}
 
@@ -258,7 +260,7 @@ export function SidebarShell({
           </div>
 
           <SidebarInset>
-            <div className="flex h-svh min-h-0 min-w-0 flex-col overflow-hidden">
+            <div className="flex h-dvh min-h-0 min-w-0 flex-col overflow-hidden">
               {header}
               <div className={contentFrameClassName}>
                 <div className={contentClassName}>{children}</div>
@@ -320,7 +322,7 @@ function FixedLeadingItems({ sections }: { sections: SidebarShellSection[] }) {
   if (!fixedItems.length) return null
 
   return (
-    <div className="group-data-[collapsible=icon]:pt-0">
+    <div className="shrink-0 group-data-[collapsible=icon]:pt-0">
       <SidebarGroup>
         <SidebarGroupContent>
           <div className={sidebarMenuSpacingClassName}>
@@ -377,14 +379,14 @@ function SidebarSectionGroup({
   }
 
   const sectionClassName = [
-    section.fillRemaining ? "flex min-h-0 flex-1 flex-col" : "",
+    section.fillRemaining ? "flex min-h-0 flex-1 basis-0 flex-col" : "",
     section.hideWhenSidebarCollapsed ? "group-data-[collapsible=icon]:hidden" : "",
   ]
     .filter(Boolean)
     .join(" ")
   const groupClassName = [
     "relative flex w-full min-w-0 flex-col p-2 pb-0",
-    section.fillRemaining ? "min-h-0 flex-1 overflow-hidden" : "",
+    section.fillRemaining ? "min-h-0 flex-1 basis-0 overflow-hidden" : "",
   ]
     .filter(Boolean)
     .join(" ")
@@ -477,6 +479,7 @@ function getSectionContentClassName(
   fillRemaining?: boolean
 ) {
   const classNames = [
+    "app-shell-scrollarea",
     "min-w-0",
     "group-data-[collapsible=icon]:max-h-none",
     "group-data-[collapsible=icon]:overflow-hidden",
@@ -485,19 +488,19 @@ function getSectionContentClassName(
 
   if (fillRemaining) {
     classNames.push(
-      "min-h-0 flex-1 overflow-x-hidden overflow-y-auto pr-1 [scrollbar-gutter:stable]"
+      "min-h-0 flex-1 basis-0 overflow-x-hidden overflow-y-auto pr-3 [scrollbar-gutter:stable]"
     )
   } else if (maxContentHeight === "sm") {
     classNames.push(
-      "max-h-56 overflow-x-hidden overflow-y-auto pr-1 [scrollbar-gutter:stable]"
+      "max-h-56 overflow-x-hidden overflow-y-auto pr-3 [scrollbar-gutter:stable]"
     )
   } else if (maxContentHeight === "md") {
     classNames.push(
-      "max-h-72 overflow-x-hidden overflow-y-auto pr-1 [scrollbar-gutter:stable]"
+      "max-h-72 overflow-x-hidden overflow-y-auto pr-3 [scrollbar-gutter:stable]"
     )
   } else if (maxContentHeight === "lg") {
     classNames.push(
-      "max-h-80 overflow-x-hidden overflow-y-auto pr-1 [scrollbar-gutter:stable]"
+      "max-h-80 overflow-x-hidden overflow-y-auto pr-3 [scrollbar-gutter:stable]"
     )
   }
 
@@ -517,7 +520,9 @@ function SidebarGroupContentFrame({
       data-sidebar="group-content"
       className={[
         "w-full text-sm",
-        fillRemaining ? "flex min-h-0 flex-1 flex-col overflow-hidden" : "",
+        fillRemaining
+          ? "flex min-h-0 flex-1 basis-0 flex-col overflow-hidden"
+          : "",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -538,6 +543,9 @@ function SidebarSectionItems({
   itemOverflowOpen: boolean
   onItemOverflowOpenChange: (open: boolean) => void
 }) {
+  const { state } = useSidebar()
+  const isCollapsedSidebar = state === "collapsed"
+
   if (!itemOverflow) {
     return items.map((item) => (
       <SidebarNavRow
@@ -559,6 +567,8 @@ function SidebarSectionItems({
 
   const pinnedItems = items.slice(0, maxVisibleItems - 1)
   const overflowItems = items.slice(maxVisibleItems - 1)
+  const showOverflowItems = itemOverflowOpen && !isCollapsedSidebar
+  const showOverflowControl = !isCollapsedSidebar
 
   return (
     <>
@@ -568,14 +578,16 @@ function SidebarSectionItems({
           item={item}
         />
       ))}
-      <SidebarOverflowControlRow
-        expanded={itemOverflowOpen}
-        lessLabel={itemOverflow.lessLabel}
-        moreLabel={itemOverflow.moreLabel}
-        overflowItems={overflowItems}
-        onExpandedChange={onItemOverflowOpenChange}
-      />
-      {itemOverflowOpen
+      {showOverflowControl ? (
+        <SidebarOverflowControlRow
+          expanded={itemOverflowOpen}
+          lessLabel={itemOverflow.lessLabel}
+          moreLabel={itemOverflow.moreLabel}
+          overflowItems={overflowItems}
+          onExpandedChange={onItemOverflowOpenChange}
+        />
+      ) : null}
+      {showOverflowItems
         ? overflowItems.map((item) => (
             <SidebarNavRow
               key={item.key ?? item.href ?? String(item.label)}
@@ -605,6 +617,7 @@ function SidebarOverflowControlRow({
   const textSize = overflowItems.some((item) => item.textSize === "lg")
     ? "lg"
     : "default"
+  const controlLabel = expanded ? lessLabel : moreLabel
 
   return (
     <SidebarMenuItem>
@@ -622,7 +635,9 @@ function SidebarOverflowControlRow({
             disclosure={!expanded}
             disclosureOpen={false}
             variant="primary"
-            tooltip={typeof moreLabel === "string" ? moreLabel : undefined}
+            tooltip={
+              typeof controlLabel === "string" ? controlLabel : undefined
+            }
             onClick={() => onExpandedChange(!expanded)}
           >
             <MoreHorizontal
@@ -641,7 +656,7 @@ function SidebarOverflowControlRow({
                 .filter(Boolean)
                 .join(" ")}
             >
-              {expanded ? lessLabel : moreLabel}
+              {controlLabel}
             </span>
           </SidebarMenuButton>
         </div>

@@ -14,7 +14,7 @@ import { InlineSwarmTaskCard } from "./inline-swarm-task-card"
 const task = inlineSwarmTaskCardTestTask
 
 describe("InlineSwarmTaskCard", () => {
-  it("shows the active pixel role for quick dispatch process cards", async () => {
+  it("shows the active role portrait for quick dispatch process cards", async () => {
     const user = userEvent.setup()
     const i18n = await createAgentChatTestI18n()
 
@@ -173,7 +173,7 @@ describe("InlineSwarmTaskCard", () => {
     ).toBeInTheDocument()
   })
 
-  it("expands the pixel role work panel by default while streaming", async () => {
+  it("expands the role work panel by default while streaming", async () => {
     const i18n = await createAgentChatTestI18n()
 
     render(

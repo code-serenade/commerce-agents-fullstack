@@ -273,7 +273,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     leadingItems: [newConversationItem],
     leadingItemsFixed: true,
     itemOverflow: {
-      maxVisibleItems: 5,
+      maxVisibleItems: 4,
       moreLabel: t("agentChat.sidebar.more"),
       lessLabel: t("agentChat.sidebar.less"),
     },
@@ -286,7 +286,6 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     defaultOpen: true,
     fillRemaining: true,
     hideWhenSidebarCollapsed: true,
-    toggleHoverTone: "transparent",
     toggleLabel: t("agentChat.shell.sections.recents"),
     items: chat.conversations.length
       ? [

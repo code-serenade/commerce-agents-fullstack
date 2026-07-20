@@ -1,9 +1,9 @@
 import { useLayoutEffect, useState, type RefObject } from "react"
 
-const DEFAULT_PANEL_TOP_SAFE_SPACE = 120
-const STATUS_CARD_GAP = 12
+const DEFAULT_PANEL_TOP_SAFE_SPACE = 96
+const STATUS_CARD_GAP = 10
 const PANEL_VIEWPORT_GAP = 20
-const MIN_PANEL_HEIGHT = 260
+const MIN_PANEL_HEIGHT = 220
 const FALLBACK_PANEL_HEIGHT = 640
 
 export type AgentChatComposerPanelPlacement = "top" | "bottom"
@@ -14,7 +14,8 @@ export interface AgentChatComposerPanelLayout {
 }
 
 export function useAgentChatComposerPanelLayout(
-  composerRootRef: RefObject<HTMLElement | null>
+  composerRootRef: RefObject<HTMLElement | null>,
+  placementPreference: AgentChatComposerPanelPlacement | "auto" = "auto"
 ) {
   const [panelLayout, setPanelLayout] =
     useState<AgentChatComposerPanelLayout>({
@@ -40,12 +41,25 @@ export function useAgentChatComposerPanelLayout(
         Math.max(rootRect.bottom, 0) -
         PANEL_VIEWPORT_GAP
       const placement: AgentChatComposerPanelPlacement =
-        availableBelow > availableAbove ? "bottom" : "top"
+        placementPreference === "auto"
+          ? availableBelow > availableAbove
+            ? "bottom"
+            : "top"
+          : placementPreference
       const availableHeight =
         placement === "bottom" ? availableBelow : availableAbove
+      const viewportLimit =
+        viewportHeight - topSafeSpace - PANEL_VIEWPORT_GAP * 2
 
       setPanelLayout({
-        maxHeight: Math.max(MIN_PANEL_HEIGHT, Math.floor(availableHeight)),
+        maxHeight: Math.max(
+          MIN_PANEL_HEIGHT,
+          Math.min(
+            FALLBACK_PANEL_HEIGHT,
+            Math.floor(Math.max(MIN_PANEL_HEIGHT, availableHeight)),
+            Math.floor(Math.max(MIN_PANEL_HEIGHT, viewportLimit))
+          )
+        ),
         placement,
       })
     }
@@ -65,7 +79,7 @@ export function useAgentChatComposerPanelLayout(
       window.visualViewport?.removeEventListener("resize", updatePanelLayout)
       observer?.disconnect()
     }
-  }, [composerRootRef])
+  }, [composerRootRef, placementPreference])
 
   return panelLayout
 }

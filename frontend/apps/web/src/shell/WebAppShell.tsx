@@ -135,7 +135,7 @@ export function WebAppShell({ children }: WebAppShellProps) {
 
   return (
     <SidebarShell
-      brandLogo={<CommerceAgentLogo className="size-7 rounded-md" size="sm" />}
+      brandLogo={<CommerceAgentLogo />}
       brandEyebrow={t("web.shell.brand.eyebrow")}
       brandTitle={t("web.shell.brand.title")}
       brandDescription={t("web.shell.brand.description")}

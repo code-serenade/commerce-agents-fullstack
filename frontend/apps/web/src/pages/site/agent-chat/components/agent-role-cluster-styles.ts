@@ -5,15 +5,15 @@ export type AgentRoleClusterVariant = "compact" | "showcase" | "timeline"
 
 export const panelClassNames: Record<InlineAgentState, string> = {
   boundary:
-    "border-amber-200/80 bg-(--agent-chat-elevated-strong) shadow-sm dark:border-amber-900/60",
-  done: "border-emerald-200/80 bg-(--agent-chat-elevated-strong) shadow-sm dark:border-emerald-900/60",
-  failed: "border-destructive/25 bg-(--agent-chat-elevated-strong) shadow-sm",
-  idle: "border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) shadow-sm",
+    "border-amber-200 bg-amber-50/70 dark:border-amber-900/60 dark:bg-amber-950/20",
+  done: "border-emerald-200 bg-emerald-50/70 dark:border-emerald-900/60 dark:bg-emerald-950/20",
+  failed: "border-destructive/25 bg-destructive/10",
+  idle: "border-border bg-card",
   queued:
-    "border-sky-200/80 bg-(--agent-chat-elevated-strong) shadow-sm dark:border-sky-900/60",
+    "border-sky-200 bg-sky-50/70 dark:border-sky-900/60 dark:bg-sky-950/20",
   reworking:
-    "border-violet-200/80 bg-(--agent-chat-elevated-strong) shadow-sm dark:border-violet-900/60",
-  working: "border-primary/35 bg-(--agent-chat-elevated-strong) shadow-sm",
+    "border-violet-200 bg-violet-50/70 dark:border-violet-900/60 dark:bg-violet-950/20",
+  working: "border-primary/30 bg-primary/5",
 }
 
 export const roleAccentClassNames: Record<AgentRoleKey, string> = {

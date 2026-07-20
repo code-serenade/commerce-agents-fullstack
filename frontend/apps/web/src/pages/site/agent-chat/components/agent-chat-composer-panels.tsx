@@ -133,6 +133,7 @@ export function AgentChatComposerPanels({
         onClose={onClosePanels}
         open={productContextOpen}
         placement={panelPlacement}
+        size="wide"
       >
         <AgentChatProductContextBar
           availableProducts={availableProducts}
@@ -149,6 +150,7 @@ export function AgentChatComposerPanels({
         onClose={onClosePanels}
         open={campaignContextOpen}
         placement={panelPlacement}
+        size="wide"
       >
         <AgentChatCampaignContextBar
           availableCampaigns={availableCampaigns}

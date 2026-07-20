@@ -30,18 +30,18 @@ export function AgentChatReportActions({
 
   return (
     <div
-      className="relative z-20 shrink-0 border-b border-(--document-card-border) bg-(image:--document-card-background) px-4 py-2 shadow-sm backdrop-blur-md sm:px-7"
-      data-agent-chat-status-card="true"
+      className="relative z-20 shrink-0 px-4 pt-3 sm:px-7 sm:pt-4"
+      data-agent-chat-report-actions="true"
     >
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0 flex-1">
+      <div className="mx-auto flex w-full max-w-4xl min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-2xl border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) px-3 py-2 shadow-(--agent-chat-floating-shadow) backdrop-blur-xl">
+        <div className="min-w-0 flex-1 basis-[20rem] text-left">
           {leading ?? (
             <span className="text-xs font-medium text-muted-foreground">
               {t("agentChat.reportActions.currentConversation")}
             </span>
           )}
         </div>
-        <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">
+        <div className="flex min-w-0 flex-1 basis-[18rem] flex-wrap items-center justify-start gap-1 sm:justify-end">
           <Button
             type="button"
             size="xs"
@@ -50,7 +50,7 @@ export function AgentChatReportActions({
             onClick={onExportTranscript}
           >
             <Download className="size-3.5" />
-            <span>
+            <span className="whitespace-nowrap">
               {isExportingTranscript
                 ? t("agentChat.reportActions.exportingTranscript")
                 : t("agentChat.reportActions.exportTranscript")}
@@ -64,13 +64,13 @@ export function AgentChatReportActions({
             onClick={onExportReport}
           >
             <FileText className="size-3.5" />
-            <span>
+            <span className="whitespace-nowrap">
               {isGeneratingReport
                 ? t("agentChat.reportActions.generatingReport")
                 : t("agentChat.reportActions.exportReport")}
             </span>
           </Button>
-          <span className="h-4 w-px bg-border" />
+          <span className="h-4 w-px shrink-0 bg-border" />
           <Button
             type="button"
             size="xs"
@@ -79,7 +79,9 @@ export function AgentChatReportActions({
             onClick={onOpenReportCenter}
           >
             <FolderOpen className="size-3.5" />
-            <span>{t("agentChat.reportActions.openReportCenter")}</span>
+            <span className="whitespace-nowrap">
+              {t("agentChat.reportActions.openReportCenter")}
+            </span>
           </Button>
         </div>
       </div>

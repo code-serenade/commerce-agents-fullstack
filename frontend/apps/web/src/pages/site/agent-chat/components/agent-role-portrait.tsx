@@ -74,6 +74,7 @@ function AgentPortraitImage({
           isWorking ? "agent-role-portrait__sprite--working" : ""
         }`}
         data-agent-portrait-asset={asset.key}
+        data-agent-portrait-role={asset.role}
         data-agent-portrait-state={activity.state}
         data-agent-portrait-source={isWorking ? "working" : "static"}
         src={asset.src}

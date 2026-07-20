@@ -8,7 +8,7 @@ import { getAgentChatStrategy } from "../domain/agent-chat-strategy"
 import { AgentChatThread } from "./agent-chat-thread"
 
 describe("AgentChatThread avatar", () => {
-  it("uses the commerce copilot pixel avatar for assistant replies", async () => {
+  it("uses the commerce copilot portrait avatar for assistant replies", async () => {
     const i18n = await createAgentChatTestI18n()
 
     render(
@@ -38,7 +38,7 @@ describe("AgentChatThread avatar", () => {
       )
     ).toBeInTheDocument()
     expect(
-      document.querySelector("[data-agent-portrait-asset='box-portrait']")
+      document.querySelector("[data-agent-portrait-asset='service-portrait']")
     ).toHaveAttribute("data-agent-portrait-source", "static")
   })
 
@@ -73,7 +73,7 @@ describe("AgentChatThread avatar", () => {
       )
     ).toBeInTheDocument()
     expect(
-      document.querySelector("[data-agent-portrait-asset='box-portrait']")
+      document.querySelector("[data-agent-portrait-asset='service-portrait']")
     ).toHaveClass("agent-role-portrait__sprite--working")
   })
 })

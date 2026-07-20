@@ -93,10 +93,11 @@ describe("getAgentRoleActivities", () => {
     ])
   })
 
-  it("maps platform launch wording to the existing ops role", () => {
+  it("maps platform reading and launch wording to distinct matching roles", () => {
     const activities = getAgentRoleActivities(
       [
         createAgent("readTarget", "working"),
+        createAgent("platform-policy-source", "working"),
         createAgent("douyin_ads", "working"),
         createAgent("qianchuan-plan", "working"),
         createAgent("ads-budget", "working"),
@@ -104,8 +105,28 @@ describe("getAgentRoleActivities", () => {
       t
     )
 
-    expect(activities.map((activity) => activity.role)).toEqual(["box", "ops"])
+    expect(activities.map((activity) => activity.role)).toEqual(["search", "ops"])
+    expect(activities[0]?.agent.name).toBe(
+      "agentChat.thread.agents.search.name"
+    )
     expect(activities[1]?.agent.name).toBe("agentChat.thread.agents.ops.name")
+  })
+
+  it("keeps product and delivery roles from sharing generic fallback mapping", () => {
+    const activities = getAgentRoleActivities(
+      [
+        createAgent("product-sku-listing-title", "working"),
+        createAgent("delivery-report-document", "working"),
+        createAgent("unknown-policy-check", "working"),
+      ],
+      t
+    )
+
+    expect(activities.map((activity) => activity.role)).toEqual([
+      "box",
+      "delivery",
+      "search",
+    ])
   })
 
   it("deduplicates several internal nodes that belong to the same user-facing role", () => {

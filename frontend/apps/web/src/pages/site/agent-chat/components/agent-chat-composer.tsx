@@ -5,6 +5,7 @@ import { AgentChatComposerInput } from "./agent-chat-composer-input"
 import { AgentChatComposerPanels } from "./agent-chat-composer-panels"
 import { AgentChatComposerStatus } from "./agent-chat-composer-status"
 import { AgentChatComposerToolbar } from "./agent-chat-composer-toolbar"
+import { useAgentChatBottomPanelReserve } from "../view-model/use-agent-chat-bottom-panel-reserve"
 import { useAgentChatComposerEvents } from "../view-model/use-agent-chat-composer-events"
 import { useAgentChatComposerPanelLayout } from "../view-model/use-agent-chat-composer-panel-layout"
 import { useAgentChatPanelOutsideClose } from "../view-model/use-agent-chat-panel-outside-close"
@@ -65,11 +66,9 @@ export function AgentChatComposer({
   const composerRootRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const isWelcomePlacement = placement === "welcome"
   const panelLayout = useAgentChatComposerPanelLayout(composerRootRef)
-  const panels = useAgentChatPanelState({
-    requestedPanel,
-    requestedPanelVersion,
-  })
+  const panels = useAgentChatPanelState({ requestedPanel, requestedPanelVersion })
   const {
     campaignContextOpen,
     closePanels,
@@ -89,16 +88,21 @@ export function AgentChatComposer({
     onUploadAttachments,
     textareaRef,
   })
+  const hasOpenComposerPanel =
+    campaignContextOpen ||
+    productContextOpen ||
+    sourceContextOpen ||
+    settingsOpen
   useAgentChatPanelOutsideClose({
     closePanels,
     composerRootRef,
-    hasOpenPanel:
-      campaignContextOpen ||
-      productContextOpen ||
-      sourceContextOpen ||
-      settingsOpen,
+    hasOpenPanel: hasOpenComposerPanel,
   })
-  const isWelcomePlacement = placement === "welcome"
+  const composerRootStyle = useAgentChatBottomPanelReserve({
+    composerRootRef,
+    hasOpenPanel: hasOpenComposerPanel,
+    placement: panelLayout.placement,
+  })
   useEffect(() => {
     const textarea = textareaRef.current
     if (!textarea) return
@@ -111,19 +115,19 @@ export function AgentChatComposer({
     textareaRef.current?.focus()
   }, [focusVersion, isStreaming])
   const footerClassName = isWelcomePlacement
-    ? "relative z-30 mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col justify-center"
-    : "relative z-30 min-w-0 w-full max-w-full shrink-0 px-4 pt-3 pb-5 sm:px-7"
+    ? "relative z-30 w-full shrink-0"
+    : "relative z-30 shrink-0 px-4 pt-3 pb-5 sm:px-7"
   const headingClassName = isWelcomePlacement
-    ? "mx-auto mb-8 w-full max-w-5xl text-center text-2xl font-semibold text-foreground sm:text-3xl 2xl:text-[32px]"
+    ? "mx-auto mb-8 w-full max-w-4xl text-center text-2xl font-semibold text-foreground sm:text-3xl 2xl:text-[32px]"
     : "mx-auto mb-4 w-full max-w-4xl text-center text-xl font-semibold text-foreground sm:text-2xl"
-  const maxWidthClassName = isWelcomePlacement ? "max-w-5xl" : "max-w-4xl"
   return (
     <footer className={footerClassName}>
       {heading ? <div className={headingClassName}>{heading}</div> : null}
       <div
         ref={composerRootRef}
         data-agent-chat-composer-root="true"
-        className={`mx-auto flex min-w-0 w-full flex-col gap-2 rounded-[26px] border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) p-2 shadow-(--agent-chat-floating-shadow) backdrop-blur-xl transition-colors focus-within:border-primary/35 focus-within:shadow-(--agent-chat-focus-shadow) dark:bg-card ${maxWidthClassName}`}
+        className="mx-auto flex w-full max-w-4xl flex-col gap-2 rounded-[26px] border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) p-2 shadow-(--agent-chat-floating-shadow) backdrop-blur-xl transition-colors focus-within:border-primary/35 focus-within:shadow-(--agent-chat-focus-shadow) dark:bg-card"
+        style={composerRootStyle}
         onMouseDown={composerEvents.focusComposer}
       >
         <div className="relative">
@@ -208,9 +212,7 @@ export function AgentChatComposer({
               isLoadingProducts={isLoadingProducts}
               isLoadingRuntimeOptions={isLoadingRuntimeOptions}
               isStreaming={isStreaming}
-              onRuntimeCollaborationModeChange={
-                onRuntimeCollaborationModeChange
-              }
+              onRuntimeCollaborationModeChange={onRuntimeCollaborationModeChange}
               onRuntimeLearningLevelChange={onRuntimeLearningLevelChange}
               onRuntimePrimaryRoleChange={onRuntimePrimaryRoleChange}
               onRuntimeRoutingModeChange={onRuntimeRoutingModeChange}
@@ -248,9 +250,7 @@ export function AgentChatComposer({
         </div>
       </div>
       {children ? (
-        <div className={`mx-auto min-w-0 w-full ${maxWidthClassName}`}>
-          {children}
-        </div>
+        <div className="mx-auto w-full max-w-4xl">{children}</div>
       ) : null}
     </footer>
   )

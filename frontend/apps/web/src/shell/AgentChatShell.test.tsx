@@ -138,15 +138,30 @@ describe("AgentChatShell", () => {
       name: chatState.conversationTitles[0],
     })
     expect(
-      screen.queryByRole("button", {
-        name: i18n.t("agentChat.shell.navigation.questionIdeas"),
-      })
-    ).not.toBeInTheDocument()
+      screen.getAllByRole("button", {
+        name: i18n.t("agentChat.shell.navigation.productBoard"),
+      }).length
+    ).toBeGreaterThan(0)
+    expect(
+      screen.getAllByRole("button", {
+        name: i18n.t("agentChat.shell.navigation.materials"),
+      }).length
+    ).toBeGreaterThan(0)
+    expect(
+      screen.getAllByRole("button", {
+        name: i18n.t("agentChat.shell.navigation.campaigns"),
+      }).length
+    ).toBeGreaterThan(0)
     expect(
       screen.getByRole("button", {
         name: i18n.t("agentChat.sidebar.more"),
       })
     ).toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", {
+        name: i18n.t("agentChat.shell.navigation.questionIdeas"),
+      })
+    ).not.toBeInTheDocument()
     expect(newChatButton.getAttribute("data-size")).toBe(
       firstHistoryButton.getAttribute("data-size")
     )
@@ -199,6 +214,7 @@ describe("AgentChatShell", () => {
 
   it("shows the same navigation entries for guests", async () => {
     const i18n = await createAgentChatTestI18n()
+    const user = userEvent.setup()
 
     render(
       <TestProviders i18n={i18n} loggedIn={false}>
@@ -219,11 +235,6 @@ describe("AgentChatShell", () => {
         .filter((element) => !element.closest("button,a"))
     ).toHaveLength(0)
     expect(
-      screen.queryByRole("button", {
-        name: i18n.t("agentChat.shell.navigation.questionIdeas"),
-      })
-    ).not.toBeInTheDocument()
-    expect(
       screen.getAllByRole("button", {
         name: i18n.t("agentChat.shell.navigation.productBoard"),
       }).length
@@ -243,6 +254,16 @@ describe("AgentChatShell", () => {
         name: i18n.t("agentChat.shell.tabs.chat"),
       })
     ).not.toBeInTheDocument()
+    await user.click(
+      screen.getByRole("button", {
+        name: i18n.t("agentChat.sidebar.more"),
+      })
+    )
+    expect(
+      screen.getAllByRole("button", {
+        name: i18n.t("agentChat.shell.navigation.questionIdeas"),
+      }).length
+    ).toBeGreaterThan(0)
     expect(
       screen.getAllByText(i18n.t("agentChat.shell.sections.recents")).length
     ).toBeGreaterThan(0)
@@ -267,7 +288,9 @@ describe("AgentChatShell", () => {
     )
 
     await user.click(
-      screen.getByRole("button", { name: i18n.t("agentChat.sidebar.more") })
+      screen.getByRole("button", {
+        name: i18n.t("agentChat.sidebar.more"),
+      })
     )
     await user.click(
       screen.getByRole("button", {
@@ -380,10 +403,14 @@ describe("AgentChatShell", () => {
 
     expect(chatState.startNewConversation).toHaveBeenCalledTimes(1)
     expect(locationSpy).toHaveBeenLastCalledWith("/commerce")
-    expect(screen.getByText("Ctrl K")).toBeInTheDocument()
+    expect(
+      screen.getAllByRole("button", {
+        name: i18n.t("agentChat.sidebar.newChat"),
+      }).length
+    ).toBeGreaterThan(0)
   }, 15000)
 
-  it("folds common and training entries after the first four menu items", async () => {
+  it("keeps common entries compact and places the overflow control after them", async () => {
     const i18n = await createAgentChatTestI18n()
     const user = userEvent.setup()
 
@@ -396,11 +423,6 @@ describe("AgentChatShell", () => {
     )
 
     expect(
-      screen.getByRole("button", {
-        name: i18n.t("agentChat.shell.navigation.capabilities"),
-      })
-    ).toBeInTheDocument()
-    expect(
       screen.getAllByRole("button", {
         name: i18n.t("agentChat.shell.navigation.productBoard"),
       }).length
@@ -410,11 +432,6 @@ describe("AgentChatShell", () => {
         name: i18n.t("agentChat.sidebar.more"),
       })
     ).toBeInTheDocument()
-    expect(
-      screen.queryByRole("button", {
-        name: i18n.t("agentChat.sidebar.less"),
-      })
-    ).not.toBeInTheDocument()
     expect(
       screen.getAllByRole("button", {
         name: i18n.t("agentChat.shell.navigation.materials"),
@@ -427,7 +444,12 @@ describe("AgentChatShell", () => {
     ).toBeGreaterThan(0)
     expect(
       screen.queryByRole("button", {
-        name: i18n.t("web.shell.navigation.workspaces"),
+        name: i18n.t("agentChat.shell.navigation.capabilities"),
+      })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", {
+        name: i18n.t("agentChat.shell.navigation.questionIdeas"),
       })
     ).not.toBeInTheDocument()
     expect(
@@ -437,24 +459,9 @@ describe("AgentChatShell", () => {
     ).not.toBeInTheDocument()
     expect(
       screen.queryByRole("button", {
-        name: i18n.t("web.shell.navigation.home"),
+        name: i18n.t("web.shell.navigation.workspaces"),
       })
     ).not.toBeInTheDocument()
-
-    await user.click(
-      screen.getByRole("button", { name: i18n.t("agentChat.sidebar.more") })
-    )
-
-    expect(
-      screen.getByRole("button", {
-        name: i18n.t("agentChat.sidebar.less"),
-      })
-    ).toBeInTheDocument()
-    expect(
-      screen.getAllByRole("button", {
-        name: i18n.t("agentChat.shell.navigation.questionIdeas"),
-      }).length
-    ).toBeGreaterThan(0)
     expect(
       screen.queryByRole("button", {
         name: i18n.t("web.shell.navigation.workspaces"),
@@ -475,19 +482,80 @@ describe("AgentChatShell", () => {
         name: i18n.t("web.shell.navigation.operations"),
       })
     ).not.toBeInTheDocument()
+
+    const moreButton = screen.getByRole("button", {
+      name: i18n.t("agentChat.sidebar.more"),
+    })
+    await user.click(moreButton)
+
+    const lessButton = screen.getByRole("button", {
+      name: i18n.t("agentChat.sidebar.less"),
+    })
+    const capabilitiesButton = screen.getByRole("button", {
+      name: i18n.t("agentChat.shell.navigation.capabilities"),
+    })
     expect(
-      screen.getAllByRole("button", {
-        name: i18n.t("web.shell.navigation.agentOutput"),
-      }).length
-    ).toBeGreaterThan(0)
+      screen.getByRole("button", {
+        name: i18n.t("agentChat.shell.navigation.questionIdeas"),
+      })
+    ).toBeInTheDocument()
+    const agentOutputButton = screen.getByRole("button", {
+      name: i18n.t("web.shell.navigation.agentOutput"),
+    })
+    expect(
+      lessButton.compareDocumentPosition(capabilitiesButton) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+    expect(
+      lessButton.compareDocumentPosition(agentOutputButton) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
     expect(
       screen.queryByRole("button", {
         name: i18n.t("web.shell.navigation.home"),
       })
     ).not.toBeInTheDocument()
+
+    await user.click(lessButton)
+
+    expect(
+      screen.getAllByRole("button", {
+        name: i18n.t("agentChat.shell.navigation.productBoard"),
+      }).length
+    ).toBeGreaterThan(0)
+    expect(
+      screen.getAllByRole("button", {
+        name: i18n.t("agentChat.shell.navigation.materials"),
+      }).length
+    ).toBeGreaterThan(0)
+    expect(
+      screen.getAllByRole("button", {
+        name: i18n.t("agentChat.shell.navigation.campaigns"),
+      }).length
+    ).toBeGreaterThan(0)
+    expect(
+      screen.queryByRole("button", {
+        name: i18n.t("agentChat.shell.navigation.capabilities"),
+      })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", {
+        name: i18n.t("agentChat.shell.navigation.questionIdeas"),
+      })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", {
+        name: i18n.t("web.shell.navigation.agentOutput"),
+      })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole("button", {
+        name: i18n.t("agentChat.sidebar.more"),
+      })
+    ).toBeInTheDocument()
   }, 15000)
 
-  it("keeps chat and training navigation merged for logged-in users", async () => {
+  it("keeps the SYF-style single sidebar while hiding removed training entries", async () => {
     const i18n = await createAgentChatTestI18n()
     const user = userEvent.setup()
 
@@ -509,9 +577,20 @@ describe("AgentChatShell", () => {
     ).toBeGreaterThan(0)
     expect(
       screen.queryByRole("button", {
+        name: i18n.t("agentChat.shell.tabs.chat"),
+      })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", {
         name: i18n.t("agentChat.shell.tabs.training"),
       })
     ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole("button", {
+        name: i18n.t("agentChat.shell.sections.recents"),
+        expanded: true,
+      })
+    ).toBeInTheDocument()
     expect(
       screen.queryByRole("button", {
         name: i18n.t("web.shell.navigation.approvals"),
@@ -519,24 +598,45 @@ describe("AgentChatShell", () => {
     ).not.toBeInTheDocument()
 
     await user.click(
-      screen.getByRole("button", { name: i18n.t("agentChat.sidebar.more") })
+      screen.getByRole("button", {
+        name: i18n.t("agentChat.sidebar.more"),
+      })
     )
-
     expect(
-      screen.getAllByRole("button", {
+      screen.getByRole("button", {
         name: i18n.t("web.shell.navigation.agentOutput"),
-      }).length
-    ).toBeGreaterThan(0)
+      })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", {
+        name: i18n.t("agentChat.shell.sections.recents"),
+        expanded: true,
+      })
+    ).toBeInTheDocument()
     expect(
       screen.queryByRole("button", {
         name: i18n.t("web.shell.navigation.approvals"),
+      })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", {
+        name: i18n.t("web.shell.navigation.workspaces"),
+      })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", {
+        name: i18n.t("web.shell.navigation.platformConnect"),
+      })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", {
+        name: i18n.t("web.shell.navigation.operations"),
       })
     ).not.toBeInTheDocument()
   }, 15000)
 
   it("keeps the merged navigation visible when refreshing a training route", async () => {
     const i18n = await createAgentChatTestI18n()
-    const user = userEvent.setup()
 
     render(
       <TestProviders i18n={i18n} initialEntries={["/workspaces/workspace-1"]}>
@@ -556,10 +656,6 @@ describe("AgentChatShell", () => {
         name: i18n.t("web.shell.navigation.workspaces"),
       })
     ).not.toBeInTheDocument()
-
-    await user.click(
-      screen.getByRole("button", { name: i18n.t("agentChat.sidebar.more") })
-    )
 
     expect(
       screen.queryByRole("button", {

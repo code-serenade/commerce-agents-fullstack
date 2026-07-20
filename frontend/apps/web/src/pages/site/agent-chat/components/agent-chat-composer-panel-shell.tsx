@@ -56,8 +56,8 @@ export function AgentChatComposerPanelShell({
       : "bottom-[calc(100%+1.25rem)] origin-bottom"
   const widthClassName =
     size === "wide"
-      ? "inset-x-0 sm:inset-x-auto sm:left-1/2 sm:w-[min(calc(100vw_-_var(--sidebar-width)_-_2rem),72rem)] sm:-translate-x-1/2"
-      : "inset-x-0 sm:inset-x-auto sm:left-1/2 sm:w-[min(calc(100vw_-_var(--sidebar-width)_-_2rem),60rem)] sm:-translate-x-1/2"
+      ? "inset-x-0 sm:inset-x-auto sm:left-1/2 sm:w-[min(calc(100dvw_-_var(--sidebar-width)_-_2rem),72rem)] sm:max-w-[calc(100dvw_-_2rem)] sm:-translate-x-1/2"
+      : "inset-x-0 sm:inset-x-auto sm:left-1/2 sm:w-[min(calc(100dvw_-_var(--sidebar-width)_-_2rem),60rem)] sm:max-w-[calc(100dvw_-_2rem)] sm:-translate-x-1/2"
   const hiddenTransformClassName =
     placement === "bottom" ? "-translate-y-3" : "translate-y-3"
 

@@ -2199,6 +2199,10 @@ const messages = {
           name: "客户成功专员",
           summary: "看咨询情绪、售后流程和话术边界",
         },
+        box: {
+          name: "商品资料员",
+          summary: "整理商品信息、样品卖点和基础参数",
+        },
         ops: {
           name: "运营策略师",
           summary: "拆策略、活动节奏、选品和执行优先级",
@@ -2279,6 +2283,7 @@ const messages = {
         web: "Web/SEO方案",
         douyin_ads: "运营方案",
         ops: "运营方案",
+        box: "商品资料整理",
       },
       artifactSpecs: {
         dataStatus: "数据诊断、指标归因、平台场景资料",

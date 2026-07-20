@@ -104,7 +104,7 @@ export function ComposerPanelFrame({
         title={title}
       />
       <div
-        className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain pr-3 pb-9 [scrollbar-gutter:stable]"
+        className="agent-chat-scrollarea min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain pr-3 pb-9 [scrollbar-gutter:stable]"
         data-agent-chat-composer-panel-scroll="true"
       >
         {children}

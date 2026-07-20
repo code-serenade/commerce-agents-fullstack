@@ -53,9 +53,7 @@ describe("AgentChatComposerPanelShell", () => {
     expect(scroll).toHaveClass("overflow-y-auto")
     expect(scroll).toHaveClass("overflow-x-hidden")
     expect(content).toHaveClass("p-4")
-    expect(shell).toHaveClass(
-      "sm:w-[min(calc(100vw_-_var(--sidebar-width)_-_2rem),60rem)]"
-    )
+    expect(shell).toHaveClass("inset-x-0")
   })
 
   it("can render below the composer when the caller selects bottom placement", async () => {
@@ -102,9 +100,11 @@ describe("AgentChatComposerPanelShell", () => {
       .closest("[data-agent-chat-composer-panel-shell='true']")
 
     expect(shell).toHaveAttribute("data-agent-chat-composer-panel-size", "wide")
+    expect(shell).toHaveClass("inset-x-0")
     expect(shell).toHaveClass(
-      "sm:w-[min(calc(100vw_-_var(--sidebar-width)_-_2rem),72rem)]"
+      "sm:w-[min(calc(100dvw_-_var(--sidebar-width)_-_2rem),72rem)]"
     )
+    expect(shell).toHaveClass("sm:max-w-[calc(100dvw_-_2rem)]")
   })
 
   it("renders close action inside the panel header area", async () => {

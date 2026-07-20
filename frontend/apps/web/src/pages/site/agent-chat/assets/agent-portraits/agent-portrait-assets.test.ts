@@ -8,7 +8,7 @@ import { getAgentPortraitAsset } from "./agent-portrait-assets"
 const currentDir = dirname(fileURLToPath(import.meta.url))
 
 describe("agent portrait assets", () => {
-  it("provides selected pixel PNG portrait assets for each commerce role", () => {
+  it("provides realistic PNG portrait assets for each commerce role", () => {
     ;[
       "ops",
       "search",
@@ -46,7 +46,7 @@ describe("agent portrait assets", () => {
 })
 
 function readPortraitSource(fileName: string) {
-  return readFileSync(resolve(currentDir, "pixel-selected", fileName))
+  return readFileSync(resolve(currentDir, "realistic", fileName))
 }
 
 function isPng(source: Buffer) {
