@@ -67,7 +67,7 @@ describe("AgentProcessDrawer", () => {
       const roleCluster = dialog.querySelector("[data-agent-role-cluster]")
 
       expect(drawer).not.toBeNull()
-      expect(drawer).toHaveClass("absolute")
+      expect(drawer).toHaveClass("fixed")
       expect(drawer).toHaveClass("inset-0")
       expect(roleCluster).not.toBeNull()
       expect(

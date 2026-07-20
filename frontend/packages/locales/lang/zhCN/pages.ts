@@ -5,11 +5,12 @@ const pages = {
       titleLine1: "创建账号，",
       titleLine2: "进入电商多智能体平台。",
       desc1: "用一个账号保存会话、商品上下文、活动任务和交付资料。",
-      desc2: "注册后可以让各岗位 Agent 协作处理选品、内容、投放、客服、成本和复盘问题。",
+      desc2:
+        "注册后可以让各岗位 Agent 协作处理选品、内容、投放、客服、成本和复盘问题。",
     },
     welcome: "创建新账号",
     title: "注册你的账号",
-    subtitle: "创建账号后即可进入电商多智能体平台，开始管理你的电商任务。",
+    subtitle: "注册后即可进入平台，开始电商实训。",
     form: {
       password: {
         label: "密码",
@@ -56,22 +57,23 @@ const pages = {
       security: "修改密码",
     },
     fields: {
+      account: "账号",
       id: "ID",
       email: "邮箱",
-      name: "名称",
+      name: "昵称",
       currentPassword: "当前密码",
       newPassword: "新密码",
       confirmPassword: "确认新密码",
     },
     placeholders: {
-      name: "请输入显示名称",
+      name: "请输入昵称",
       email: "请输入邮箱地址",
       currentPassword: "请输入当前密码",
       newPassword: "请输入新密码",
       confirmPassword: "请再次输入新密码",
     },
     help: {
-      name: "你的名称会显示在应用中与你相关的贡献、提及和资料位置。",
+      name: "你的昵称会显示在应用中与你相关的贡献、提及和资料位置。",
       emailNotSet: "设置邮箱后可用于账号找回和通知。",
       newPassword: "新密码至少需要 8 个字符。",
     },
@@ -117,6 +119,7 @@ const pages = {
       passwordMismatch: "两次输入的新密码不一致。",
     },
     fallback: {
+      account: "未知账号",
       id: "未知 ID",
       email: "未设置邮箱",
       name: "用户",

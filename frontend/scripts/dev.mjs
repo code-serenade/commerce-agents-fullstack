@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process"
+import { createRequire } from "node:module"
 
 const rawArgs = process.argv.slice(2)
 
@@ -14,10 +15,11 @@ for (const arg of rawArgs) {
 }
 
 const turboArgs = ["dev", ...targetArgs, ...passthroughArgs]
+const require = createRequire(import.meta.url)
+const turboBin = require.resolve("turbo/bin/turbo")
 
-const child = spawn("turbo", turboArgs, {
+const child = spawn(process.execPath, [turboBin, ...turboArgs], {
   stdio: "inherit",
-  shell: process.platform === "win32",
 })
 
 child.on("exit", (code, signal) => {

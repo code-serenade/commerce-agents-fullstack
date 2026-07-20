@@ -1,6 +1,7 @@
 import { Button } from "@workspace/ui-components/stable/button"
 import { ChevronDown, ChevronUp } from "lucide-react"
 import { useState } from "react"
+import { createPortal } from "react-dom"
 import { useTranslation } from "react-i18next"
 import type { AgentRuntimeEvent } from "../agent-chat-data"
 import { useAgentChatContext } from "../context/use-agent-chat-context"
@@ -30,9 +31,9 @@ export function AgentProcessDrawer({
     : t("agentChat.thread.dispatchPanel.collapseRoleClusterCards")
   const RoleClusterToggleIcon = isRoleClusterCollapsed ? ChevronDown : ChevronUp
 
-  return (
+  const drawer = (
     <div
-      className="absolute inset-0 z-50 flex justify-end bg-background/28 backdrop-blur-[2px]"
+      className="fixed inset-0 z-9999 flex justify-end bg-background/28 backdrop-blur-[2px]"
       data-agent-process-drawer="true"
       onPointerDown={onClose}
       role="presentation"
@@ -40,11 +41,11 @@ export function AgentProcessDrawer({
       <div
         aria-label={t("agentChat.workbench.title")}
         aria-modal="true"
-        className="flex h-full w-[min(42rem,100%)] max-w-full min-w-0 flex-col items-end md:w-[min(42rem,88%)] xl:w-[min(44rem,48%)] 2xl:w-[min(48rem,46%)]"
+        className="flex h-dvh w-[min(42rem,100%)] max-w-full min-w-0 flex-col items-end md:w-[min(42rem,88%)] xl:w-[min(44rem,48%)] 2xl:w-[min(48rem,46%)]"
         onPointerDown={(event) => event.stopPropagation()}
         role="dialog"
       >
-        <div className="agent-process-drawer__panel pointer-events-auto size-full min-h-0 max-w-full min-w-0 overflow-hidden border-y-0 border-r-0 border-l border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-surface) bg-(image:--agent-chat-card-background) text-[13px] leading-relaxed shadow-(--agent-chat-card-shadow) backdrop-blur-xl [&_.text-\[10px\]]:text-[11px] [&_.text-\[11px\]]:text-xs [&_.text-xs]:text-sm">
+        <div className="agent-process-drawer__panel pointer-events-auto h-dvh min-h-0 w-full max-w-full min-w-0 overflow-hidden border-y-0 border-r-0 border-l border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-surface) bg-(image:--agent-chat-card-background) text-[13px] leading-relaxed shadow-(--agent-chat-card-shadow) backdrop-blur-xl [&_.text-\[10px\]]:text-[11px] [&_.text-\[11px\]]:text-xs [&_.text-xs]:text-sm">
           <AgentChatSwarmPanel
             feedback={chat.feedback}
             headerAddon={
@@ -86,4 +87,8 @@ export function AgentProcessDrawer({
       </div>
     </div>
   )
+
+  if (typeof document === "undefined") return null
+
+  return createPortal(drawer, document.body)
 }

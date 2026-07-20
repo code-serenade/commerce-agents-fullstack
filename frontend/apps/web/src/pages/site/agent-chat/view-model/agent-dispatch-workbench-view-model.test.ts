@@ -102,7 +102,7 @@ describe("getDispatchWorkbenchModel", () => {
       `${dispatchFactTestLabels.searchAuditLabel}: ${dispatchFactTestLabels.searchAuditDetail}`
     )
     expect(model.previewLines).toContain(
-      "Material audit: missing pack 1 selected 2 packed 1 readable 1 missing 1 omitted 0 unreadable 0 warnings 0 readiness ready"
+      "Material audit: missing pack 1 selected 2 packed 1 readable 1 missing 1 omitted 0 unreadable 0 warnings 0 readiness Ready"
     )
   })
 
