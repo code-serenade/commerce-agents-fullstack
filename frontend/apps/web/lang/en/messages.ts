@@ -1605,6 +1605,7 @@ const messages = {
         searchPlaceholder:
           "Search product name, brand, category, platform, or status",
         selectedHint: "This turn will reference the added product materials.",
+        selectedSection: "Selected for this turn",
         selectedCount: "{{count}} product reference(s)",
         moreCount: "{{count}} more",
         showMore: "Show {{count}} more product(s)",
@@ -1637,6 +1638,7 @@ const messages = {
           "Search campaign name, type, status, budget, or date",
         selectedHint:
           "This turn will reference the added campaigns' goals, budget, dates, status, and saved outputs.",
+        selectedSection: "Selected for this turn",
         selectedCount: "{{count}} campaign reference(s)",
         budget: "Budget {{value}}",
         showMore: "Show {{count}} more campaign(s)",

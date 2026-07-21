@@ -4,6 +4,7 @@ import type { AgentChatComposerPanelPlacement } from "../view-model/use-agent-ch
 import { ComposerPanelCloseProvider } from "./composer-panel-layout"
 
 const PANEL_EXIT_DURATION_MS = 180
+const PREFERRED_PANEL_HEIGHT = 360
 
 export function AgentChatComposerPanelShell({
   children,
@@ -46,8 +47,10 @@ export function AgentChatComposerPanelShell({
   }, [open, shouldRender])
 
   if (!shouldRender) return null
+  const panelHeight = Math.min(maxHeight, PREFERRED_PANEL_HEIGHT)
   const panelStyle = {
     "--agent-chat-composer-panel-max-height": `${maxHeight}px`,
+    height: panelHeight,
     maxHeight,
   } as CSSProperties
   const positionClassName =

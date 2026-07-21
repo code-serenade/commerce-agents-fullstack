@@ -112,19 +112,32 @@ export const getUploadImageSignApi = async (
 export const uploadAvatarToFileServiceApi = async (
   file: File
 ): Promise<ServerUploadResponse> => {
-  return uploadToFileServiceApi("/file/sign/upload/avatar", file)
+  return uploadToFileServiceApi(
+    "/file/sign/upload/avatar",
+    file,
+    getFileExtension(file)
+  )
 }
 
 export const uploadDocumentToFileServiceApi = async (
   file: File
 ): Promise<ServerUploadResponse> => {
-  return uploadToFileServiceApi("/file/sign/upload/document", file)
+  const transport = documentUploadTransport(file)
+  return uploadToFileServiceApi(
+    "/file/sign/upload/document",
+    transport.body,
+    transport.extension
+  )
 }
 
 export const uploadImageToFileServiceApi = async (
   file: File
 ): Promise<ServerUploadResponse> => {
-  return uploadToFileServiceApi("/file/sign/upload/image", file)
+  return uploadToFileServiceApi(
+    "/file/sign/upload/image",
+    file,
+    getFileExtension(file)
+  )
 }
 
 export const uploadWithSignedUrlApi = async (
@@ -197,9 +210,10 @@ export async function calculateFileSha256(file: File): Promise<string> {
 
 async function uploadToFileServiceApi(
   url: string,
-  file: File
+  file: Blob,
+  extension: string
 ): Promise<ServerUploadResponse> {
-  const query = new URLSearchParams({ ext: getFileExtension(file) })
+  const query = new URLSearchParams({ ext: extension })
 
   return request<Blob, ServerUploadResponse>({
     method: "PUT",
@@ -207,6 +221,23 @@ async function uploadToFileServiceApi(
     body: file,
     group: "file",
   })
+}
+
+function documentUploadTransport(file: File): {
+  body: Blob
+  extension: string
+} {
+  const extension = getFileExtension(file)
+  if (extension !== "csv") {
+    return { body: file, extension }
+  }
+
+  // The file service rejects its CSV extension although the chat ingestion path supports CSV.
+  // Keep the original filename and MIME type when the conversation file is registered later.
+  return {
+    body: new Blob([file], { type: "text/plain" }),
+    extension: "txt",
+  }
 }
 
 function getFileExtension(file: File): string {

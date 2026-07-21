@@ -67,7 +67,7 @@ export function AgentChatComposer({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const isWelcomePlacement = placement === "welcome"
-  const panelLayout = useAgentChatComposerPanelLayout(composerRootRef)
+  const panelLayout = useAgentChatComposerPanelLayout(composerRootRef, isWelcomePlacement ? "bottom" : "top")
   const panels = useAgentChatPanelState({ requestedPanel, requestedPanelVersion })
   const {
     campaignContextOpen,

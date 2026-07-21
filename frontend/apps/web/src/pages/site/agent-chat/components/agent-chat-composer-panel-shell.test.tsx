@@ -41,6 +41,7 @@ describe("AgentChatComposerPanelShell", () => {
     expect(scroll).not.toBeNull()
     expect(content).not.toBeNull()
     expect(shell).toHaveStyle({ maxHeight: "240px" })
+    expect(shell).toHaveStyle({ height: "240px" })
     expect(shell).toHaveStyle({
       "--agent-chat-composer-panel-max-height": "240px",
     })

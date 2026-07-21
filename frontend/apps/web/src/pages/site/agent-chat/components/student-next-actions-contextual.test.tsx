@@ -5,7 +5,7 @@ import { createAgentChatTestI18n } from "@/test/create-agent-chat-test-i18n"
 import { StudentNextActions } from "./thread-message-blocks"
 
 describe("StudentNextActions contextual suggestions", () => {
-  it("keeps product follow-up prompts tied to the current product question", async () => {
+  it("keeps product follow-up prompts tied to the current product question without a redundant category badge", async () => {
     const i18n = await createAgentChatTestI18n()
     const sunscreen = textFromCodes(38450, 26194, 34915)
     const student = textFromCodes(22823, 23398, 29983)
@@ -106,7 +106,7 @@ describe("StudentNextActions contextual suggestions", () => {
     expect(screen.getAllByText(new RegExp(student)).length).toBeGreaterThan(0)
     expect(screen.getByText(/main image expression/i)).toBeInTheDocument()
     expect(screen.queryByText(reportPrompts[0]!)).not.toBeInTheDocument()
-    expect(screen.getByText(productFollowupLabel)).toBeInTheDocument()
+    expect(screen.queryByText(productFollowupLabel)).not.toBeInTheDocument()
   })
 })
 

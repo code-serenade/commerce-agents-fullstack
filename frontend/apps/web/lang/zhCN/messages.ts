@@ -1559,6 +1559,7 @@ const messages = {
         manualHint: "需要你手动加入后，我才会参考对应商品资料。",
         searchPlaceholder: "搜索商品名称、品牌、品类、平台或状态",
         selectedHint: "本轮会参考已加入商品的资料。",
+        selectedSection: "本轮已选商品",
         selectedCount: "已参考 {{count}} 个商品",
         moreCount: "另有 {{count}} 个",
         showMore: "再显示 {{count}} 个商品",
@@ -1589,6 +1590,7 @@ const messages = {
         searchPlaceholder: "搜索活动名称、类型、状态、预算或日期",
         selectedHint:
           "本轮会参考已加入活动的目标、预算、时间、状态和沉淀输出。",
+        selectedSection: "本轮已选活动",
         selectedCount: "已参考 {{count}} 个活动",
         budget: "预算 {{value}}",
         showMore: "再显示 {{count}} 个活动",
