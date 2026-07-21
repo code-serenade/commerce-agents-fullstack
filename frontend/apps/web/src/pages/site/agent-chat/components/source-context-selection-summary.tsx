@@ -105,7 +105,7 @@ export function SourceContextSelectionSummary({
       {selectedSources.length ? (
         <>
           {onToggleSourceContext ? (
-            <div className={`${composerPanelSelectedAreaClassName} sm:grid-cols-2`}>
+            <div className={composerPanelSelectedAreaClassName}>
               {selectedSources.map((source) => (
                 <SourceContextButton
                   key={source.ref}

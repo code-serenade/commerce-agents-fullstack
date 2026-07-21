@@ -19,7 +19,7 @@ export function AgentChatContextPreviewAuditSummary({
       <h3 className="text-xs font-semibold text-foreground">
         {t("agentChat.composer.contextPreview.audit.title")}
       </h3>
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(17rem,100%),1fr))] gap-2">
         <AuditSummaryItem
           icon={<History className="size-3.5" aria-hidden="true" />}
           label={t("agentChat.composer.contextPreview.audit.history.label")}

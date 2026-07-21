@@ -3,7 +3,6 @@ import { useLayoutEffect, useState, type RefObject } from "react"
 const DEFAULT_PANEL_TOP_SAFE_SPACE = 96
 const STATUS_CARD_GAP = 10
 const PANEL_VIEWPORT_GAP = 20
-const MIN_PANEL_HEIGHT = 220
 const FALLBACK_PANEL_HEIGHT = 640
 
 export type AgentChatComposerPanelPlacement = "top" | "bottom"
@@ -50,18 +49,16 @@ export function useAgentChatComposerPanelLayout(
         placement === "bottom" ? availableBelow : availableAbove
       const viewportLimit =
         viewportHeight - topSafeSpace - PANEL_VIEWPORT_GAP * 2
-
-      setPanelLayout({
-        maxHeight: Math.max(
-          MIN_PANEL_HEIGHT,
-          Math.min(
-            FALLBACK_PANEL_HEIGHT,
-            Math.floor(Math.max(MIN_PANEL_HEIGHT, availableHeight)),
-            Math.floor(Math.max(MIN_PANEL_HEIGHT, viewportLimit))
-          )
-        ),
-        placement,
+      const maxHeight = getAgentChatComposerPanelMaxHeight({
+        availableHeight,
+        viewportLimit,
       })
+
+      setPanelLayout((current) =>
+        current.maxHeight === maxHeight && current.placement === placement
+          ? current
+          : { maxHeight, placement }
+      )
     }
 
     updatePanelLayout()
@@ -82,6 +79,25 @@ export function useAgentChatComposerPanelLayout(
   }, [composerRootRef, placementPreference])
 
   return panelLayout
+}
+
+export function getAgentChatComposerPanelMaxHeight({
+  availableHeight,
+  viewportLimit,
+}: {
+  availableHeight: number
+  viewportLimit: number
+}) {
+  return Math.max(
+    0,
+    Math.floor(
+      Math.min(
+        FALLBACK_PANEL_HEIGHT,
+        Math.max(0, availableHeight),
+        Math.max(0, viewportLimit)
+      )
+    )
+  )
 }
 
 function readPanelTopSafeSpace() {

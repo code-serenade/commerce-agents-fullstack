@@ -114,8 +114,8 @@ export function AgentRoleClusterPanel({
           className={
             isShowcase
               ? isPlain
-                ? "max-w-full overflow-x-auto pb-1 [scrollbar-gutter:stable]"
-                : "mt-3 max-w-full overflow-x-auto pb-1 [scrollbar-gutter:stable]"
+                ? "max-w-full min-w-0"
+                : "mt-3 max-w-full min-w-0"
               : isCompact
                 ? "mt-2 max-w-full overflow-x-auto pb-1 [scrollbar-gutter:stable] md:overflow-visible"
                 : "mt-2 max-w-full"
@@ -124,7 +124,7 @@ export function AgentRoleClusterPanel({
           <div
             className={
               isShowcase
-                ? "grid min-w-216 grid-cols-5 gap-2 sm:min-w-0 sm:grid-cols-3 lg:grid-cols-5"
+                ? "grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(9.5rem,100%),1fr))] gap-2"
                 : isCompact
                   ? "flex min-w-max gap-2"
                   : "grid min-w-0 gap-1.5"

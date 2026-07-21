@@ -85,7 +85,7 @@ describe("AgentChatComposerPanelShell", () => {
     expect(shell).not.toHaveClass("bottom-[calc(100%+1.25rem)]")
   })
 
-  it("allows wide panels to use the available content viewport", async () => {
+  it("keeps wide panels inside the composer content bounds", async () => {
     const i18n = await createAgentChatTestI18n()
 
     render(
@@ -102,10 +102,11 @@ describe("AgentChatComposerPanelShell", () => {
 
     expect(shell).toHaveAttribute("data-agent-chat-composer-panel-size", "wide")
     expect(shell).toHaveClass("inset-x-0")
-    expect(shell).toHaveClass(
+    expect(shell).not.toHaveClass("sm:inset-x-auto")
+    expect(shell).not.toHaveClass("sm:left-1/2")
+    expect(shell).not.toHaveClass(
       "sm:w-[min(calc(100dvw_-_var(--sidebar-width)_-_2rem),72rem)]"
     )
-    expect(shell).toHaveClass("sm:max-w-[calc(100dvw_-_2rem)]")
   })
 
   it("renders close action inside the panel header area", async () => {

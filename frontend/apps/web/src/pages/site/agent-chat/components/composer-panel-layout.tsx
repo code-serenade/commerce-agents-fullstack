@@ -40,10 +40,11 @@ export const composerPanelTextButtonClassName =
 export const composerPanelTinyButtonClassName =
   "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) px-2.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-(--agent-chat-accent-soft) hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
 
-export const composerPanelListClassName = "grid min-w-0 gap-2 sm:grid-cols-2"
+export const composerPanelListClassName =
+  "grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(17rem,100%),1fr))] gap-2"
 
 export const composerPanelSelectedAreaClassName =
-  "grid gap-2 rounded-xl border border-(--agent-chat-soft-border) bg-(--agent-chat-subtle-surface) p-2.5"
+  "grid grid-cols-[repeat(auto-fit,minmax(min(17rem,100%),1fr))] gap-2 rounded-xl border border-(--agent-chat-soft-border) bg-(--agent-chat-subtle-surface) p-2.5"
 
 export function ComposerPanelHeader({
   actions,

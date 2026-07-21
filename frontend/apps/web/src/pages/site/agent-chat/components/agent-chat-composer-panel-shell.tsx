@@ -57,10 +57,10 @@ export function AgentChatComposerPanelShell({
     placement === "bottom"
       ? "top-[calc(100%+1.25rem)] origin-top"
       : "bottom-[calc(100%+1.25rem)] origin-bottom"
-  const widthClassName =
-    size === "wide"
-      ? "inset-x-0 sm:inset-x-auto sm:left-1/2 sm:w-[min(calc(100dvw_-_var(--sidebar-width)_-_2rem),72rem)] sm:max-w-[calc(100dvw_-_2rem)] sm:-translate-x-1/2"
-      : "inset-x-0 sm:inset-x-auto sm:left-1/2 sm:w-[min(calc(100dvw_-_var(--sidebar-width)_-_2rem),60rem)] sm:max-w-[calc(100dvw_-_2rem)] sm:-translate-x-1/2"
+  // Keep floating controls inside the composer that opened them. The sidebar can
+  // change width independently of the browser viewport, so viewport math here
+  // can otherwise place the panel beyond the readable content region.
+  const widthClassName = "inset-x-0"
   const hiddenTransformClassName =
     placement === "bottom" ? "-translate-y-3" : "translate-y-3"
 
