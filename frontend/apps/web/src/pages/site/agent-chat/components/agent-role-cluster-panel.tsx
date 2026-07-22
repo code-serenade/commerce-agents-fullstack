@@ -48,7 +48,7 @@ export function AgentRoleClusterPanel({
       className={
         isShowcase
           ? isPlain
-            ? "relative max-w-full min-w-0 overflow-hidden"
+            ? "relative mx-auto max-w-6xl min-w-0 overflow-hidden"
             : "relative max-w-full min-w-0 overflow-hidden rounded-lg border border-border bg-muted/30 p-3 shadow-xs"
           : isCompact
             ? "max-w-full min-w-0 overflow-hidden bg-transparent px-3 py-2"
@@ -62,7 +62,7 @@ export function AgentRoleClusterPanel({
       <div
         className={
           isShowcase && isPlain
-            ? "mb-3 flex min-w-0 flex-wrap items-start justify-between gap-2"
+            ? "mb-4 flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2"
             : isShowcase
               ? "flex min-w-0 flex-wrap items-end justify-between gap-2"
               : isCompact
@@ -72,25 +72,37 @@ export function AgentRoleClusterPanel({
       >
         <div
           className={`flex min-w-0 ${
-            isShowcase && isPlain ? "items-start" : "items-center gap-2"
+            isShowcase && isPlain ? "items-center gap-2" : "items-center gap-2"
           }`}
         >
-          <div className="min-w-0">
+          <div
+            className={
+              isShowcase && isPlain
+                ? "flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1"
+                : "min-w-0"
+            }
+          >
             {eyebrow ? (
               <p
                 className={
                   isShowcase && isPlain
-                    ? "text-base font-bold text-foreground"
+                    ? "shrink-0 text-base font-bold text-foreground"
                     : "text-[10px] font-semibold text-muted-foreground uppercase"
                 }
               >
                 {eyebrow}
               </p>
             ) : null}
+            {isShowcase && isPlain && title ? (
+              <span
+                className="hidden h-px w-3 shrink-0 bg-[#7b8ca3] sm:block dark:bg-[#5f6d80]"
+                aria-hidden="true"
+              />
+            ) : null}
             <p
               className={
                 isShowcase && isPlain
-                  ? "mt-0.5 truncate text-xs text-muted-foreground"
+                  ? "min-w-0 text-sm text-[#64748b] dark:text-muted-foreground"
                   : "truncate text-sm font-medium text-foreground"
               }
             >
@@ -101,7 +113,7 @@ export function AgentRoleClusterPanel({
         <span
           className={
             isShowcase
-              ? "min-w-0 text-xs text-muted-foreground"
+              ? "min-w-0 text-sm text-[#64748b] dark:text-muted-foreground"
               : "min-w-0 truncate text-muted-foreground"
           }
         >
@@ -124,7 +136,7 @@ export function AgentRoleClusterPanel({
           <div
             className={
               isShowcase
-                ? "grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(9.5rem,100%),1fr))] gap-2"
+                ? "grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(12.5rem,100%),1fr))] gap-3"
                 : isCompact
                   ? "flex min-w-max gap-2"
                   : "grid min-w-0 gap-1.5"

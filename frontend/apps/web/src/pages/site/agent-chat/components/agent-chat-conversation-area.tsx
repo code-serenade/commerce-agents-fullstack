@@ -2,7 +2,10 @@ import { AgentChatComposer } from "./agent-chat-composer"
 import { AgentChatQuotaStatus } from "./agent-chat-quota-status"
 import { AgentChatReportActions } from "./agent-chat-report-actions"
 import { AgentChatThread } from "./agent-chat-thread"
-import { AgentChatWelcomeContent } from "./agent-chat-welcome-content"
+import {
+  AgentChatWelcomePromptChips,
+  AgentChatWelcomeRolePanel,
+} from "./agent-chat-welcome-content"
 import { useTranslation } from "react-i18next"
 import type { AgentChatContextValue } from "../context/agent-chat-context-value"
 import type { AgentChatReportActionsState } from "../view-model/use-agent-chat-report-actions"
@@ -38,7 +41,7 @@ export function AgentChatConversationArea({
     <div
       className={
         isWelcomeMode
-          ? "relative z-10 flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col overflow-y-auto px-4 pt-[clamp(3rem,12svh,8rem)] pb-8 sm:px-7"
+          ? "agent-chat-scrollarea relative z-10 flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col overflow-y-auto px-4 pt-[clamp(3.5rem,10svh,5rem)] pb-8 sm:px-7 lg:pt-[clamp(4rem,9svh,5.5rem)]"
           : "relative z-10 flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col overflow-hidden"
       }
     >
@@ -133,12 +136,16 @@ export function AgentChatConversationArea({
         placeholder={
           isWelcomeMode ? t("agentChat.composer.welcomePlaceholder") : undefined
         }
+        beforeChildren={
+          isWelcomeMode ? (
+            <AgentChatWelcomePromptChips
+              onSelectExamplePrompt={onExamplePromptSelect}
+              surface="plain"
+            />
+          ) : undefined
+        }
       >
-        {isWelcomeMode ? (
-          <AgentChatWelcomeContent
-            onSelectExamplePrompt={onExamplePromptSelect}
-          />
-        ) : null}
+        {isWelcomeMode ? <AgentChatWelcomeRolePanel surface="plain" /> : null}
       </AgentChatComposer>
     </div>
   )

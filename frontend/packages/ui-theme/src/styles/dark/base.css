@@ -36,7 +36,9 @@ html[data-theme="dark"],
   --app-active-bg: var(--accent);
 
   --agent-chat-page-background: var(--background);
-  --agent-chat-page-ambient: none;
+  --agent-chat-page-ambient:
+    linear-gradient(180deg, transparent 0 620px, var(--background) 661px),
+    url("/agent-chat/commerce-chat-dark-bg.png");
   --agent-chat-content-surface: var(--background);
   --agent-chat-elevated-surface: var(--card);
   --agent-chat-elevated-strong: var(--card);

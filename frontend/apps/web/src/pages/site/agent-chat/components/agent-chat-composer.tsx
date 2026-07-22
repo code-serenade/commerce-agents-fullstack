@@ -18,6 +18,7 @@ export function AgentChatComposer({
   availableSources,
   canSend,
   children,
+  beforeChildren,
   contextPreview,
   error,
   focusVersion,
@@ -118,15 +119,24 @@ export function AgentChatComposer({
     ? "relative z-30 w-full shrink-0"
     : "relative z-30 shrink-0 px-4 pt-3 pb-5 sm:px-7"
   const headingClassName = isWelcomePlacement
-    ? "mx-auto mb-8 w-full max-w-4xl text-center text-2xl font-semibold text-foreground sm:text-3xl 2xl:text-[32px]"
+    ? "mx-auto mb-7 w-full max-w-6xl text-center text-[clamp(1.8rem,2.45vw,2.25rem)] leading-tight font-bold text-foreground"
     : "mx-auto mb-4 w-full max-w-4xl text-center text-xl font-semibold text-foreground sm:text-2xl"
+  const composerRootClassName = isWelcomePlacement
+    ? "mx-auto flex w-full max-w-6xl flex-col gap-2 rounded-2xl border border-primary/90 bg-(--agent-chat-elevated-strong) p-2 shadow-(--agent-chat-floating-shadow) backdrop-blur-xl transition-colors focus-within:border-primary focus-within:shadow-(--agent-chat-focus-shadow) dark:border-(--agent-chat-soft-border) dark:bg-card dark:focus-within:border-primary/35"
+    : "mx-auto flex w-full max-w-4xl flex-col gap-2 rounded-[26px] border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) p-2 shadow-(--agent-chat-floating-shadow) backdrop-blur-xl transition-colors focus-within:border-primary/35 focus-within:shadow-(--agent-chat-focus-shadow) dark:bg-card"
+  const inputShellClassName = isWelcomePlacement
+    ? "grid gap-1 rounded-xl bg-(--agent-chat-elevated-strong) p-1.5"
+    : "grid gap-1 rounded-[20px] bg-(--agent-chat-elevated-strong) p-1.5"
   return (
     <footer className={footerClassName}>
       {heading ? <div className={headingClassName}>{heading}</div> : null}
+      {beforeChildren ? (
+        <div className="mx-auto mb-7 w-full max-w-6xl">{beforeChildren}</div>
+      ) : null}
       <div
         ref={composerRootRef}
         data-agent-chat-composer-root="true"
-        className="mx-auto flex w-full max-w-4xl flex-col gap-2 rounded-[26px] border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) p-2 shadow-(--agent-chat-floating-shadow) backdrop-blur-xl transition-colors focus-within:border-primary/35 focus-within:shadow-(--agent-chat-focus-shadow) dark:bg-card"
+        className={composerRootClassName}
         style={composerRootStyle}
         onMouseDown={composerEvents.focusComposer}
       >
@@ -178,7 +188,7 @@ export function AgentChatComposer({
             sourceContextOpen={sourceContextOpen}
             strategyId={strategyId}
           />
-          <div className="grid gap-1 rounded-[20px] bg-(--agent-chat-elevated-strong) p-1.5">
+          <div className={inputShellClassName}>
             <AgentChatComposerStatus
               canRetry={canSend}
               error={error}
@@ -195,7 +205,6 @@ export function AgentChatComposer({
               onAttachmentChange={composerEvents.handleAttachmentChange}
               onInputChange={onInputChange}
               onSend={composerEvents.sendAndClosePanels}
-              onStop={onStop}
               placeholder={placeholder}
               size={isWelcomePlacement ? "welcome" : "default"}
               textareaRef={textareaRef}
@@ -250,7 +259,7 @@ export function AgentChatComposer({
         </div>
       </div>
       {children ? (
-        <div className="mx-auto w-full max-w-4xl">{children}</div>
+        <div className="mx-auto w-full max-w-6xl">{children}</div>
       ) : null}
     </footer>
   )

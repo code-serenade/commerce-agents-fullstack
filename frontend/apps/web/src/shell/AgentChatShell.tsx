@@ -470,7 +470,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
               "pointer-events-none absolute inset-0",
               useDocumentPageSurface
                 ? "bg-(image:--document-page-ambient)"
-                : "bg-(image:--agent-chat-page-ambient)",
+                : "bg-(image:--agent-chat-page-ambient) bg-[length:100%_661px] bg-top bg-no-repeat",
             ].join(" ")}
           />
           <div

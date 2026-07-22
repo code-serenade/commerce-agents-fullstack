@@ -3,7 +3,10 @@ import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { inflateSync } from "node:zlib"
 import { describe, expect, it } from "vitest"
-import { getAgentPortraitAsset } from "./agent-portrait-assets"
+import {
+  getAgentPortraitAsset,
+  getHomeShowcaseAgentPortraitAsset,
+} from "./agent-portrait-assets"
 
 const currentDir = dirname(fileURLToPath(import.meta.url))
 
@@ -43,10 +46,35 @@ describe("agent portrait assets", () => {
       expect(source.byteLength).toBeGreaterThan(10_000)
     })
   })
+
+  it("keeps the new-chat showcase portraits separate from process portraits", () => {
+    ;["ops", "search", "data", "creative", "design"].forEach((role) => {
+      expect(getHomeShowcaseAgentPortraitAsset(role as never)).toMatchObject({
+        key: `${role}-home-showcase-portrait`,
+        role,
+      })
+
+      const source = readHomeShowcasePortraitSource(`${role}.png`)
+
+      expect(isPng(source)).toBe(true)
+      expect(readPngMetadata(source)).toMatchObject({
+        bitDepth: 8,
+        colorType: 6,
+        height: 120,
+        interlace: 0,
+        width: 140,
+      })
+      expect(readCornerAlphas(source)).toEqual([0, 0, 0, 0])
+    })
+  })
 })
 
 function readPortraitSource(fileName: string) {
   return readFileSync(resolve(currentDir, "realistic", fileName))
+}
+
+function readHomeShowcasePortraitSource(fileName: string) {
+  return readFileSync(resolve(currentDir, "home-showcase", fileName))
 }
 
 function isPng(source: Buffer) {

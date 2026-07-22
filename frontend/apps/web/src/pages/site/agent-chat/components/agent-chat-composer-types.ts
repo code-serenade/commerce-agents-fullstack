@@ -22,6 +22,7 @@ export interface AgentChatComposerProps {
   availableSources: AgentChatSourceContextSelection[]
   canSend: boolean
   children?: ReactNode
+  beforeChildren?: ReactNode
   contextPreview: AgentChatContextPreviewState
   error: string | null
   focusVersion?: number

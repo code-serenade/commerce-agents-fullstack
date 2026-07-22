@@ -2,7 +2,6 @@ import type { ChangeEvent, KeyboardEvent } from "react"
 import type { RefObject } from "react"
 import { useTranslation } from "react-i18next"
 import { AI_READABLE_FILE_ACCEPT } from "../domain/agent-chat-upload-validation"
-import { AgentChatComposerSendButton } from "./agent-chat-composer-toolbar"
 
 export function AgentChatComposerInput({
   canSend,
@@ -12,7 +11,6 @@ export function AgentChatComposerInput({
   onAttachmentChange,
   onInputChange,
   onSend,
-  onStop,
   placeholder,
   size = "default",
   fileInputRef,
@@ -25,7 +23,6 @@ export function AgentChatComposerInput({
   onAttachmentChange: (event: ChangeEvent<HTMLInputElement>) => void
   onInputChange: (value: string) => void
   onSend: () => void
-  onStop: () => void
   placeholder?: string
   size?: "default" | "welcome"
   fileInputRef: RefObject<HTMLInputElement | null>
@@ -54,11 +51,7 @@ export function AgentChatComposerInput({
         type="file"
         onChange={onAttachmentChange}
       />
-      <div
-        className={`grid grid-cols-1 gap-1 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end ${
-          size === "welcome" ? "min-h-18" : "min-h-10"
-        }`}
-      >
+      <div className={size === "welcome" ? "min-h-18" : "min-h-10"}>
         <textarea
           ref={textareaRef}
           value={input}
@@ -75,22 +68,9 @@ export function AgentChatComposerInput({
           disabled={isStreaming}
           rows={1}
           className={`max-h-44 w-full resize-none border-0 bg-transparent px-3 text-sm/6 text-foreground outline-none placeholder:text-(--agent-chat-placeholder) disabled:cursor-not-allowed disabled:opacity-60 ${
-            size === "welcome" ? "min-h-18 py-3" : "min-h-10 py-2"
+            size === "welcome" ? "min-h-18 py-3 sm:px-4" : "min-h-10 py-2"
           }`}
         />
-        <div
-          className={`hidden items-center sm:flex ${
-            size === "welcome" ? "min-h-18" : "min-h-10"
-          }`}
-        >
-          <AgentChatComposerSendButton
-            canSend={canSend}
-            isLoggedIn={isLoggedIn}
-            isStreaming={isStreaming}
-            onSend={onSend}
-            onStop={onStop}
-          />
-        </div>
       </div>
     </>
   )

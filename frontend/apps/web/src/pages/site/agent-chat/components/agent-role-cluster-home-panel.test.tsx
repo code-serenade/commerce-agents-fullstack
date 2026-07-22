@@ -103,7 +103,7 @@ describe("AgentRoleClusterHomePanel", () => {
     ).toBe(5)
     const roleGrid = container.querySelector("[data-agent-role-card]")?.parentElement
     expect(roleGrid).toHaveClass(
-      "grid-cols-[repeat(auto-fit,minmax(min(9.5rem,100%),1fr))]"
+      "grid-cols-[repeat(auto-fit,minmax(min(12.5rem,100%),1fr))]"
     )
     expect(roleGrid).not.toHaveClass("min-w-216")
     expect(container.querySelector("[data-agent-role-cluster='true']")).not.toHaveClass(

@@ -34,13 +34,15 @@
   --app-primary: var(--primary);
   --app-active-bg: var(--accent);
 
-  --agent-chat-page-background: #fff;
-  --agent-chat-page-ambient: none;
+  --agent-chat-page-background: oklch(1 0 0);
+  --agent-chat-page-ambient:
+    linear-gradient(180deg, transparent 0 620px, oklch(1 0 0) 661px),
+    url("/agent-chat/commerce-chat-light-bg.png");
   --agent-chat-content-surface: oklch(1 0 0 / 18%);
   --agent-chat-elevated-surface: oklch(1 0 0 / 86%);
-  --agent-chat-elevated-strong: oklch(1 0 0 / 96%);
+  --agent-chat-elevated-strong: oklch(1 0 0 / 98%);
   --agent-chat-subtle-surface: oklch(0.998 0.003 245 / 82%);
-  --agent-chat-soft-border: oklch(0.88 0.032 254 / 76%);
+  --agent-chat-soft-border: oklch(0.86 0.052 259 / 86%);
   --agent-chat-strong-border: oklch(1 0 0 / 86%);
   --agent-chat-card-header: linear-gradient(
     135deg,
@@ -58,14 +60,15 @@
   --agent-chat-user-message-background: var(--primary);
   --agent-chat-user-message-foreground: var(--primary-foreground);
   --agent-chat-floating-shadow:
-    0 10px 28px oklch(0.55 0.04 250 / 8%), 0 1px 2px oklch(0.42 0.02 250 / 8%);
+    0 18px 50px oklch(0.66 0.12 255 / 12%), 0 1px 3px oklch(0.42 0.02 250 / 10%);
   --agent-chat-card-shadow:
-    0 22px 64px oklch(0.54 0.09 260 / 12%), 0 1px 2px oklch(0.42 0.04 250 / 10%);
+    0 12px 28px oklch(0.64 0.12 250 / 14%), 0 1px 2px oklch(0.42 0.04 250 / 8%);
   --agent-chat-avatar-shadow: 0 12px 26px oklch(0.54 0.1 260 / 14%);
-  --agent-chat-button-shadow: 0 12px 28px oklch(0.55 0.22 268 / 32%);
+  --agent-chat-button-shadow:
+    0 14px 28px oklch(0.72 0.16 252 / 28%), 0 4px 10px oklch(0.58 0.2 266 / 18%);
   --agent-chat-focus-shadow: 0 0 0 4px oklch(0.62 0.2 268 / 14%);
   --agent-chat-inset-shadow: inset 0 1px 8px oklch(0.82 0.035 252 / 26%);
-  --agent-chat-accent-soft: oklch(0.942 0.045 260 / 86%);
+  --agent-chat-accent-soft: oklch(0.964 0.022 252 / 88%);
   --agent-chat-accent-foreground: oklch(0.38 0.032 257);
   --agent-chat-suggestion-background: #f2f2f2;
   --agent-chat-suggestion-hover-background: #e6e6e6;
