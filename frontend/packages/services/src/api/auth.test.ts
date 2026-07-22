@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { getAuthUserProfileApi } from "./auth"
+import {
+  REGISTER_PASSWORD_MAX_LENGTH,
+  getAuthUserProfileApi,
+  isRegisterPasswordValid,
+} from "./auth"
 
 describe("auth api", () => {
   afterEach(() => {
@@ -38,5 +42,24 @@ describe("auth api", () => {
         }),
       })
     )
+  })
+
+  it("validates registration passwords with length, allowed characters, and two-category requirements", () => {
+    const maxLengthPassword = `A1${"a".repeat(REGISTER_PASSWORD_MAX_LENGTH - 2)}`
+
+    expect(isRegisterPasswordValid("Abcdef1!")).toBe(true)
+    expect(isRegisterPasswordValid(` ${maxLengthPassword} `)).toBe(true)
+    expect(isRegisterPasswordValid("abcdef12")).toBe(true)
+    expect(isRegisterPasswordValid("abcdef!!")).toBe(true)
+    expect(isRegisterPasswordValid("1234567!")).toBe(true)
+    expect(isRegisterPasswordValid("Abcd123！")).toBe(true)
+    expect(isRegisterPasswordValid("Abcd123_")).toBe(true)
+    expect(isRegisterPasswordValid("Abc123中文!")).toBe(false)
+    expect(isRegisterPasswordValid("Abc 123!")).toBe(false)
+    expect(isRegisterPasswordValid("Abc12")).toBe(false)
+    expect(isRegisterPasswordValid(`${maxLengthPassword}a`)).toBe(false)
+    expect(isRegisterPasswordValid("abcdefgh")).toBe(false)
+    expect(isRegisterPasswordValid("12345678")).toBe(false)
+    expect(isRegisterPasswordValid("!!!!!!!!")).toBe(false)
   })
 })

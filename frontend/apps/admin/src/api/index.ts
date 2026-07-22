@@ -1,8 +1,11 @@
 export {
   getAuthUserProfileApi,
+  isRegisterPasswordValid,
   loginApi,
   meApi,
   registerApi,
+  REGISTER_PASSWORD_MAX_LENGTH,
+  REGISTER_PASSWORD_MIN_LENGTH,
   updateEmailApi,
   updatePasswordApi,
   updateProfileApi,

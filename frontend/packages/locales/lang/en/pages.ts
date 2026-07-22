@@ -16,10 +16,9 @@ const pages = {
     form: {
       password: {
         label: "Password",
-        placeholder: "Enter password",
-        helpTitle: "Password must be at least 8 characters",
-        helpDescription:
-          "Use an 8-character or longer password before submitting registration.",
+        placeholder: "8-128 chars, any 2: letter/number/symbol",
+        helpTitle: "",
+        helpDescription: "",
       },
       confirmPassword: {
         label: "Confirm password",
@@ -47,7 +46,8 @@ const pages = {
     },
     error: {
       passwordMismatch: "Passwords do not match.",
-      passwordMinLength: "Password must be at least 8 characters.",
+      passwordMinLength:
+        "Use 8-128 characters with at least 2 of: letter, number, symbol.",
     },
   },
   profile: {

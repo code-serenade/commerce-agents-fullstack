@@ -3891,7 +3891,7 @@ const messages = {
     form: {
       password: {
         label: "Password",
-        placeholder: "Enter password",
+        placeholder: "8-128 chars, any 2: letter/number/symbol",
       },
       confirmPassword: {
         label: "Confirm password",
@@ -3918,6 +3918,8 @@ const messages = {
     },
     error: {
       passwordMismatch: "Passwords do not match.",
+      passwordMinLength:
+        "Use 8-128 characters with at least 2 of: letter, number, symbol",
     },
     profile: {
       schoolName: {

@@ -5,7 +5,12 @@ import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { CircleHelp, Eye, EyeOff } from "lucide-react"
-import { registerApi } from "@workspace/services/api/auth"
+import {
+  REGISTER_PASSWORD_MAX_LENGTH,
+  REGISTER_PASSWORD_MIN_LENGTH,
+  isRegisterPasswordValid,
+  registerApi,
+} from "@workspace/services/api/auth"
 import { Button } from "@workspace/ui-components/stable/button"
 import {
   Field,
@@ -48,6 +53,7 @@ function createAuthRegisterSchema(
   extraFields: AuthRegisterExtraFieldDefinition[]
 ) {
   const emailValidator = z.email()
+  const passwordRuleMessage = t("-10011", { ns: "errors" })
 
   return z
     .object({
@@ -72,8 +78,9 @@ function createAuthRegisterSchema(
         .string()
         .trim()
         .min(1, t("validation.required", { ns: "common" }))
-        .min(8, t("-10011", { ns: "errors" }))
-        .max(128, t("-10011", { ns: "errors" })),
+        .min(REGISTER_PASSWORD_MIN_LENGTH, passwordRuleMessage)
+        .max(REGISTER_PASSWORD_MAX_LENGTH, passwordRuleMessage)
+        .refine(isRegisterPasswordValid, passwordRuleMessage),
       confirmPassword: z
         .string()
         .trim()
@@ -143,6 +150,8 @@ export function AuthRegisterPage({
     formState: { errors, isSubmitting },
   } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
+    mode: "onBlur",
+    reValidateMode: "onBlur",
     defaultValues: {
       username: "",
       displayName: "",
@@ -362,6 +371,7 @@ export function AuthRegisterPage({
                     <input
                       value={field.value}
                       onChange={(event) => field.onChange(event.target.value)}
+                      onBlur={field.onBlur}
                       type={isPasswordVisible ? "text" : "password"}
                       placeholder={t("authRegister.form.password.placeholder", {
                         ns: "pages",
@@ -409,6 +419,7 @@ export function AuthRegisterPage({
                     <input
                       value={field.value}
                       onChange={(event) => field.onChange(event.target.value)}
+                      onBlur={field.onBlur}
                       type={isConfirmPasswordVisible ? "text" : "password"}
                       placeholder={t(
                         "authRegister.form.confirmPassword.placeholder",
@@ -617,6 +628,7 @@ export function AuthRegisterPage({
                   <Input
                     value={field.value}
                     onValueChange={field.onChange}
+                    onBlur={field.onBlur}
                     type="password"
                     placeholder={t("authRegister.form.password.placeholder", {
                       ns: "pages",
@@ -638,6 +650,7 @@ export function AuthRegisterPage({
                   <Input
                     value={field.value}
                     onValueChange={field.onChange}
+                    onBlur={field.onBlur}
                     type="password"
                     placeholder={t(
                       "authRegister.form.confirmPassword.placeholder",

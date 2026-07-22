@@ -1,4 +1,4 @@
-import type { ChangeEvent } from "react"
+import type { ChangeEvent, FocusEventHandler } from "react"
 import { Input as CoreInput } from "@workspace/ui-core/components/input"
 
 export type InputType =
@@ -16,6 +16,7 @@ export interface InputProps {
   placeholder?: string
   disabled?: boolean
   type?: InputType
+  onBlur?: FocusEventHandler<HTMLInputElement>
 }
 
 export function Input({
@@ -24,6 +25,7 @@ export function Input({
   placeholder,
   disabled = false,
   type = "text",
+  onBlur,
 }: InputProps) {
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     onValueChange(event.target.value)
@@ -36,6 +38,7 @@ export function Input({
       placeholder={placeholder}
       disabled={disabled}
       type={type}
+      onBlur={onBlur}
     />
   )
 }

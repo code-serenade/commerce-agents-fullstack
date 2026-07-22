@@ -1,8 +1,12 @@
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { DataTableInsertActionConfig } from "@workspace/app-kit"
-import { Input, Select } from "@workspace/ui-components"
-import { createAdminUserApi, registerApi } from "@/api"
+import { FieldError, Input, Select } from "@workspace/ui-components"
+import {
+  createAdminUserApi,
+  isRegisterPasswordValid,
+  registerApi,
+} from "@/api"
 
 type CreateAdminUserMode = "existing-account" | "new-account"
 
@@ -15,6 +19,7 @@ export function useCreateAdminUserInsertAction(
   const [existingIdentifier, setExistingIdentifier] = useState("")
   const [newUsername, setNewUsername] = useState("")
   const [newPassword, setNewPassword] = useState("")
+  const [newPasswordError, setNewPasswordError] = useState("")
   const [newDisplayName, setNewDisplayName] = useState("")
   const [newEmail, setNewEmail] = useState("")
   const [draftRemark, setDraftRemark] = useState("")
@@ -33,6 +38,25 @@ export function useCreateAdminUserInsertAction(
       ] as const,
     [t]
   )
+
+  const validateNewPassword = useCallback(() => {
+    const password = newPassword.trim()
+
+    if (!password) {
+      setNewPasswordError(
+        t("admin.accounts.adminUsers.create.errors.passwordRequired")
+      )
+      return false
+    }
+
+    if (!isRegisterPasswordValid(password)) {
+      setNewPasswordError(t("-10011", { ns: "errors" }))
+      return false
+    }
+
+    setNewPasswordError("")
+    return true
+  }, [newPassword, t])
 
   return useMemo(
     () => ({
@@ -92,12 +116,17 @@ export function useCreateAdminUserInsertAction(
                 </span>
                 <Input
                   value={newPassword}
-                  onValueChange={setNewPassword}
+                  onValueChange={(value) => {
+                    setNewPassword(value)
+                    if (newPasswordError) setNewPasswordError("")
+                  }}
+                  onBlur={validateNewPassword}
                   placeholder={t(
                     "admin.accounts.adminUsers.create.fields.password.placeholder"
                   )}
                   type="password"
                 />
+                <FieldError>{newPasswordError}</FieldError>
               </div>
               <div className="grid gap-2">
                 <span className="text-sm font-medium">
@@ -171,9 +200,16 @@ export function useCreateAdminUserInsertAction(
             )
           }
           if (!password) {
+            setNewPasswordError(
+              t("admin.accounts.adminUsers.create.errors.passwordRequired")
+            )
             throw new Error(
               t("admin.accounts.adminUsers.create.errors.passwordRequired")
             )
+          }
+          if (!isRegisterPasswordValid(password)) {
+            setNewPasswordError(t("-10011", { ns: "errors" }))
+            throw new Error(t("-10011", { ns: "errors" }))
           }
           if (!displayName) {
             throw new Error(
@@ -198,6 +234,7 @@ export function useCreateAdminUserInsertAction(
         setExistingIdentifier("")
         setNewUsername("")
         setNewPassword("")
+        setNewPasswordError("")
         setNewDisplayName("")
         setNewEmail("")
         setDraftRemark("")
@@ -213,8 +250,10 @@ export function useCreateAdminUserInsertAction(
       newDisplayName,
       newEmail,
       newPassword,
+      newPasswordError,
       newUsername,
       t,
+      validateNewPassword,
     ]
   )
 }

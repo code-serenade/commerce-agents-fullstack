@@ -19,6 +19,24 @@ export interface RegisterRequest {
   avatar?: string
 }
 
+export const REGISTER_PASSWORD_MIN_LENGTH = 8
+export const REGISTER_PASSWORD_MAX_LENGTH = 128
+
+export function isRegisterPasswordValid(password: string): boolean {
+  const normalizedPassword = password.trim()
+  const hasLetter = /[A-Za-z]/.test(normalizedPassword)
+  const hasDigit = /\d/.test(normalizedPassword)
+  const hasSymbol = /[\p{P}\p{S}]/u.test(normalizedPassword)
+  const categoryCount = [hasLetter, hasDigit, hasSymbol].filter(Boolean).length
+
+  return (
+    normalizedPassword.length >= REGISTER_PASSWORD_MIN_LENGTH &&
+    normalizedPassword.length <= REGISTER_PASSWORD_MAX_LENGTH &&
+    /^[A-Za-z0-9\p{P}\p{S}]+$/u.test(normalizedPassword) &&
+    categoryCount >= 2
+  )
+}
+
 export interface UserInfo {
   id: string
   display_id: string

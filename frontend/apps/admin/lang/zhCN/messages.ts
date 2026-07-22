@@ -279,7 +279,7 @@ const messages = {
             },
             password: {
               label: "密码",
-              placeholder: "输入初始密码",
+              placeholder: "8-128位，字母/数字/符号至少2种",
             },
             displayName: {
               label: "显示名称",
@@ -929,7 +929,7 @@ const messages = {
     form: {
       password: {
         label: "密码",
-        placeholder: "请输入密码",
+        placeholder: "8-128位，字母/数字/符号至少2种",
       },
       confirmPassword: {
         label: "确认密码",
@@ -956,6 +956,7 @@ const messages = {
     },
     error: {
       passwordMismatch: "两次输入的密码不一致。",
+      passwordMinLength: "密码需8-128位，且字母、数字、符号至少2种",
     },
   },
 } as const

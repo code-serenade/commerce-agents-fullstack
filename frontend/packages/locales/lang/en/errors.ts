@@ -13,7 +13,7 @@ const error = {
     "account may only contain letters, numbers, underscores, and hyphens",
   "-10009": "display name length must be between 1 and 64",
   "-10010": "avatar must be a valid URL",
-  "-10011": "password length must be between 8 and 128",
+  "-10011": "Use 8-128 characters with at least 2 of: letter, number, symbol",
   "-10012": "email must be a valid email address",
   "-10013": "identifier length must be between 1 and 128",
   "-10014": "old password length must be between 1 and 128",
