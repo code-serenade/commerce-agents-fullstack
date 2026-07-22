@@ -46,8 +46,8 @@ services:
     image: ${IMAGE_PREFIX:-commerce-agents}-web:local
     environment:
       API_UPSTREAM: ${API_UPSTREAM:-http://backend:19878}
-      AUTH_UPSTREAM: ${AUTH_UPSTREAM:-http://127.0.0.1:29001}
-      FILE_UPSTREAM: ${FILE_UPSTREAM:-http://127.0.0.1:29002}
+      AUTH_UPSTREAM: ${AUTH_UPSTREAM:-http://221.11.22.42:29001}
+      FILE_UPSTREAM: ${FILE_UPSTREAM:-http://221.11.22.42:29002}
     depends_on:
       - backend
     ports:
@@ -63,8 +63,8 @@ services:
     restart: unless-stopped
     environment:
       API_UPSTREAM: ${API_UPSTREAM:-http://backend:19878}
-      AUTH_UPSTREAM: ${AUTH_UPSTREAM:-http://127.0.0.1:29001}
-      FILE_UPSTREAM: ${FILE_UPSTREAM:-http://127.0.0.1:29002}
+      AUTH_UPSTREAM: ${AUTH_UPSTREAM:-http://221.11.22.42:29001}
+      FILE_UPSTREAM: ${FILE_UPSTREAM:-http://221.11.22.42:29002}
     depends_on:
       - backend
     ports:
