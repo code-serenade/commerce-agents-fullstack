@@ -1372,7 +1372,7 @@ const messages = {
       title: "先说问题，搭档们会一起看",
       ariaLabel: "电商岗位搭档预览",
       summary: "按问题自动分工，回答时会显示谁正在帮你核对",
-      footer: "不同问题会启用不同搭档；你不用先懂岗位，直接说电商问题就可以。",
+      footer: "",
     },
     sidebar: {
       newChat: "新建对话",

@@ -1411,7 +1411,7 @@ const messages = {
       summary:
         "They split work by question and show who is checking what during an answer",
       footer:
-        "Different questions use different roles. You do not need to understand roles first; just ask the ecommerce question.",
+        "",
     },
     sidebar: {
       newChat: "New chat",
