@@ -18,9 +18,6 @@ import { hasDisplayableAnswer, isAbortLikeStreamError } from "./agent-chat-strea
 import { formatStreamErrorMessage } from "./agent-chat-stream-error-message"
 import { createAssistantRevealController } from "./agent-chat-assistant-reveal"
 
-const STREAM_MESSAGE_REVEAL_INTERVAL_MS = 28
-const STREAM_MESSAGE_REVEAL_CHARS = 12
-
 export async function sendAgentChatMessage(
   input: SendAgentChatMessageInput
 ): Promise<AbortController | null> {
@@ -112,8 +109,6 @@ export async function sendAgentChatMessage(
   }
 
   const assistantReveal = createAssistantRevealController({
-    chunkSize: STREAM_MESSAGE_REVEAL_CHARS,
-    intervalMs: STREAM_MESSAGE_REVEAL_INTERVAL_MS,
     onVisibleContentChange: (content) =>
       setAssistantContent(renderAssistantContent(content)),
   })
