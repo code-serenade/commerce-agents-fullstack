@@ -1,7 +1,7 @@
 import { resolveUrl, type UrlGroup } from "./url"
 import { RequestError } from "./errors/request-error"
 
-const DEFAULT_TIMEOUT = 20000
+const DEFAULT_TIMEOUT = 60000
 const REFRESH_TIMEOUT = 10000
 
 interface FetchOptions extends RequestInit {
