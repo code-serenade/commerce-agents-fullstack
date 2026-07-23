@@ -283,6 +283,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     key: "recents",
     label: t("agentChat.shell.sections.recents"),
     collapsible: true,
+    contentClassName: "agent-chat-history-scrollarea",
     defaultOpen: true,
     fillRemaining: true,
     hideWhenSidebarCollapsed: true,

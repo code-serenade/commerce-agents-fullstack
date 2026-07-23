@@ -66,6 +66,7 @@ export interface SidebarShellSection {
   label: ReactNode
   hideLabel?: boolean
   action?: ReactNode
+  contentClassName?: string
   leadingItems?: SidebarShellNavEntry[]
   leadingItemsFixed?: boolean
   items: SidebarShellNavEntry[]
@@ -453,7 +454,8 @@ function SidebarSectionGroup({
             <div
               className={getSectionContentClassName(
                 section.maxContentHeight,
-                section.fillRemaining
+                section.fillRemaining,
+                section.contentClassName
               )}
             >
               <div className={sidebarMenuSpacingClassName}>
@@ -476,7 +478,8 @@ function SidebarSectionGroup({
 
 function getSectionContentClassName(
   maxContentHeight: SidebarShellSection["maxContentHeight"],
-  fillRemaining?: boolean
+  fillRemaining?: boolean,
+  contentClassName?: string
 ) {
   const classNames = [
     "app-shell-scrollarea",
@@ -502,6 +505,10 @@ function getSectionContentClassName(
     classNames.push(
       "max-h-80 overflow-x-hidden overflow-y-auto pr-3 [scrollbar-gutter:stable]"
     )
+  }
+
+  if (contentClassName) {
+    classNames.push(contentClassName)
   }
 
   return classNames.join(" ")

@@ -65,6 +65,40 @@
   background: transparent;
 }
 
+.agent-chat-history-scrollarea {
+  scrollbar-color: transparent transparent;
+  scrollbar-width: thin;
+}
+
+.agent-chat-history-scrollarea:hover {
+  scrollbar-color: rgba(148, 163, 184, 0.42) transparent;
+}
+
+.agent-chat-history-scrollarea::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+
+.agent-chat-history-scrollarea::-webkit-scrollbar-thumb {
+  background-clip: padding-box;
+  background-color: transparent;
+  border: 0;
+  border-radius: 999px;
+  transition: all 0.5s;
+}
+
+.agent-chat-history-scrollarea:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.42);
+}
+
+.agent-chat-history-scrollarea:hover::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(100, 116, 139, 0.5);
+}
+
+.agent-chat-history-scrollarea::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 .agent-role-portrait__sprite {
   display: block;
   object-fit: contain;
