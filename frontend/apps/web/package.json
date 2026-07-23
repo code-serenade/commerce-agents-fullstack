@@ -8,9 +8,9 @@
     "build": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json && vite build",
     "lint": "eslint src/api src/analytics && eslint src/layouts src/models src/navigation src/routes src/store src/test && eslint src/shell && eslint src/pages/site/agent-chat && eslint src/pages/site/commerce && eslint src/pages/auth src/pages/site/home src/pages/site/agent-capabilities src/pages/site/question-ideas src/pages/site/agent-output src/pages/site/profile src/pages/site/shared-pages && eslint lang vite.config.ts",
     "preview": "vite preview",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run --configLoader runner --passWithNoTests",
     "rules": "node ../../scripts/run-app-rules.mjs",
-    "test:watch": "vitest --passWithNoTests"
+    "test:watch": "vitest --configLoader runner --passWithNoTests"
   },
   "dependencies": {
     "@workspace/app-kit": "workspace:*",

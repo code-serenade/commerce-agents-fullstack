@@ -8,9 +8,9 @@
     "build": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run --configLoader runner --passWithNoTests",
     "rules": "node ../../scripts/run-app-rules.mjs",
-    "test:watch": "vitest --passWithNoTests"
+    "test:watch": "vitest --configLoader runner --passWithNoTests"
   },
   "dependencies": {
     "@workspace/app-kit": "workspace:*",

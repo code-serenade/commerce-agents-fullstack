@@ -26,9 +26,7 @@ describe("AgentRoleClusterHomePanel", () => {
     expect(
       screen.getByText(i18n.t("agentChat.homeRoleCluster.summary"))
     ).toBeInTheDocument()
-    expect(
-      screen.getByText(i18n.t("agentChat.homeRoleCluster.footer"))
-    ).toBeInTheDocument()
+    expect(i18n.t("agentChat.homeRoleCluster.footer")).toBe("")
     expect(
       screen.getByText(i18n.t("agentChat.homeRoleCluster.eyebrow"))
     ).toBeInTheDocument()
@@ -102,9 +100,7 @@ describe("AgentRoleClusterHomePanel", () => {
       container.querySelectorAll("[data-agent-role-card]").length
     ).toBe(5)
     const roleGrid = container.querySelector("[data-agent-role-card]")?.parentElement
-    expect(roleGrid).toHaveClass(
-      "grid-cols-[repeat(auto-fit,minmax(min(12.5rem,100%),1fr))]"
-    )
+    expect(roleGrid).toHaveClass("grid-cols-1", "md:grid-cols-3", "xl:grid-cols-5")
     expect(roleGrid).not.toHaveClass("min-w-216")
     expect(container.querySelector("[data-agent-role-cluster='true']")).not.toHaveClass(
       "overflow-x-auto"

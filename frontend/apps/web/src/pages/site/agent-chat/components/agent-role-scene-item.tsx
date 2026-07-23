@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react"
-import { getHomeShowcaseAgentPortraitAsset } from "../assets/agent-portraits/agent-portrait-assets"
+import { getAgentPortraitAsset } from "../assets/agent-portraits/agent-portrait-assets"
 import type { AgentRoleActivity } from "../view-model/agent-role-cluster-view-model"
 import { AgentRolePortrait } from "./agent-role-portrait"
 import { roleScrimAccentColors } from "./agent-role-cluster-styles"
@@ -11,7 +11,7 @@ export function AgentRoleSceneItem({
   activity: AgentRoleActivity
   detail: string
 }) {
-  const asset = getHomeShowcaseAgentPortraitAsset(activity.role)
+  const asset = getAgentPortraitAsset(activity.role)
   const description = `${detail} ${activity.contribution}`
   const cardStyle = {
     "--agent-role-card-scrim-accent": roleScrimAccentColors[activity.role],

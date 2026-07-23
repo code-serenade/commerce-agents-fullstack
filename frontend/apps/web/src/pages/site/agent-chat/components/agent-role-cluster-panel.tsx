@@ -136,7 +136,7 @@ export function AgentRoleClusterPanel({
           <div
             className={
               isShowcase
-                ? "grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(12.5rem,100%),1fr))] gap-3"
+                ? "grid min-w-0 grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-5"
                 : isCompact
                   ? "flex min-w-max gap-2"
                   : "grid min-w-0 gap-1.5"

@@ -3,28 +3,26 @@ import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { inflateSync } from "node:zlib"
 import { describe, expect, it } from "vitest"
-import {
-  getAgentPortraitAsset,
-  getHomeShowcaseAgentPortraitAsset,
-} from "./agent-portrait-assets"
+import { getAgentPortraitAsset } from "./agent-portrait-assets"
 
 const currentDir = dirname(fileURLToPath(import.meta.url))
+const commerceRoleKeys = [
+  "ops",
+  "search",
+  "data",
+  "service",
+  "creative",
+  "engineering",
+  "accounting",
+  "design",
+  "web",
+  "delivery",
+  "box",
+]
 
 describe("agent portrait assets", () => {
   it("provides realistic PNG portrait assets for each commerce role", () => {
-    ;[
-      "ops",
-      "search",
-      "data",
-      "service",
-      "creative",
-      "engineering",
-      "accounting",
-      "design",
-      "web",
-      "delivery",
-      "box",
-    ].forEach((role) => {
+    commerceRoleKeys.forEach((role) => {
       expect(getAgentPortraitAsset(role as never)).toMatchObject({
         key: `${role}-portrait`,
         role,
@@ -32,29 +30,29 @@ describe("agent portrait assets", () => {
       const asset = getAgentPortraitAsset(role as never)
 
       expect(asset?.src).toBeTruthy()
-      const source = readPortraitSource(`${role}.png`)
+      const source = readPortraitSource(role)
 
       expect(isPng(source)).toBe(true)
       expect(readPngMetadata(source)).toMatchObject({
         bitDepth: 8,
         colorType: 6,
-        height: 256,
+        height: 120,
         interlace: 0,
-        width: 256,
+        width: 140,
       })
       expect(readCornerAlphas(source)).toEqual([0, 0, 0, 0])
       expect(source.byteLength).toBeGreaterThan(10_000)
     })
   })
 
-  it("keeps the new-chat showcase portraits separate from process portraits", () => {
-    ;["ops", "search", "data", "creative", "design"].forEach((role) => {
-      expect(getHomeShowcaseAgentPortraitAsset(role as never)).toMatchObject({
-        key: `${role}-home-showcase-portrait`,
+  it("uses the updated realistic portraits for all commerce scene roles", () => {
+    commerceRoleKeys.forEach((role) => {
+      expect(getAgentPortraitAsset(role as never)).toMatchObject({
+        key: `${role}-portrait`,
         role,
       })
 
-      const source = readHomeShowcasePortraitSource(`${role}.png`)
+      const source = readPortraitSource(role)
 
       expect(isPng(source)).toBe(true)
       expect(readPngMetadata(source)).toMatchObject({
@@ -69,12 +67,8 @@ describe("agent portrait assets", () => {
   })
 })
 
-function readPortraitSource(fileName: string) {
-  return readFileSync(resolve(currentDir, "realistic", fileName))
-}
-
-function readHomeShowcasePortraitSource(fileName: string) {
-  return readFileSync(resolve(currentDir, "home-showcase", fileName))
+function readPortraitSource(role: string) {
+  return readFileSync(resolve(currentDir, "realistic", `${role}.png`))
 }
 
 function isPng(source: Buffer) {
