@@ -19,7 +19,6 @@ export interface AgentChatSourceContextBarProps {
   isOpen?: boolean
   onAttachExistingSource?: (fileId: string) => void
   onDeleteSelectedSources?: () => void
-  onManageSources?: () => void
   onClearSourceContext: () => void
   onOpenChange?: (open: boolean) => void
   onToggleSourceContext: (source: AgentChatSourceContextSelection) => void
@@ -37,7 +36,6 @@ export function AgentChatSourceContextBar({
   isOpen,
   onAttachExistingSource,
   onDeleteSelectedSources,
-  onManageSources,
   onClearSourceContext,
   onOpenChange,
   onToggleSourceContext,
@@ -98,7 +96,6 @@ export function AgentChatSourceContextBar({
         sourceLibraryError={sourceLibraryError}
         onAttachExistingSource={onAttachExistingSource}
         onDeleteSelectedSources={onDeleteSelectedSources}
-        onManageSources={onManageSources}
         onClearSourceContext={onClearSourceContext}
         onToggleSourceContext={onToggleSourceContext}
         onUploadClick={onUploadClick}

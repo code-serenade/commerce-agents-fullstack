@@ -1,5 +1,4 @@
 import type { ChangeEvent, MouseEvent, RefObject } from "react"
-import { useNavigate } from "react-router"
 
 export function useAgentChatComposerEvents({
   closePanels,
@@ -16,16 +15,9 @@ export function useAgentChatComposerEvents({
   onUploadAttachments: (files: File[]) => void
   textareaRef: RefObject<HTMLTextAreaElement | null>
 }) {
-  const navigate = useNavigate()
-
   const sendAndClosePanels = () => {
     closePanels()
     onSend()
-  }
-
-  const manageSources = () => {
-    closePanels()
-    void navigate("/materials")
   }
 
   const focusComposer = (event: MouseEvent<HTMLDivElement>) => {
@@ -50,7 +42,6 @@ export function useAgentChatComposerEvents({
   return {
     focusComposer,
     handleAttachmentChange,
-    manageSources,
     openUploadFilePicker: () => fileInputRef.current?.click(),
     sendAndClosePanels,
   }

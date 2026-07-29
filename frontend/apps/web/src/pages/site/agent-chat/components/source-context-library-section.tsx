@@ -2,7 +2,6 @@ import {
   CheckCircle2,
   FilePlus2,
   FileText,
-  FolderOpen,
   Loader2,
 } from "lucide-react"
 import { useMemo, useState } from "react"
@@ -13,7 +12,6 @@ import {
   ComposerPanelEmptyState,
   ComposerPanelSection,
   composerPanelListClassName,
-  composerPanelSecondaryButtonClassName,
   composerPanelTinyButtonClassName,
 } from "./composer-panel-layout"
 
@@ -23,14 +21,12 @@ export function SourceContextLibrarySection({
   disabled,
   isLoading,
   onAttachExistingSource,
-  onManageSources,
   sourceLibrary,
   sourceLibraryError,
 }: {
   disabled: boolean
   isLoading: boolean
   onAttachExistingSource?: (fileId: string) => void
-  onManageSources?: () => void
   sourceLibrary: AgentChatSourceLibraryItem[]
   sourceLibraryError: string | null
 }) {
@@ -46,8 +42,7 @@ export function SourceContextLibrarySection({
   const visible =
     isLoading ||
     Boolean(sourceLibraryError) ||
-    sourceLibrary.length > 0 ||
-    Boolean(onManageSources)
+    sourceLibrary.length > 0
 
   if (!visible) return null
 
@@ -111,24 +106,6 @@ export function SourceContextLibrarySection({
             })}
           </button>
         </div>
-      ) : null}
-      {!isLoading && !sourceLibraryError && sourceLibrary.length === 0 ? (
-        <ComposerPanelEmptyState
-          icon={<FolderOpen className="size-4" />}
-          action={
-            <button
-              type="button"
-              disabled={disabled || !onManageSources}
-              onClick={onManageSources}
-              className={composerPanelSecondaryButtonClassName}
-            >
-              <FolderOpen className="size-3.5" />
-              {t("agentChat.composer.sourceContext.libraryEmptyAction")}
-            </button>
-          }
-        >
-          {t("agentChat.composer.sourceContext.libraryEmpty")}
-        </ComposerPanelEmptyState>
       ) : null}
     </ComposerPanelSection>
   )

@@ -36,9 +36,9 @@ describe("agent portrait assets", () => {
       expect(readPngMetadata(source)).toMatchObject({
         bitDepth: 8,
         colorType: 6,
-        height: 120,
+        height: 256,
         interlace: 0,
-        width: 140,
+        width: 256,
       })
       expect(readCornerAlphas(source)).toEqual([0, 0, 0, 0])
       expect(source.byteLength).toBeGreaterThan(10_000)
@@ -58,9 +58,9 @@ describe("agent portrait assets", () => {
       expect(readPngMetadata(source)).toMatchObject({
         bitDepth: 8,
         colorType: 6,
-        height: 120,
+        height: 256,
         interlace: 0,
-        width: 140,
+        width: 256,
       })
       expect(readCornerAlphas(source)).toEqual([0, 0, 0, 0])
     })

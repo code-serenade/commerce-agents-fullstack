@@ -132,7 +132,6 @@ export function basePanelProps(): ComponentProps<typeof AgentChatComposerPanels>
     onClearSourceContext: noop,
     onClosePanels: noop,
     onDeleteSelectedSources: noop,
-    onManageSources: noop,
     onRuntimeCollaborationModeChange: noop,
     onRuntimeLearningLevelChange: noop,
     onRuntimePrimaryRoleChange: noop,

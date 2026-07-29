@@ -57,6 +57,24 @@ describe("AgentChatComposerPanelShell", () => {
     expect(shell).toHaveClass("inset-x-0")
   })
 
+  it("uses the expanded preferred height when the viewport has room", async () => {
+    const i18n = await createAgentChatTestI18n()
+
+    render(
+      <TestProviders i18n={i18n}>
+        <AgentChatComposerPanelShell maxHeight={640} open>
+          <div>Expanded panel content</div>
+        </AgentChatComposerPanelShell>
+      </TestProviders>
+    )
+
+    const shell = screen
+      .getByText("Expanded panel content")
+      .closest("[data-agent-chat-composer-panel-shell='true']")
+
+    expect(shell).toHaveStyle({ height: "500px", maxHeight: "640px" })
+  })
+
   it("can render below the composer when the caller selects bottom placement", async () => {
     const i18n = await createAgentChatTestI18n()
 

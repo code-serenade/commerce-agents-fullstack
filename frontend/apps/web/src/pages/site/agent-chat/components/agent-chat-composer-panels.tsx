@@ -41,7 +41,6 @@ export function AgentChatComposerPanels({
   onClearProductContext,
   onClearSourceContext,
   onDeleteSelectedSources,
-  onManageSources,
   onToggleCampaignContext,
   onToggleProductContext,
   onToggleSourceContext,
@@ -87,7 +86,6 @@ export function AgentChatComposerPanels({
   onClearProductContext: () => void
   onClearSourceContext: () => void
   onDeleteSelectedSources: () => void
-  onManageSources: () => void
   onToggleCampaignContext: (campaign: AgentChatCampaignContextSelection) => void
   onToggleProductContext: (product: AgentChatProductContextSelection) => void
   onToggleSourceContext: (source: AgentChatSourceContextSelection) => void
@@ -177,7 +175,6 @@ export function AgentChatComposerPanels({
           sourceLibraryError={sourceLibraryError}
           onDeleteSelectedSources={onDeleteSelectedSources}
           onAttachExistingSource={onAttachExistingSource}
-          onManageSources={onManageSources}
           onUploadClick={onUploadClick}
           onClearSourceContext={onClearSourceContext}
           onToggleSourceContext={onToggleSourceContext}

@@ -51,7 +51,7 @@ export function AgentChatComposerInput({
         type="file"
         onChange={onAttachmentChange}
       />
-      <div className={size === "welcome" ? "min-h-18" : "min-h-10"}>
+      <div className={size === "welcome" ? "min-h-14" : "min-h-10"}>
         <textarea
           ref={textareaRef}
           value={input}
@@ -68,7 +68,7 @@ export function AgentChatComposerInput({
           disabled={isStreaming}
           rows={1}
           className={`max-h-44 w-full resize-none border-0 bg-transparent px-3 text-sm/6 text-foreground outline-none placeholder:text-(--agent-chat-placeholder) disabled:cursor-not-allowed disabled:opacity-60 ${
-            size === "welcome" ? "min-h-18 py-3 sm:px-4" : "min-h-10 py-2"
+            size === "welcome" ? "min-h-14 py-2.5 sm:px-4" : "min-h-10 py-2"
           }`}
         />
       </div>

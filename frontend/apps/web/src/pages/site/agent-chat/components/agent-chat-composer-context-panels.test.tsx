@@ -108,7 +108,6 @@ describe("AgentChatComposer context panels", () => {
     const onToggleSourceContext = vi.fn()
     const onAttachExistingSource = vi.fn()
     const onUploadClick = vi.fn()
-    const onManageSources = vi.fn()
 
     const { rerender } = render(
       <TestProviders i18n={i18n}>
@@ -141,7 +140,6 @@ describe("AgentChatComposer context panels", () => {
           availableSources={[source]}
           onAttachExistingSource={onAttachExistingSource}
           onClosePanels={onClosePanels}
-          onManageSources={onManageSources}
           onToggleSourceContext={onToggleSourceContext}
           onUploadClick={onUploadClick}
           sourceContextOpen
@@ -159,12 +157,11 @@ describe("AgentChatComposer context panels", () => {
       })
     )
     expect(onUploadClick).toHaveBeenCalledTimes(1)
-    await user.click(
-      screen.getByRole("button", {
+    expect(
+      screen.queryByRole("button", {
         name: i18n.t("agentChat.composer.sourceContext.manageLibrary"),
       })
-    )
-    expect(onManageSources).toHaveBeenCalledTimes(1)
+    ).not.toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: /sales-data\.csv/i }))
     expect(onToggleSourceContext).toHaveBeenCalledWith(source)
     await user.click(screen.getByRole("button", { name: /file-library\.pdf/i }))

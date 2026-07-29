@@ -88,37 +88,15 @@ describe("SourceContextPicker", () => {
         i18n.t("agentChat.composer.sourceContext.librarySection")
       )
     ).toBeInTheDocument()
-  })
-
-  it("opens the materials manager from the upload materials panel", async () => {
-    const i18n = await createAgentChatTestI18n()
-    const manageSources = vi.fn()
-
-    render(
-      <AgentChatTestI18nProvider i18n={i18n}>
-        <SourceContextPicker
-          availableSources={[]}
-          disabled={false}
-          onClearSourceContext={vi.fn()}
-          onManageSources={manageSources}
-          onToggleSourceContext={vi.fn()}
-          selectedSources={[]}
-        />
-      </AgentChatTestI18nProvider>
-    )
-
-    await userEvent.click(
-      screen.getByRole("button", {
+    expect(
+      screen.queryByRole("button", {
         name: i18n.t("agentChat.composer.sourceContext.manageLibrary"),
       })
-    )
-
-    expect(manageSources).toHaveBeenCalledTimes(1)
+    ).not.toBeInTheDocument()
   })
 
-  it("shows a library manager action when recent upload file library files are empty", async () => {
+  it("does not navigate away when the file library is empty", async () => {
     const i18n = await createAgentChatTestI18n()
-    const manageSources = vi.fn()
 
     render(
       <AgentChatTestI18nProvider i18n={i18n}>
@@ -126,7 +104,6 @@ describe("SourceContextPicker", () => {
           availableSources={[]}
           disabled={false}
           onClearSourceContext={vi.fn()}
-          onManageSources={manageSources}
           onToggleSourceContext={vi.fn()}
           selectedSources={[]}
           sourceLibrary={[]}
@@ -135,18 +112,10 @@ describe("SourceContextPicker", () => {
     )
 
     expect(
-      screen.getByText(
-        i18n.t("agentChat.composer.sourceContext.libraryEmpty")
-      )
-    ).toBeInTheDocument()
-
-    await userEvent.click(
-      screen.getByRole("button", {
+      screen.queryByRole("button", {
         name: i18n.t("agentChat.composer.sourceContext.libraryEmptyAction"),
       })
-    )
-
-    expect(manageSources).toHaveBeenCalledTimes(1)
+    ).not.toBeInTheDocument()
   })
 
   it("does not reattach files already in the current conversation", async () => {

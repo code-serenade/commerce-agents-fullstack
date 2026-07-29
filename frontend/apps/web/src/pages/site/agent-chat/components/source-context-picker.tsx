@@ -1,4 +1,4 @@
-import { FolderOpen, Info, Upload } from "lucide-react"
+import { Info, Upload } from "lucide-react"
 import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Button, SearchInput } from "@workspace/ui-components"
@@ -15,7 +15,6 @@ import {
   ComposerPanelSection,
   composerPanelActionButtonClassName,
   composerPanelListClassName,
-  composerPanelTextButtonClassName,
   composerPanelTinyButtonClassName,
 } from "./composer-panel-layout"
 
@@ -29,7 +28,6 @@ export function SourceContextPicker({
   sourceLibraryError = null,
   onAttachExistingSource,
   onDeleteSelectedSources,
-  onManageSources,
   onClearSourceContext,
   onToggleSourceContext,
   onUploadClick,
@@ -42,7 +40,6 @@ export function SourceContextPicker({
   sourceLibraryError?: string | null
   onAttachExistingSource?: (fileId: string) => void
   onDeleteSelectedSources?: () => void
-  onManageSources?: () => void
   onClearSourceContext: () => void
   onToggleSourceContext: (source: AgentChatSourceContextSelection) => void
   onUploadClick?: () => void
@@ -99,16 +96,6 @@ export function SourceContextPicker({
         description={t("agentChat.composer.sourceContext.panelHint")}
         actions={
           <>
-            <Button
-              type="button"
-              disabled={!onManageSources}
-              onClick={onManageSources}
-              classNameMode="replace"
-              className={composerPanelTextButtonClassName}
-            >
-              <FolderOpen className="size-3.5" />
-              {t("agentChat.composer.sourceContext.manageLibrary")}
-            </Button>
             <Button
               type="button"
               disabled={disabled || !onUploadClick}
@@ -204,7 +191,6 @@ export function SourceContextPicker({
             disabled={disabled}
             isLoading={isLoadingSourceLibrary}
             onAttachExistingSource={onAttachExistingSource}
-            onManageSources={onManageSources}
             sourceLibrary={sourceLibrary}
             sourceLibraryError={sourceLibraryError}
           />

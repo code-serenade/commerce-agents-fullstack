@@ -4,7 +4,7 @@ import type { AgentChatComposerPanelPlacement } from "../view-model/use-agent-ch
 import { ComposerPanelCloseProvider } from "./composer-panel-layout"
 
 const PANEL_EXIT_DURATION_MS = 180
-const PREFERRED_PANEL_HEIGHT = 360
+const PREFERRED_PANEL_HEIGHT = 500
 
 export function AgentChatComposerPanelShell({
   children,
