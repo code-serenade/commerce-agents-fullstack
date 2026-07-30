@@ -16,7 +16,7 @@ idle_timeout = 600
 sql_logging = false
 
 [s3]
-endpoint = "https://y-s3.dy.dywxgz.com"
+endpoint = "https://locals3.nodorac.com"
 public_bucket = "public"
 private_bucket = "private"
 access_key = "btok"
