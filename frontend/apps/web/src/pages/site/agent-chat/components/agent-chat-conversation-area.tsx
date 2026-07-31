@@ -146,7 +146,13 @@ export function AgentChatConversationArea({
         }
       />
       {isWelcomeMode ? (
-        <div className="mt-[calc(100svh-14rem)] w-full pb-52">
+        <div
+          className={
+            chat.isLoggedIn
+              ? "mt-[calc(100svh-10rem)] w-full pb-52"
+              : "mt-[calc(100svh-14rem)] w-full pb-52"
+          }
+        >
           <AgentChatWelcomeRolePanel surface="plain" />
         </div>
       ) : null}
