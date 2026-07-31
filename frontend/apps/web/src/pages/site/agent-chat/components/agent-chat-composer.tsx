@@ -68,7 +68,11 @@ export function AgentChatComposer({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const isWelcomePlacement = placement === "welcome"
-  const panelLayout = useAgentChatComposerPanelLayout(composerRootRef, "top")
+  const panelLayout = useAgentChatComposerPanelLayout(
+    composerRootRef,
+    "top",
+    isWelcomePlacement ? 72 : undefined
+  )
   const panels = useAgentChatPanelState({ requestedPanel, requestedPanelVersion })
   const {
     campaignContextOpen,
@@ -103,7 +107,7 @@ export function AgentChatComposer({
   useEffect(() => {
     const textarea = textareaRef.current
     if (!textarea) return
-    const minHeight = isWelcomePlacement ? 56 : 40
+    const minHeight = 40
     textarea.style.height = "auto"
     textarea.style.height = `${Math.min(Math.max(textarea.scrollHeight, minHeight), 180)}px`
   }, [input, isWelcomePlacement])
@@ -111,12 +115,12 @@ export function AgentChatComposer({
     if (!focusVersion || isStreaming) return
     textareaRef.current?.focus()
   }, [focusVersion, isStreaming])
-  const footerClassName = isWelcomePlacement ? "relative z-30 w-full shrink-0" : "relative z-30 shrink-0 px-4 pt-3 pb-5 sm:px-7"
+  const footerClassName = isWelcomePlacement ? "absolute inset-x-4 bottom-8 z-40 w-auto sm:inset-x-7" : "relative z-30 shrink-0 px-4 pt-3 pb-5 sm:px-7"
   const headingClassName = isWelcomePlacement ? "mx-auto mb-7 w-full max-w-6xl text-center text-[clamp(1.8rem,2.45vw,2.25rem)] leading-tight font-bold text-foreground" : "mx-auto mb-4 w-full max-w-4xl text-center text-xl font-semibold text-foreground sm:text-2xl"
   const composerRootClassName = isWelcomePlacement
     ? "mx-auto flex w-full max-w-6xl flex-col gap-2 rounded-2xl border border-primary/90 bg-(--agent-chat-elevated-strong) p-2 shadow-(--agent-chat-floating-shadow) backdrop-blur-xl transition-colors focus-within:border-primary focus-within:shadow-(--agent-chat-focus-shadow) dark:border-(--agent-chat-soft-border) dark:bg-card dark:focus-within:border-primary/35"
     : "mx-auto flex w-full max-w-4xl flex-col gap-2 rounded-[26px] border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) p-2 shadow-(--agent-chat-floating-shadow) backdrop-blur-xl transition-colors focus-within:border-primary/35 focus-within:shadow-(--agent-chat-focus-shadow) dark:bg-card"
-  const inputShellClassName = isWelcomePlacement ? "grid gap-1 rounded-xl bg-(--agent-chat-elevated-strong) p-1.5" : "grid gap-1 rounded-[20px] bg-(--agent-chat-elevated-strong) p-1.5"
+  const inputShellClassName = isWelcomePlacement ? "grid gap-1 rounded-xl bg-(--agent-chat-elevated-strong) p-1" : "grid gap-1 rounded-[20px] bg-(--agent-chat-elevated-strong) p-1.5"
   return (
     <footer className={footerClassName}>
       {heading ? <div className={headingClassName}>{heading}</div> : null}

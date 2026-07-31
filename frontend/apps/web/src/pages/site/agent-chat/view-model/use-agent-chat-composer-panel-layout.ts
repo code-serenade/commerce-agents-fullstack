@@ -14,7 +14,8 @@ export interface AgentChatComposerPanelLayout {
 
 export function useAgentChatComposerPanelLayout(
   composerRootRef: RefObject<HTMLElement | null>,
-  placementPreference: AgentChatComposerPanelPlacement | "auto" = "auto"
+  placementPreference: AgentChatComposerPanelPlacement | "auto" = "auto",
+  topSafeSpaceOverride?: number
 ) {
   const [panelLayout, setPanelLayout] =
     useState<AgentChatComposerPanelLayout>({
@@ -30,7 +31,10 @@ export function useAgentChatComposerPanelLayout(
       const viewportHeight =
         window.visualViewport?.height ?? window.innerHeight
       const rootRect = composerRoot.getBoundingClientRect()
-      const topSafeSpace = readPanelTopSafeSpace()
+      const topSafeSpace = Math.min(
+        readPanelTopSafeSpace(),
+        topSafeSpaceOverride ?? Number.POSITIVE_INFINITY
+      )
       const availableAbove =
         Math.min(rootRect.top, viewportHeight) -
         topSafeSpace -
@@ -76,7 +80,7 @@ export function useAgentChatComposerPanelLayout(
       window.visualViewport?.removeEventListener("resize", updatePanelLayout)
       observer?.disconnect()
     }
-  }, [composerRootRef, placementPreference])
+  }, [composerRootRef, placementPreference, topSafeSpaceOverride])
 
   return panelLayout
 }

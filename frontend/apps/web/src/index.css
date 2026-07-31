@@ -65,6 +65,12 @@
   background: transparent;
 }
 
+.agent-chat-welcome-scrollarea:has(
+  [data-agent-chat-composer-panel-shell="true"][aria-hidden="false"]
+) {
+  overflow: visible;
+}
+
 .agent-chat-history-scrollarea {
   scrollbar-color: transparent transparent;
   scrollbar-width: thin;
