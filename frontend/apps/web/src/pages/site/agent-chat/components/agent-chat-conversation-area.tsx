@@ -41,7 +41,7 @@ export function AgentChatConversationArea({
     <div
       className={
         isWelcomeMode
-          ? "agent-chat-scrollarea relative z-10 flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col overflow-y-auto px-4 pt-[clamp(3.5rem,10svh,5rem)] pb-8 sm:px-7 lg:pt-[clamp(4rem,9svh,5.5rem)]"
+          ? "agent-chat-scrollarea agent-chat-welcome-scrollarea relative z-40 flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col overflow-y-auto px-4 pt-[clamp(3.5rem,10svh,5rem)] pb-52 sm:px-7 lg:pt-[clamp(4rem,9svh,5.5rem)]"
           : "relative z-10 flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col overflow-hidden"
       }
     >
@@ -144,9 +144,12 @@ export function AgentChatConversationArea({
             />
           ) : undefined
         }
-      >
-        {isWelcomeMode ? <AgentChatWelcomeRolePanel surface="plain" /> : null}
-      </AgentChatComposer>
+      />
+      {isWelcomeMode ? (
+        <div className="mt-[calc(100svh-14rem)] w-full pb-52">
+          <AgentChatWelcomeRolePanel surface="plain" />
+        </div>
+      ) : null}
     </div>
   )
 }
