@@ -34,3 +34,4 @@ export const WorkspacesDetailPage = lazy(
 export const HomePage = lazy(() => import("@/pages/site/home"))
 export const ProfilePage = lazy(() => import("@/pages/site/profile"))
 export const TeamSchoolPage = lazy(() => import("@/pages/site/team-school"))
+export const LearningProgressPage = lazy(() => import("@/pages/site/learning-progress"))

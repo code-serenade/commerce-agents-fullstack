@@ -245,4 +245,5 @@ describe("StudentNextActions", () => {
 
     expect(screen.getByText(dataPrompts[0]!)).toBeInTheDocument()
   })
+
 })

@@ -1,0 +1,167 @@
+{
+  "version": "ecommerce_diagnostic_v1",
+  "frameworkVersion": "ecommerce_v1",
+  "sourceRevision": "2026-08-25",
+  "evaluationMode": "deterministic_rubric_v1",
+  "questions": [
+    {
+      "id": "traffic.funnel_diagnosis.001",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "traffic",
+      "questionType": "scenario_decision",
+      "prompt": "点击量上涨但成交没有变化时，你会怎样用电商漏斗先定位问题？",
+      "referenceAnswer": "先统一统计口径，再比较浏览商品、加购、开始结账和购买各环节的转化率，找到下降最明显的环节后再判断是流量承接、结账还是支付问题。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "compare_funnel_stages",
+            "weight": 0.6,
+            "concepts": ["漏斗", "浏览到加购", "加购到结账", "结账到购买", "各环节转化"]
+          },
+          {
+            "code": "locate_dropoff_before_action",
+            "weight": 0.4,
+            "concepts": ["定位流失环节", "先找下降环节", "比较各阶段", "确认掉在哪一步"]
+          }
+        ],
+        "contradictions": [
+          {
+            "code": "clicks_prove_conversion",
+            "concepts": ["点击上涨说明转化一定提高", "点击多就一定成交多"]
+          }
+        ],
+        "partialThreshold": 0.4,
+        "correctThreshold": 0.75
+      },
+      "sources": [
+        {
+          "sourceId": "google.analytics.ga4.ecommerce",
+          "authorityLevel": "primary_official",
+          "publisher": "Google Analytics",
+          "title": "Measure ecommerce",
+          "url": "https://developers.google.com/analytics/devguides/collection/ga4/ecommerce",
+          "publishedVersion": "GA4",
+          "checkedAt": "2026-08-25",
+          "validThrough": "2027-08-25"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_seed_20260825",
+        "reviewerId": "question_bank_gate_v1",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-25",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "conversion.checkout_dropoff.001",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "conversion",
+      "questionType": "error_diagnosis",
+      "prompt": "开始结账的人数基本不变，但最终购买数明显下降时，你会先核对哪两个方向？",
+      "referenceAnswer": "先核对 begin_checkout 与 purchase 的统计口径和埋点是否一致，再检查结账到支付完成之间的流程错误、支付失败或额外费用等流失原因。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "verify_measurement",
+            "weight": 0.5,
+            "concepts": ["核对埋点", "统计口径", "购买事件", "purchase事件", "数据是否准确"]
+          },
+          {
+            "code": "inspect_checkout_payment",
+            "weight": 0.5,
+            "concepts": ["支付失败", "结账流程", "支付环节", "额外费用", "结账到购买"]
+          }
+        ],
+        "contradictions": [
+          {
+            "code": "only_increase_clicks",
+            "concepts": ["只要继续增加点击", "和结账支付无关", "不需要核对埋点", "不用检查支付"]
+          }
+        ],
+        "partialThreshold": 0.5,
+        "correctThreshold": 0.75
+      },
+      "sources": [
+        {
+          "sourceId": "google.analytics.ga4.ecommerce",
+          "authorityLevel": "primary_official",
+          "publisher": "Google Analytics",
+          "title": "Measure ecommerce",
+          "url": "https://developers.google.com/analytics/devguides/collection/ga4/ecommerce",
+          "publishedVersion": "GA4",
+          "checkedAt": "2026-08-25",
+          "validThrough": "2027-08-25"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_seed_20260825",
+        "reviewerId": "question_bank_gate_v1",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-25",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "finance.revenue_profit.001",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "finance",
+      "questionType": "short_reasoning",
+      "prompt": "销售收入增长时，为什么不能直接判断利润也增长？",
+      "referenceAnswer": "利润不仅取决于收入，还取决于商品成本、投放费用、履约及售后等费用；只有收入增长超过相关成本和费用增长时，利润才可能同步增长。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "distinguish_revenue_profit",
+            "weight": 0.5,
+            "concepts": ["收入不等于利润", "销售额不等于利润", "不能只看收入", "营收和利润不同"]
+          },
+          {
+            "code": "account_for_costs_expenses",
+            "weight": 0.5,
+            "concepts": ["成本和费用", "商品成本", "投放成本", "履约费用", "售后费用", "费用增长"]
+          }
+        ],
+        "contradictions": [
+          {
+            "code": "revenue_equals_profit",
+            "concepts": ["收入增长利润一定增长", "销售额增长利润必然增长"]
+          }
+        ],
+        "partialThreshold": 0.5,
+        "correctThreshold": 0.75
+      },
+      "sources": [
+        {
+          "sourceId": "ifrs.ias1.financial_statements",
+          "authorityLevel": "standard",
+          "publisher": "IFRS Foundation",
+          "title": "IAS 1 Presentation of Financial Statements",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/ias-1-presentation-of-financial-statements/",
+          "publishedVersion": "IAS 1",
+          "checkedAt": "2026-08-25",
+          "validThrough": "2027-08-25"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_seed_20260825",
+        "reviewerId": "question_bank_gate_v1",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-25",
+        "decision": "approved_for_internal_pilot"
+      }
+    }
+  ]
+}

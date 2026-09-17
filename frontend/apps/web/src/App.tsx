@@ -40,7 +40,7 @@ export default function App() {
     enabled: Boolean(token),
     retry: false,
     queryFn: async () => {
-      const user = await meApi()
+      const user = await meApi({ suppressGlobalError: true })
       const access = await ensureCurrentAppUserPermissions(user)
 
       return { user, access }

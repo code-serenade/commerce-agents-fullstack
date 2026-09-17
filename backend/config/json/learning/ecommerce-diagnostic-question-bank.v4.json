@@ -1,0 +1,468 @@
+{
+  "version": "ecommerce_diagnostic_v4",
+  "frameworkVersion": "ecommerce_v1",
+  "sourceRevision": "2026-08-27",
+  "evaluationMode": "deterministic_rubric_v1",
+  "questions": [
+    {
+      "id": "traffic.funnel_diagnosis.choice.001",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "traffic",
+      "questionType": "single_choice",
+      "prompt": "店铺点击量明显上涨，但成交量没有变化。下一步最合理的排查方式是什么？",
+      "choices": [
+        { "id": "compare_funnel", "text": "统一统计口径，比较浏览、加购、结账和购买各阶段，定位流失环节" },
+        { "id": "increase_clicks", "text": "继续增加点击量，只要流量更大成交自然会增长" },
+        { "id": "change_logo", "text": "先更换店铺标志，因为点击上涨通常说明标志有问题" },
+        { "id": "ignore_purchase", "text": "只看点击指标即可，购买事件不属于流量分析范围" }
+      ],
+      "correctChoiceId": "compare_funnel",
+      "referenceAnswer": "应先统一事件和统计口径，再沿浏览、加购、开始结账、购买等电商漏斗阶段比较转化，定位新增流量在哪一环节流失。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          { "code": "compare_funnel_stages", "weight": 1.0, "concepts": ["统一统计口径", "比较漏斗各阶段", "定位流失环节"] }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "google.analytics.ga4.ecommerce",
+          "authorityLevel": "primary_official",
+          "publisher": "Google Analytics",
+          "title": "Measure ecommerce",
+          "url": "https://developers.google.com/analytics/devguides/collection/ga4/ecommerce",
+          "publishedVersion": "GA4",
+          "checkedAt": "2026-08-27",
+          "validThrough": "2027-08-27"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260827",
+        "reviewerId": "question_bank_gate_v1",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-27",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "traffic.ga4_add_to_cart_event.choice.002",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "traffic",
+      "questionType": "single_choice",
+      "prompt": "要在 GA4 中记录用户把商品加入购物车，应该发送哪个推荐电商事件？",
+      "choices": [
+        { "id": "add_to_cart", "text": "add_to_cart" },
+        { "id": "add_payment_info", "text": "add_payment_info" },
+        { "id": "view_promotion", "text": "view_promotion" },
+        { "id": "refund", "text": "refund" }
+      ],
+      "correctChoiceId": "add_to_cart",
+      "referenceAnswer": "GA4 推荐使用 add_to_cart 事件记录用户把一个或多个商品加入购物车；支付信息、促销浏览和退款分别使用其他事件。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          { "code": "identify_add_to_cart_event", "weight": 1.0, "concepts": ["add_to_cart", "加入购物车事件"] }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "google.analytics.ga4.ecommerce",
+          "authorityLevel": "primary_official",
+          "publisher": "Google Analytics",
+          "title": "Measure ecommerce",
+          "url": "https://developers.google.com/analytics/devguides/collection/ga4/ecommerce",
+          "publishedVersion": "GA4",
+          "checkedAt": "2026-08-27",
+          "validThrough": "2027-08-27"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260827",
+        "reviewerId": "question_bank_gate_v1",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-27",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "conversion.checkout_dropoff.choice.001",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "conversion",
+      "questionType": "single_choice",
+      "prompt": "开始结账的人数稳定，但购买完成数明显下降。首先应该怎样处理？",
+      "choices": [
+        { "id": "verify_and_inspect", "text": "先核对购买事件和统计口径，再检查结账流程、支付失败与额外费用" },
+        { "id": "buy_more_traffic", "text": "直接增加广告流量，不必检查结账或支付环节" },
+        { "id": "remove_tracking", "text": "停用购买事件埋点，避免数据继续下降" },
+        { "id": "assume_seasonality", "text": "认定只是季节波动，无需核对数据或用户流程" }
+      ],
+      "correctChoiceId": "verify_and_inspect",
+      "referenceAnswer": "开始结账稳定而购买下降时，应先确认 purchase 事件及统计口径准确，再排查结账与支付环节、失败率和新增费用等摩擦。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          { "code": "verify_measurement_and_checkout", "weight": 1.0, "concepts": ["核对购买事件", "检查结账流程", "检查支付失败"] }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "google.analytics.ga4.ecommerce",
+          "authorityLevel": "primary_official",
+          "publisher": "Google Analytics",
+          "title": "Measure ecommerce",
+          "url": "https://developers.google.com/analytics/devguides/collection/ga4/ecommerce",
+          "publishedVersion": "GA4",
+          "checkedAt": "2026-08-27",
+          "validThrough": "2027-08-27"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260827",
+        "reviewerId": "question_bank_gate_v1",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-27",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "conversion.ga4_purchase_event.choice.002",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "conversion",
+      "questionType": "single_choice",
+      "prompt": "用户完成一笔购买后，GA4 推荐用哪个电商事件记录这次成交？",
+      "choices": [
+        { "id": "purchase", "text": "purchase" },
+        { "id": "begin_checkout", "text": "begin_checkout" },
+        { "id": "add_shipping_info", "text": "add_shipping_info" },
+        { "id": "view_cart", "text": "view_cart" }
+      ],
+      "correctChoiceId": "purchase",
+      "referenceAnswer": "GA4 推荐使用 purchase 事件记录完成购买；begin_checkout、add_shipping_info 和 view_cart 分别表示更早的漏斗步骤。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          { "code": "identify_purchase_event", "weight": 1.0, "concepts": ["purchase", "购买完成事件"] }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "google.analytics.ga4.ecommerce",
+          "authorityLevel": "primary_official",
+          "publisher": "Google Analytics",
+          "title": "Measure ecommerce",
+          "url": "https://developers.google.com/analytics/devguides/collection/ga4/ecommerce",
+          "publishedVersion": "GA4",
+          "checkedAt": "2026-08-27",
+          "validThrough": "2027-08-27"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260827",
+        "reviewerId": "question_bank_gate_v1",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-27",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "finance.revenue_profit.choice.001",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "finance",
+      "questionType": "single_choice",
+      "prompt": "本月销售收入增长了，下面哪项结论最准确？",
+      "choices": [
+        { "id": "check_costs", "text": "还不能判断利润增长，需要同时比较商品成本、投放、履约和售后等费用" },
+        { "id": "profit_certain", "text": "利润一定同比增长，因为销售收入就是利润" },
+        { "id": "costs_irrelevant", "text": "只要收入增长，成本和费用的变化就不再重要" },
+        { "id": "cash_equals_profit", "text": "收到的现金增加多少，利润就必然增加多少" }
+      ],
+      "correctChoiceId": "check_costs",
+      "referenceAnswer": "收入与利润不是同一指标。判断利润是否增长，还要比较商品成本、投放、履约、售后等相关成本和费用的变化。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          { "code": "distinguish_revenue_profit", "weight": 1.0, "concepts": ["收入不等于利润", "比较成本和费用"] }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "ifrs.ias1.financial_statements",
+          "authorityLevel": "standard",
+          "publisher": "IFRS Foundation",
+          "title": "IAS 1 Presentation of Financial Statements",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/ias-1-presentation-of-financial-statements/",
+          "publishedVersion": "IAS 1",
+          "checkedAt": "2026-08-27",
+          "validThrough": "2027-08-27"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260827",
+        "reviewerId": "question_bank_gate_v1",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-27",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "finance.gross_profit_cost.choice.002",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "finance",
+      "questionType": "single_choice",
+      "prompt": "两个月销售收入都为100万元，销售成本从60万元升到70万元。忽略其他项目，毛利怎样变化？",
+      "choices": [
+        { "id": "decrease_ten", "text": "毛利从40万元降到30万元，减少10万元" },
+        { "id": "unchanged", "text": "毛利保持100万元不变，因为销售收入没有变化" },
+        { "id": "increase_ten", "text": "毛利增加10万元，因为销售成本变高" },
+        { "id": "cannot_calculate", "text": "完全无法计算，销售收入和销售成本与毛利无关" }
+      ],
+      "correctChoiceId": "decrease_ten",
+      "referenceAnswer": "在忽略其他项目的前提下，毛利等于销售收入减销售成本，因此从100-60=40万元降为100-70=30万元。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          { "code": "calculate_gross_profit_change", "weight": 1.0, "concepts": ["收入减销售成本", "毛利减少10万元", "40万元降到30万元"] }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "ifrs.ias1.financial_statements",
+          "authorityLevel": "standard",
+          "publisher": "IFRS Foundation",
+          "title": "IAS 1 Presentation of Financial Statements",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/ias-1-presentation-of-financial-statements/",
+          "publishedVersion": "IAS 1",
+          "checkedAt": "2026-08-27",
+          "validThrough": "2027-08-27"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260827",
+        "reviewerId": "question_bank_gate_v1",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-27",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "content.informative_image_alt.choice.001",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "content",
+      "questionType": "single_choice",
+      "prompt": "商品主图写有正文未重复的“防水、容量20L”。哪条替代文本最合适？",
+      "choices": [
+        { "id": "meaningful_alt", "text": "黑色防水双肩包，容量20L" },
+        { "id": "generic_image", "text": "商品图片" },
+        { "id": "file_name", "text": "IMG_20260827.jpg" },
+        { "id": "empty_alt", "text": "留空，因为主图不需要向无法看图的用户传达信息" }
+      ],
+      "correctChoiceId": "meaningful_alt",
+      "referenceAnswer": "替代文本应简洁表达图片承载的商品含义和关键文字信息，例如“黑色防水双肩包，容量20L”，而不是泛称商品图片或文件名。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          { "code": "convey_image_meaning", "weight": 1.0, "concepts": ["防水双肩包", "容量20L", "传达图片含义"] }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "w3c.wai.informative_images",
+          "authorityLevel": "standard",
+          "publisher": "W3C Web Accessibility Initiative",
+          "title": "Images Tutorial: Informative Images",
+          "url": "https://www.w3.org/WAI/tutorials/images/informative/",
+          "publishedVersion": "WAI Images Tutorial",
+          "checkedAt": "2026-08-27",
+          "validThrough": "2027-08-27"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260827",
+        "reviewerId": "question_bank_gate_v1",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-27",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "content.decorative_image_alt.choice.002",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "content",
+      "questionType": "single_choice",
+      "prompt": "详情页有一张只用于分隔段落、不传达任何信息的装饰图。使用 img 元素时，替代文本应怎样设置？",
+      "choices": [
+        { "id": "empty_alt", "text": "使用空替代文本 alt=\"\"，让辅助技术忽略该装饰图" },
+        { "id": "decorative_words", "text": "写成“漂亮的装饰分割线”，让所有装饰都被朗读" },
+        { "id": "file_name", "text": "使用图片文件名作为替代文本" },
+        { "id": "remove_alt", "text": "删除 alt 属性，让浏览器自动生成准确说明" }
+      ],
+      "correctChoiceId": "empty_alt",
+      "referenceAnswer": "纯装饰图片不承载信息时，应使用空 alt，使屏幕阅读器忽略它；省略 alt 可能导致文件名等无意义内容被朗读。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          { "code": "use_empty_alt_for_decorative_image", "weight": 1.0, "concepts": ["空替代文本", "alt为空", "辅助技术忽略装饰图"] }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "w3c.wai.decorative_images",
+          "authorityLevel": "standard",
+          "publisher": "W3C Web Accessibility Initiative",
+          "title": "Images Tutorial: Decorative Images",
+          "url": "https://www.w3.org/WAI/tutorials/images/decorative/",
+          "publishedVersion": "WAI Images Tutorial",
+          "checkedAt": "2026-08-27",
+          "validThrough": "2027-08-27"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260827",
+        "reviewerId": "question_bank_gate_v1",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-27",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "compliance.eu_distance_withdrawal.choice.001",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "compliance",
+      "questionType": "single_choice",
+      "prompt": "面向欧盟消费者的网店，哪项关于线上购买撤回权的表述更准确？",
+      "choices": [
+        { "id": "general_with_exceptions", "text": "远程购买通常有14天撤回期，但定制、易腐、已拆封软件及已开始的数字内容等可能例外" },
+        { "id": "all_unconditional", "text": "所有线上购买都必须在14天内无条件退货，没有任何例外" },
+        { "id": "no_right", "text": "线上购买从来没有撤回权，是否退货完全由商家决定" },
+        { "id": "only_marketplace", "text": "14天撤回权只适用于平台自营商品，与远程合同无关" }
+      ],
+      "correctChoiceId": "general_with_exceptions",
+      "referenceAnswer": "欧盟远程合同通常给予消费者14天撤回期，但定制或个性化商品、易腐商品、已拆封软件、经同意后开始的数字内容等存在法定例外。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          { "code": "recognize_right_and_exceptions", "weight": 1.0, "concepts": ["14天撤回期", "存在例外", "定制商品"] }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "eu.your_europe.returns_withdrawal",
+          "authorityLevel": "primary_official",
+          "publisher": "European Union",
+          "title": "Returns and the right of withdrawal",
+          "url": "https://europa.eu/youreurope/citizens/consumers/shopping/returns/index_en.htm",
+          "publishedVersion": "Last checked 2026-04-28",
+          "checkedAt": "2026-08-27",
+          "validThrough": "2027-08-27"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260827",
+        "reviewerId": "question_bank_gate_v1",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-27",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "compliance.eu_return_shipping.choice.002",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "compliance",
+      "questionType": "single_choice",
+      "prompt": "欧盟消费者依法撤回一笔普通线上商品订单时，退回商品的直接运费通常由谁承担？",
+      "choices": [
+        { "id": "consumer_with_exceptions", "text": "通常由消费者承担，但商家同意承担或事前未告知消费者需承担时例外" },
+        { "id": "trader_always", "text": "任何情况下都必须由商家承担，没有例外" },
+        { "id": "platform_only", "text": "只能由交易平台承担，与商家和消费者都无关" },
+        { "id": "no_return_cost", "text": "撤回权意味着商品无需退回，因此不存在退回运费" }
+      ],
+      "correctChoiceId": "consumer_with_exceptions",
+      "referenceAnswer": "欧盟撤回权规则下，消费者通常承担退回商品的直接费用；如果商家同意承担，或未事先告知消费者需承担该费用，则不能按通常规则转嫁。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          { "code": "recognize_return_shipping_rule", "weight": 1.0, "concepts": ["消费者通常承担", "商家同意承担时例外", "未事先告知时例外"] }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "eu.your_europe.returns_withdrawal",
+          "authorityLevel": "primary_official",
+          "publisher": "European Union",
+          "title": "Returns and the right of withdrawal",
+          "url": "https://europa.eu/youreurope/citizens/consumers/shopping/returns/index_en.htm",
+          "publishedVersion": "Last checked 2026-04-28",
+          "checkedAt": "2026-08-27",
+          "validThrough": "2027-08-27"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260827",
+        "reviewerId": "question_bank_gate_v1",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-27",
+        "decision": "approved_for_internal_pilot"
+      }
+    }
+  ]
+}

@@ -3,11 +3,14 @@ import {
   REGISTER_PASSWORD_MAX_LENGTH,
   getAuthUserProfileApi,
   isRegisterPasswordValid,
+  meApi,
 } from "./auth"
+import { setHttpClientErrorHandler } from "../http-client"
 
 describe("auth api", () => {
   afterEach(() => {
     vi.unstubAllGlobals()
+    setHttpClientErrorHandler(null)
   })
 
   it("loads the auth user profile with the provided access token", async () => {
@@ -42,6 +45,28 @@ describe("auth api", () => {
         }),
       })
     )
+  })
+
+  it("can suppress the global error banner while restoring a session", async () => {
+    const globalErrorHandler = vi.fn()
+    vi.stubGlobal("localStorage", {
+      getItem: vi.fn().mockReturnValue(null),
+    })
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        Response.json({ code: 503, message: "unavailable" }, { status: 503 })
+      )
+    vi.stubGlobal("fetch", fetchMock)
+    setHttpClientErrorHandler(globalErrorHandler)
+
+    await expect(meApi({ suppressGlobalError: true })).rejects.toBeDefined()
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/auth/user/me",
+      expect.objectContaining({ method: "GET" })
+    )
+    expect(globalErrorHandler).not.toHaveBeenCalled()
   })
 
   it("validates registration passwords with length, allowed characters, and two-category requirements", () => {

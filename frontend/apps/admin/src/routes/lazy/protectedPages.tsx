@@ -15,6 +15,12 @@ export const AppUsersPage = lazy(
 export const AccessAnalyticsPage = lazy(
   () => import("@/pages/protected/analytics/access-analytics")
 )
+export const LearningAnalyticsPage = lazy(
+  () => import("@/pages/protected/analytics/learning")
+)
+export const LearningStudentDetailPage = lazy(
+  () => import("@/pages/protected/analytics/learning-detail")
+)
 export const DashboardPage = lazy(() => import("@/pages/protected/dashboard"))
 export const ProfilePage = lazy(() =>
   import("@/pages/protected/shared-pages").then((module) => ({

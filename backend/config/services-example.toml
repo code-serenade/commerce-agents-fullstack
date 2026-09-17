@@ -23,6 +23,9 @@ access_key = "btok"
 secret_key = "hBu3*64#hf(n)"
 user_key_salt = "KQgPM+etGa31+cj6M/0ao0+8yrEgHeGY/9bnbICoLs/wR2vJL8ED/J8v6vki0kESIHMUXqAmSLCs3ft5AUwmWA=="
 
+[learning]
+question_delivery_mode = "internal_pilot"
+
 [external_search]
 enabled = true
 provider = "codex-web-search"

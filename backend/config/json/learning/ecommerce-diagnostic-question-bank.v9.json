@@ -1,0 +1,857 @@
+{
+  "version": "ecommerce_diagnostic_v9",
+  "baseVersion": "ecommerce_diagnostic_v8",
+  "frameworkVersion": "ecommerce_v1",
+  "sourceRevision": "2026-08-30",
+  "evaluationMode": "deterministic_rubric_v1",
+  "questions": [
+    {
+      "id": "market.customer_demand_research.choice.009",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "market",
+      "questionType": "single_choice",
+      "prompt": "准备判断一款新商品是否有真实市场需求时，下面哪组调研内容最完整？",
+      "choices": [
+        { "id": "research_desire_reason_volume_use_problem_price", "text": "了解顾客是否想要、为什么需要、可能需求量、使用方式、现有问题和可接受价格" },
+        { "id": "count_social_followers_only", "text": "只统计同类商品账号的粉丝数量" },
+        { "id": "ask_internal_team_only", "text": "只询问公司内部团队是否喜欢这个创意" },
+        { "id": "copy_competitor_sales_rank", "text": "只复制当前销量最高竞品的排名和售价" }
+      ],
+      "correctChoiceId": "research_desire_reason_volume_use_problem_price",
+      "referenceAnswer": "需求调研不应只看单一热度指标。澳大利亚政府市场研究指南建议了解顾客是否想要商品、购买原因、可能需求量、使用方式、正在解决的问题和愿意支付的价格，从而共同验证需求。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "validate_demand_from_customer_need_and_value",
+            "weight": 1.0,
+            "concepts": ["顾客需求与原因", "需求量使用问题和可接受价格"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "au.business.market_research",
+          "authorityLevel": "primary_official",
+          "publisher": "Australian Government",
+          "title": "Do market research",
+          "url": "https://business.gov.au/marketing-and-advertising/do-market-research",
+          "publishedVersion": "business.gov.au guidance",
+          "checkedAt": "2026-08-30",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://business.gov.au/marketing-and-advertising/do-market-research"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260830",
+        "reviewerId": "question_bank_gate_v9",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-30",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "market.product_observation_research.choice.010",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "market",
+      "questionType": "single_choice",
+      "prompt": "想发现问卷里未必能说清的商品使用问题时，哪种研究方式更合适？",
+      "choices": [
+        { "id": "read_brand_slogan", "text": "只阅读品牌自己发布的宣传口号" },
+        { "id": "observe_target_users_using_products", "text": "观察目标顾客实际使用本商品或竞品，并记录操作和困难" },
+        { "id": "compare_storefront_colors", "text": "只比较各店铺首页使用了哪些颜色" },
+        { "id": "ask_supplier_for_sales_pitch", "text": "只让供应商重复介绍商品卖点" }
+      ],
+      "correctChoiceId": "observe_target_users_using_products",
+      "referenceAnswer": "观察研究可以直接看到目标顾客如何使用本商品或竞争商品，以及他们遇到的操作困难。它能补充受访者在问卷或访谈中没有主动表达的使用事实。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "observe_real_product_usage",
+            "weight": 1.0,
+            "concepts": ["观察目标顾客使用", "记录实际操作和困难"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "au.business.market_research",
+          "authorityLevel": "primary_official",
+          "publisher": "Australian Government",
+          "title": "Do market research",
+          "url": "https://business.gov.au/marketing-and-advertising/do-market-research",
+          "publishedVersion": "business.gov.au guidance",
+          "checkedAt": "2026-08-30",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://business.gov.au/marketing-and-advertising/do-market-research"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260830",
+        "reviewerId": "question_bank_gate_v9",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-30",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "product.reorder_point_inputs.choice.009",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "product",
+      "questionType": "single_choice",
+      "prompt": "店铺为畅销商品设置补货点时，哪组因素最应该一起考虑？",
+      "choices": [
+        { "id": "package_color_and_logo", "text": "包装颜色和品牌标志大小" },
+        { "id": "competitor_follower_count", "text": "竞品账号粉丝量和直播间点赞数" },
+        { "id": "sales_rate_lead_time_season_supplier_promotion", "text": "销售速度、到货提前期、季节变化、供应可靠性和促销安排" },
+        { "id": "warehouse_rent_only", "text": "只看仓库每月租金" }
+      ],
+      "correctChoiceId": "sales_rate_lead_time_season_supplier_promotion",
+      "referenceAnswer": "补货点应以销售速度和采购到货提前期为基础，并结合季节变化、供应商可靠性及计划中的促销需求调整，避免畅销品缺货或过量库存。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "plan_reorder_point_from_demand_and_supply",
+            "weight": 1.0,
+            "concepts": ["销售速度与到货提前期", "季节供应可靠性和促销"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "au.business.inventory_management",
+          "authorityLevel": "primary_official",
+          "publisher": "Australian Government",
+          "title": "Manage your inventory",
+          "url": "https://business.gov.au/products-and-services/inventory-management/manage-your-inventory",
+          "publishedVersion": "business.gov.au guidance",
+          "checkedAt": "2026-08-30",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://business.gov.au/products-and-services/inventory-management/manage-your-inventory"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260830",
+        "reviewerId": "question_bank_gate_v9",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-30",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "product.stocktake_action.choice.010",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "product",
+      "questionType": "single_choice",
+      "prompt": "完成一次库存盘点后，下面哪组后续动作最完整？",
+      "choices": [
+        { "id": "archive_count_without_comparison", "text": "把实盘数量存档，但不和销售记录比较" },
+        { "id": "reorder_every_item_equally", "text": "不看销量，给所有商品补相同数量" },
+        { "id": "discount_everything_immediately", "text": "不分析原因，立即给全部库存统一打折" },
+        { "id": "reconcile_restock_handle_slow_update", "text": "核对实物与销售记录，补畅销品，处理滞销或过时库存，并更新系统记录" }
+      ],
+      "correctChoiceId": "reconcile_restock_handle_slow_update",
+      "referenceAnswer": "盘点不只是计数。应把实物库存与销售和库存记录核对，根据结果补充畅销品、处理滞销或过时库存，并及时修正系统记录。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "turn_stocktake_into_inventory_actions",
+            "weight": 1.0,
+            "concepts": ["实盘与记录核对", "补畅销处理滞销并更新记录"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "au.business.inventory_management",
+          "authorityLevel": "primary_official",
+          "publisher": "Australian Government",
+          "title": "Manage your inventory",
+          "url": "https://business.gov.au/products-and-services/inventory-management/manage-your-inventory",
+          "publishedVersion": "business.gov.au guidance",
+          "checkedAt": "2026-08-30",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://business.gov.au/products-and-services/inventory-management/manage-your-inventory"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260830",
+        "reviewerId": "question_bank_gate_v9",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-30",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "content.first_hand_expertise.choice.009",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "content",
+      "questionType": "single_choice",
+      "prompt": "为一款实际使用过的商品写评测时，哪种内容最能体现可信的第一手经验？",
+      "choices": [
+        { "id": "show_real_use_sources_author_background", "text": "展示实际使用证据，说明资料来源，并交代作者与该主题相关的经验背景" },
+        { "id": "rewrite_other_pages_without_source", "text": "改写其他页面内容，但不说明来源或是否实际使用" },
+        { "id": "repeat_brand_claims_only", "text": "只重复品牌宣传语，不补充体验细节" },
+        { "id": "add_keywords_without_evidence", "text": "大量增加搜索关键词，但不提供可核验事实" }
+      ],
+      "correctChoiceId": "show_real_use_sources_author_background",
+      "referenceAnswer": "可信评测应让读者看到作者确实使用过商品，清楚标示重要资料来源，并说明作者与该主题相关的经验或专业背景，而不是只汇总他人内容或重复宣传语。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "demonstrate_first_hand_experience_and_expertise",
+            "weight": 1.0,
+            "concepts": ["实际使用证据", "清楚来源和作者经验"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "google.search.helpful_content",
+          "authorityLevel": "primary_official",
+          "publisher": "Google Search Central",
+          "title": "Creating helpful, reliable, people-first content",
+          "url": "https://developers.google.cn/search/docs/fundamentals/creating-helpful-content?hl=zh-cn",
+          "publishedVersion": "last modified 2025-12-18",
+          "checkedAt": "2026-08-30",
+          "validThrough": "2027-02-28",
+          "licenseType": "cc_by_4_0",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://creativecommons.org/licenses/by/4.0/"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260830",
+        "reviewerId": "question_bank_gate_v9",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-30",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "content.cn_review_integrity.choice.010",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "content",
+      "questionType": "single_choice",
+      "prompt": "关于中国电商平台上的商品评价，下面哪种处理符合《电子商务法》的基本要求？",
+      "choices": [
+        { "id": "create_fake_orders_for_reviews", "text": "通过虚构交易快速增加好评数量" },
+        { "id": "no_fake_reviews_no_arbitrary_deletion", "text": "不得以虚构交易和编造评价误导消费者，平台也不得删除消费者真实评价" },
+        { "id": "delete_all_negative_reviews", "text": "只要评价不利于销量，平台就可以全部删除" },
+        { "id": "hide_review_rules_from_users", "text": "评价规则无需向消费者说明，可随时秘密调整" }
+      ],
+      "correctChoiceId": "no_fake_reviews_no_arbitrary_deletion",
+      "referenceAnswer": "《电子商务法》禁止通过虚构交易、编造用户评价等方式作虚假或引人误解的商业宣传，并规定平台经营者不得删除消费者对平台内商品或服务的评价。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "protect_review_authenticity",
+            "weight": 1.0,
+            "concepts": ["不得虚构交易编造评价", "平台不得删除真实评价"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "cn.mofcom.ecommerce_law",
+          "authorityLevel": "primary_official",
+          "publisher": "Ministry of Commerce of the People's Republic of China",
+          "title": "E-commerce Law of the People's Republic of China",
+          "url": "https://www.mofcom.gov.cn/zhrmghgdzswf/fg/art/2018/art_cc9187dd95cd40158552d78a610e8c29.html",
+          "publishedVersion": "Articles 17 and 39",
+          "checkedAt": "2026-08-30",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://www.mofcom.gov.cn/zhrmghgdzswf/fg/art/2018/art_cc9187dd95cd40158552d78a610e8c29.html"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260830",
+        "reviewerId": "question_bank_gate_v9",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-30",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "traffic.promotion_sales_attribution.choice.009",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "traffic",
+      "questionType": "single_choice",
+      "prompt": "店铺同时投放广告、社交内容和促销活动，想判断哪类流量真正带来销售，最应怎样记录？",
+      "choices": [
+        { "id": "compare_impressions_only", "text": "只比较各渠道曝光总量" },
+        { "id": "compare_follower_growth_only", "text": "只比较各账号新增粉丝数" },
+        { "id": "attribute_sales_to_promotions", "text": "分别追踪广告、社交内容和促销活动带来的销售结果" },
+        { "id": "record_total_revenue_without_source", "text": "只记录全店销售额，不保留流量来源" }
+      ],
+      "correctChoiceId": "attribute_sales_to_promotions",
+      "referenceAnswer": "数字绩效指标应与经营目标对应。如果目标是判断渠道是否带来销售，就应分别追踪哪些广告、社交内容或促销活动产生了销售，而不能只比较曝光或粉丝量。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "attribute_sales_to_marketing_sources",
+            "weight": 1.0,
+            "concepts": ["区分广告社交和促销", "追踪实际销售结果"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "au.business.digital_performance",
+          "authorityLevel": "primary_official",
+          "publisher": "Australian Government",
+          "title": "Measure your digital performance",
+          "url": "https://business.gov.au/online-and-digital/measure-your-digital-performance",
+          "publishedVersion": "business.gov.au guidance",
+          "checkedAt": "2026-08-30",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://business.gov.au/online-and-digital/measure-your-digital-performance"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260830",
+        "reviewerId": "question_bank_gate_v9",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-30",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "traffic.search_query_page_analysis.choice.010",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "traffic",
+      "questionType": "single_choice",
+      "prompt": "店铺要诊断自然搜索流量来自哪里，下面哪组数据最有直接帮助？",
+      "choices": [
+        { "id": "warehouse_shelf_and_package", "text": "仓库货架位置和包装尺寸" },
+        { "id": "customer_service_shift", "text": "客服排班和平均休息时间" },
+        { "id": "supplier_invoice_count", "text": "供应商发票数量和付款日期" },
+        { "id": "search_rank_queries_and_pages", "text": "搜索排名、带来访问的查询词以及获得流量的页面" }
+      ],
+      "correctChoiceId": "search_rank_queries_and_pages",
+      "referenceAnswer": "诊断搜索流量时，应查看网站在搜索中的表现、用户通过哪些查询找到网站，以及哪些页面获得搜索流量。这些数据比仓储或供应商信息更能直接定位搜索机会。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "diagnose_search_traffic_sources",
+            "weight": 1.0,
+            "concepts": ["搜索排名和查询词", "获得流量的页面"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "au.business.digital_performance",
+          "authorityLevel": "primary_official",
+          "publisher": "Australian Government",
+          "title": "Measure your digital performance",
+          "url": "https://business.gov.au/online-and-digital/measure-your-digital-performance",
+          "publishedVersion": "business.gov.au guidance",
+          "checkedAt": "2026-08-30",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://business.gov.au/online-and-digital/measure-your-digital-performance"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260830",
+        "reviewerId": "question_bank_gate_v9",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-30",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "conversion.cart_abandonment_measurement.choice.009",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "conversion",
+      "questionType": "single_choice",
+      "prompt": "要衡量购物车放弃问题，下面哪项行为最应该被识别出来？",
+      "choices": [
+        { "id": "added_cart_left_before_purchase", "text": "用户已经把商品加入购物车，但在完成购买前离开" },
+        { "id": "viewed_homepage_then_bought", "text": "用户浏览首页后正常完成购买" },
+        { "id": "received_order_and_reviewed", "text": "用户收货后提交商品评价" },
+        { "id": "supplier_delivered_inventory", "text": "供应商按时把库存送到仓库" }
+      ],
+      "correctChoiceId": "added_cart_left_before_purchase",
+      "referenceAnswer": "购物车放弃关注的是用户已经把商品加入购物车，却在购买完成前离开的情况。持续记录这一行为，才能进一步定位结账或支付阶段的流失。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "identify_cart_abandonment",
+            "weight": 1.0,
+            "concepts": ["已经加入购物车", "购买完成前离开"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "au.business.digital_performance",
+          "authorityLevel": "primary_official",
+          "publisher": "Australian Government",
+          "title": "Measure your digital performance",
+          "url": "https://business.gov.au/online-and-digital/measure-your-digital-performance",
+          "publishedVersion": "business.gov.au guidance",
+          "checkedAt": "2026-08-30",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://business.gov.au/online-and-digital/measure-your-digital-performance"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260830",
+        "reviewerId": "question_bank_gate_v9",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-30",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "conversion.repeat_buyer_mix.choice.010",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "conversion",
+      "questionType": "single_choice",
+      "prompt": "店铺想判断增长主要来自新客还是老客，最直接应持续比较什么？",
+      "choices": [
+        { "id": "product_page_word_count", "text": "商品详情页的总字数" },
+        { "id": "repeat_vs_first_time_buyer_share", "text": "复购买家与首次购买者各自所占比例" },
+        { "id": "warehouse_area_change", "text": "仓库面积每月变化" },
+        { "id": "competitor_logo_count", "text": "竞品页面出现品牌标志的次数" }
+      ],
+      "correctChoiceId": "repeat_vs_first_time_buyer_share",
+      "referenceAnswer": "比较复购买家和首次购买者的比例，可以直接看到销售结构更依赖留存还是获客，并帮助判断后续应优先改善复购还是新客转化。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "compare_repeat_and_first_time_buyers",
+            "weight": 1.0,
+            "concepts": ["复购买家比例", "首次购买者比例"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "au.business.digital_performance",
+          "authorityLevel": "primary_official",
+          "publisher": "Australian Government",
+          "title": "Measure your digital performance",
+          "url": "https://business.gov.au/online-and-digital/measure-your-digital-performance",
+          "publishedVersion": "business.gov.au guidance",
+          "checkedAt": "2026-08-30",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://business.gov.au/online-and-digital/measure-your-digital-performance"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260830",
+        "reviewerId": "question_bank_gate_v9",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-30",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "finance.cost_plus_pricing.choice.009",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "finance",
+      "questionType": "single_choice",
+      "prompt": "采用成本加成法为商品定价时，下面哪种做法最合理？",
+      "choices": [
+        { "id": "copy_competitor_without_cost", "text": "不计算自身成本，直接复制竞品价格" },
+        { "id": "price_below_cost_for_volume", "text": "长期把价格设在单位成本以下，只追求销量" },
+        { "id": "calculate_unit_cost_add_margin_review", "text": "计算单位总成本，加入目标利润空间，并在成本或市场变化后复核" },
+        { "id": "set_price_from_follower_count", "text": "根据社交账号粉丝数直接决定售价" }
+      ],
+      "correctChoiceId": "calculate_unit_cost_add_margin_review",
+      "referenceAnswer": "成本加成定价需要先掌握单位商品的相关成本，再加入合理利润空间；成本、市场和经营条件变化时还应复核价格，不能脱离成本长期定价。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "price_from_cost_margin_and_review",
+            "weight": 1.0,
+            "concepts": ["计算单位成本并加利润", "成本市场变化后复核"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "au.business.pricing_strategy",
+          "authorityLevel": "primary_official",
+          "publisher": "Australian Government",
+          "title": "Choose a pricing strategy",
+          "url": "https://business.gov.au/products-and-services/choose-a-pricing-strategy",
+          "publishedVersion": "business.gov.au guidance",
+          "checkedAt": "2026-08-30",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://business.gov.au/products-and-services/choose-a-pricing-strategy"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260830",
+        "reviewerId": "question_bank_gate_v9",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-30",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "finance.discount_profitability.choice.010",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "finance",
+      "questionType": "single_choice",
+      "prompt": "店铺准备做限时折扣，哪项检查最能避免销量增加但经营亏损？",
+      "choices": [
+        { "id": "check_banner_color", "text": "只检查促销横幅颜色是否醒目" },
+        { "id": "match_competitor_discount", "text": "不算成本，直接采用竞品折扣幅度" },
+        { "id": "maximize_discount_rate", "text": "折扣越大越好，无需设置利润或业务目标" },
+        { "id": "ensure_discount_covers_costs_and_goals", "text": "确认折后价格仍覆盖相关成本，并且折扣服务于明确的经营目标" }
+      ],
+      "correctChoiceId": "ensure_discount_covers_costs_and_goals",
+      "referenceAnswer": "折扣策略仍需覆盖成本，并应服务于清库存、获客或提升复购等明确经营目标。只追求折扣幅度或销量，可能增加订单却损害利润。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "protect_discount_profitability",
+            "weight": 1.0,
+            "concepts": ["折后覆盖成本", "符合明确经营目标"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "au.business.pricing_strategy",
+          "authorityLevel": "primary_official",
+          "publisher": "Australian Government",
+          "title": "Choose a pricing strategy",
+          "url": "https://business.gov.au/products-and-services/choose-a-pricing-strategy",
+          "publishedVersion": "business.gov.au guidance",
+          "checkedAt": "2026-08-30",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://business.gov.au/products-and-services/choose-a-pricing-strategy"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260830",
+        "reviewerId": "question_bank_gate_v9",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-30",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "service.cn_deposit_refund.choice.009",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "service",
+      "questionType": "single_choice",
+      "prompt": "中国电商经营者按约定收取消费者押金时，下面哪种做法符合《电子商务法》要求？",
+      "choices": [
+        { "id": "state_refund_method_no_unreasonable_condition", "text": "明示押金退还方式和程序，不设置不合理条件，并在符合条件时及时退还" },
+        { "id": "never_explain_refund", "text": "只说明需要交押金，不告知任何退还规则" },
+        { "id": "convert_deposit_to_coupon", "text": "消费者申请退还时，经营者可强制改为店铺优惠券" },
+        { "id": "delay_refund_without_reason", "text": "即使符合约定条件，也可以无理由长期拖延" }
+      ],
+      "correctChoiceId": "state_refund_method_no_unreasonable_condition",
+      "referenceAnswer": "《电子商务法》要求经营者明示押金退还的方式、程序，不得设置不合理条件；消费者申请退还并符合条件时，应当及时退还。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "handle_deposit_refund_transparently",
+            "weight": 1.0,
+            "concepts": ["明示退还方式程序", "无不合理条件并及时退还"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "cn.mofcom.ecommerce_law",
+          "authorityLevel": "primary_official",
+          "publisher": "Ministry of Commerce of the People's Republic of China",
+          "title": "E-commerce Law of the People's Republic of China",
+          "url": "https://www.mofcom.gov.cn/zhrmghgdzswf/fg/art/2018/art_cc9187dd95cd40158552d78a610e8c29.html",
+          "publishedVersion": "Article 21",
+          "checkedAt": "2026-08-30",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://www.mofcom.gov.cn/zhrmghgdzswf/fg/art/2018/art_cc9187dd95cd40158552d78a610e8c29.html"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260830",
+        "reviewerId": "question_bank_gate_v9",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-30",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "service.cn_dispute_records.choice.010",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "service",
+      "questionType": "single_choice",
+      "prompt": "发生电商消费争议时，经营者为了帮助查明交易事实，最应保留并提供什么？",
+      "choices": [
+        { "id": "internal_marketing_slogan", "text": "与本次交易无关的内部营销口号" },
+        { "id": "original_contract_and_transaction_records", "text": "与本次交易有关的原始合同和交易记录" },
+        { "id": "competitor_sales_screenshot", "text": "竞争对手近期销量截图" },
+        { "id": "employee_social_posts", "text": "员工个人社交账号发布记录" }
+      ],
+      "correctChoiceId": "original_contract_and_transaction_records",
+      "referenceAnswer": "《电子商务法》规定，在电子商务争议处理中，经营者应提供原始合同和交易记录；因丢失、伪造、篡改、销毁、隐匿或拒绝提供而无法查明事实的，应承担相应法律责任。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "retain_original_dispute_evidence",
+            "weight": 1.0,
+            "concepts": ["原始合同", "交易记录"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "cn.mofcom.ecommerce_law",
+          "authorityLevel": "primary_official",
+          "publisher": "Ministry of Commerce of the People's Republic of China",
+          "title": "E-commerce Law of the People's Republic of China",
+          "url": "https://www.mofcom.gov.cn/zhrmghgdzswf/fg/art/2018/art_cc9187dd95cd40158552d78a610e8c29.html",
+          "publishedVersion": "Article 62",
+          "checkedAt": "2026-08-30",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://www.mofcom.gov.cn/zhrmghgdzswf/fg/art/2018/art_cc9187dd95cd40158552d78a610e8c29.html"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260830",
+        "reviewerId": "question_bank_gate_v9",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-30",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "compliance.cn_default_bundling.choice.009",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "compliance",
+      "questionType": "single_choice",
+      "prompt": "中国电商经营者搭售商品或服务时，下面哪种页面设置符合《电子商务法》要求？",
+      "choices": [
+        { "id": "hide_bundle_in_terms", "text": "只在很长的条款末尾隐藏搭售信息" },
+        { "id": "preselect_bundle_for_all", "text": "默认勾选附加商品，消费者必须手动取消" },
+        { "id": "conspicuous_notice_no_default_consent", "text": "以显著方式提醒消费者注意，并且不把搭售选项设为默认同意" },
+        { "id": "add_bundle_after_payment", "text": "支付后再通知消费者已购买附加服务" }
+      ],
+      "correctChoiceId": "conspicuous_notice_no_default_consent",
+      "referenceAnswer": "《电子商务法》规定，搭售商品或者服务应当以显著方式提请消费者注意，不得将搭售商品或服务作为默认同意的选项。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "avoid_default_bundling_consent",
+            "weight": 1.0,
+            "concepts": ["显著提醒搭售", "不得默认同意"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "cn.mofcom.ecommerce_law",
+          "authorityLevel": "primary_official",
+          "publisher": "Ministry of Commerce of the People's Republic of China",
+          "title": "E-commerce Law of the People's Republic of China",
+          "url": "https://www.mofcom.gov.cn/zhrmghgdzswf/fg/art/2018/art_cc9187dd95cd40158552d78a610e8c29.html",
+          "publishedVersion": "Article 19",
+          "checkedAt": "2026-08-30",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://www.mofcom.gov.cn/zhrmghgdzswf/fg/art/2018/art_cc9187dd95cd40158552d78a610e8c29.html"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260830",
+        "reviewerId": "question_bank_gate_v9",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-30",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "compliance.cn_marketing_opt_out.choice.010",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "compliance",
+      "questionType": "single_choice",
+      "prompt": "中国经营者通过短信或应用推送商业营销信息时，下面哪种退订处理更合规？",
+      "choices": [
+        { "id": "send_until_account_deleted", "text": "只要账号还在，就可以忽略消费者拒绝继续发送" },
+        { "id": "hide_opt_out_in_support", "text": "退订入口可以藏在多层客服流程中且不必说明" },
+        { "id": "restart_marketing_next_day", "text": "消费者退订后第二天可以自动恢复推送" },
+        { "id": "consent_clear_opt_out_stop_immediately", "text": "取得同意或请求，提供清晰便捷的取消方式，并在消费者取消后立即停止" }
+      ],
+      "correctChoiceId": "consent_clear_opt_out_stop_immediately",
+      "referenceAnswer": "消费者权益保护法实施条例要求，未经消费者同意、请求或者在消费者明确拒绝后，不得发送商业性信息；经营者还应提供显著、简便的取消方式，消费者取消后应立即停止发送。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "honor_marketing_consent_and_opt_out",
+            "weight": 1.0,
+            "concepts": ["同意或请求", "便捷取消并立即停止"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "cn.state_council.consumer_rights_regulation",
+          "authorityLevel": "primary_official",
+          "publisher": "State Council of the People's Republic of China",
+          "title": "Regulations for the Implementation of the Law on the Protection of Consumer Rights and Interests",
+          "url": "https://www.gov.cn/zhengce/zhengceku/202403/content_6940159.htm",
+          "publishedVersion": "Article 24",
+          "checkedAt": "2026-08-30",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://www.gov.cn/zhengce/zhengceku/202403/content_6940159.htm"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260830",
+        "reviewerId": "question_bank_gate_v9",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-30",
+        "decision": "approved_for_internal_pilot"
+      }
+    }
+  ]
+}

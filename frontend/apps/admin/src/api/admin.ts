@@ -102,7 +102,10 @@ export interface AnalyticsSummary {
   apiErrors: number
 }
 
-export type AnalyticsDateValue = string | [number, number] | [number, number, number]
+export type AnalyticsDateValue =
+  | string
+  | [number, number]
+  | [number, number, number]
 
 export interface AnalyticsDailyTraffic {
   date: AnalyticsDateValue
@@ -638,3 +641,200 @@ export const getCurrentAppUserPermissionsApi =
       url: "/api/app/me/permissions",
     })
   }
+
+export type LearningStudentSortBy =
+  | "coverageRate"
+  | "observedKnowledgeCount"
+  | "lastAnalyzedAt"
+  | "updatedAt"
+
+export interface LearningAssessmentSummaryResponse {
+  assessedKnowledgeCount?: number
+  assessmentCount?: number
+  distinctAssessmentQuestionCount?: number
+  multiAngleKnowledgeCount?: number
+  demonstratedKnowledgeCount?: number
+  retainedKnowledgeCount?: number
+  correctCount?: number
+  partialCount?: number
+  incorrectCount?: number
+  needsAttentionKnowledgeCount?: number
+}
+
+export interface LearningStudentResponse {
+  userId: string
+  displayId?: string
+  displayName?: string
+  schoolName?: string | null
+  teamName?: string | null
+  coverageRate: number
+  observedKnowledgeCount: number
+  masteryStatus: string
+  assessmentSummary?: LearningAssessmentSummaryResponse | null
+  enabled: boolean
+  lastAnalyzedAt?: string | null
+  createdAt?: string | null
+  updatedAt?: string | null
+}
+
+export interface LearningStudentMetricsResponse {
+  total: number
+  enabled: number
+  observed: number
+  avgCoverageRate: number
+  assessed?: number
+  demonstrated?: number
+  retained?: number
+  needsAttention?: number
+  probePilot?: LearningProbePilotMetricsResponse | null
+}
+
+export interface LearningProbePilotMetricsResponse {
+  questionBankVersion?: string
+  questionCount?: number
+  assessmentAngleCount?: number
+  singleQuestionAngleCount?: number
+  productionApprovedCount?: number
+  curriculumReviewPendingCount?: number
+  earliestSourceValidThrough?: string | null
+  issuedCount?: number
+  activeCount?: number
+  answeredCount?: number
+  skippedCount?: number
+  expiredCount?: number
+  supersededCount?: number
+  continuationCount?: number
+  correctCount?: number
+  partialCount?: number
+  incorrectCount?: number
+  unscorableCount?: number
+  answerRate?: number
+  skipRate?: number
+  correctRate?: number
+  averageAnswerSeconds?: number
+  coverageGapCount?: number
+  coverageGapTurnCount?: number
+  coverageGapDomainMetrics?: LearningQuestionCoverageGapDimensionMetricResponse[]
+  coverageGapReasonMetrics?: LearningQuestionCoverageGapDimensionMetricResponse[]
+  questionMetrics?: LearningProbeQuestionMetricsResponse[]
+}
+
+export interface LearningQuestionCoverageGapDimensionMetricResponse {
+  code: string
+  count: number
+}
+
+export interface LearningProbeQuestionMetricsResponse {
+  questionId: string
+  questionVersion: number
+  knowledgeCode: string
+  questionText: string
+  jurisdictionCode?: string
+  platformCode?: string
+  businessStageCode?: string
+  sourcePublishers?: string[]
+  sourceValidThrough?: string | null
+  curriculumReviewRequired?: boolean
+  productionApproved?: boolean
+  issuedCount?: number
+  activeCount?: number
+  answeredCount?: number
+  skippedCount?: number
+  expiredCount?: number
+  supersededCount?: number
+  correctCount?: number
+  partialCount?: number
+  incorrectCount?: number
+  unscorableCount?: number
+  answerRate?: number
+  skipRate?: number
+  correctRate?: number
+  averageAnswerSeconds?: number
+  choiceMetrics?: LearningProbeChoiceMetricsResponse[]
+  unmappedChoiceCount?: number
+}
+
+export interface LearningProbeChoiceMetricsResponse {
+  choiceId: string
+  choiceText: string
+  selectedCount?: number
+  selectedRate?: number
+}
+
+export interface ListLearningStudentsRequest {
+  page?: number
+  pageSize?: number
+  keyword?: string
+  sortBy?: LearningStudentSortBy
+  sortOrder?: SortOrder
+}
+
+export const listLearningStudentsApi = async (
+  params: ListLearningStudentsRequest = {}
+): Promise<PaginatedResponse<LearningStudentResponse>> => {
+  return request<
+    ListLearningStudentsRequest,
+    PaginatedResponse<LearningStudentResponse>
+  >({
+    method: "GET",
+    url: "/api/admin/learning/students",
+    body: params,
+  })
+}
+
+export const getLearningStudentMetricsApi =
+  async (): Promise<LearningStudentMetricsResponse> => {
+    return request<undefined, LearningStudentMetricsResponse>({
+      method: "GET",
+      url: "/api/admin/learning/students/metrics",
+    })
+  }
+
+export interface LearningDomainMasterySummary {
+  knowledgeCode: string
+  status: string
+  strength?: number
+}
+
+export interface LearningEvidenceSummary {
+  id: string
+  conversationId?: string | null
+  probeId?: string | null
+  questionText?: string | null
+  selectedChoiceId?: string | null
+  selectedChoiceText?: string | null
+  knowledgeCode: string
+  evidenceType: string
+  direction: string
+  strength: number
+  summary: string
+  assessmentOutcome?: string | null
+  questionId?: string | null
+  rubricVersion?: number | null
+  createdAt?: string | null
+}
+
+export interface LearningStudentDetailResponse {
+  userId: string
+  displayId?: string
+  displayName?: string
+  schoolName?: string | null
+  teamName?: string | null
+  coverageRate: number
+  observedKnowledgeCount: number
+  masteryStatus: string
+  assessmentSummary?: LearningAssessmentSummaryResponse | null
+  enabled: boolean
+  lastAnalyzedAt?: string | null
+  masterySummary: LearningDomainMasterySummary[]
+  evidenceSummary: LearningEvidenceSummary[]
+}
+
+export const getLearningStudentDetailApi = async (
+  userId: string
+): Promise<LearningStudentDetailResponse> => {
+  return request<undefined, LearningStudentDetailResponse>({
+    method: "GET",
+    url: `/api/admin/learning/students/${encodeURIComponent(userId)}`,
+  })
+}

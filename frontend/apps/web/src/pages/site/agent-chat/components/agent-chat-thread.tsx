@@ -16,14 +16,17 @@ import { useAgentChatThreadViewportHeight } from "../view-model/use-agent-chat-t
 import { AgentChatThreadMessage } from "./agent-chat-thread-message"
 import { StrategyStatusPill } from "./thread-message-blocks"
 import type { AgentChatStrategy } from "../domain/agent-chat-strategy"
+import { getCurrentLearningProbeMessageId } from "../view-model/student-next-actions-view-model"
 
 export interface AgentChatThreadProps {
   activeProcessMessageId: string | null
+  conversationId?: string
   isStreaming: boolean
   messages: AgentChatMessage[]
   onCloseProcessPanel: () => void
   onExamplePromptSelect?: (prompt: string) => void
   onNextActionPromptSubmit?: (prompt: string) => void
+  onAnswerProbe?: (question: string) => void
   onOpenProcessPanel: (target: {
     anchorLabel: string
     messageId: string
@@ -36,11 +39,13 @@ export interface AgentChatThreadProps {
 
 export function AgentChatThread({
   activeProcessMessageId,
+  conversationId,
   isStreaming,
   messages,
   onCloseProcessPanel,
   onExamplePromptSelect,
   onNextActionPromptSubmit,
+  onAnswerProbe,
   onOpenProcessPanel,
   runtimeEvents,
   selectedStrategy,
@@ -62,6 +67,7 @@ export function AgentChatThread({
   const hasOnlyWelcomeMessage =
     messages.length === 1 && messages[0]?.id === "welcome"
   const visibleMessages = getVisibleThreadMessageEntries(messages)
+  const learningProbeMessageId = getCurrentLearningProbeMessageId(messages)
   useAgentChatThreadViewportHeight(scrollRootRef)
 
   const scrollToEnd = useCallback((behavior: ScrollBehavior) => {
@@ -167,11 +173,15 @@ export function AgentChatThread({
             onOpenProcessPanel={handleOpenProcessPanel}
             renderMessage={(targetMessage) => (
               <AgentChatThreadMessage
+                conversationId={conversationId}
                 errorRetryPrompt={findPreviousUserContent(messages, index)}
                 message={targetMessage}
+                onAnswerProbe={onAnswerProbe}
                 onExamplePromptSelect={onExamplePromptSelect}
                 onNextActionPromptSubmit={onNextActionPromptSubmit}
                 previousUserContent={findPreviousUserContent(messages, index)}
+                showLearningProbe={Boolean(conversationId)}
+                isCurrentLearningProbe={targetMessage.id === learningProbeMessageId}
               />
             )}
             runtimeEvents={runtimeEvents}

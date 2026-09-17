@@ -1,6 +1,7 @@
 import { type MouseEvent, type ReactNode, useEffect, useState } from "react"
 import {
   Bot,
+  GraduationCap,
   Library,
   Megaphone,
   MessageCircleMore,
@@ -63,6 +64,7 @@ const PROTECTED_MENU_ROUTE_PATHS = [
   "/approvals",
   "/operations",
   "/agent-output",
+  "/learning-progress",
   "/profile",
   "/team-school",
 ] as const
@@ -170,7 +172,24 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     closeRenameDialog()
   }
 
-  const trailing = [<LanguageSwitch key="lang" />, <ThemeToggle key="theme" />]
+  const trailing = [
+    <Button
+      key="learning"
+      size="icon"
+      variant="ghost"
+      aria-label={t("web.shell.navigation.learningProgress")}
+      title={t("web.shell.navigation.learningProgress")}
+      onClick={() =>
+        user
+          ? navigateTo("/learning-progress")
+          : requestLogin({ pathname: "/learning-progress" })
+      }
+    >
+      <GraduationCap className="size-4" />
+    </Button>,
+    <LanguageSwitch key="lang" />,
+    <ThemeToggle key="theme" />,
+  ]
   const newConversationItem = {
     key: "new-chat",
     icon: <MessageCircleMore />,
@@ -566,6 +585,9 @@ function getRouteTitleKey(pathname: string) {
   if (pathname === "/agent-output") {
     return "agentChat.shell.navigation.deliverables"
   }
+  if (pathname === "/learning-progress") {
+    return "learningProgress.title"
+  }
   if (pathname === "/approvals") {
     return "agentChat.shell.navigation.approvals"
   }
@@ -609,6 +631,9 @@ function getRouteDescriptionKey(pathname: string) {
   if (pathname === "/agent-output") {
     return "agentOutput.header.description"
   }
+  if (pathname === "/learning-progress") {
+    return "learningProgress.description"
+  }
   if (pathname === "/approvals") {
     return "commerce.pages.approvals.description"
   }
@@ -638,6 +663,7 @@ function isCommercePageLayoutRoute(pathname: string) {
     "/approvals",
     "/operations",
     "/agent-output",
+    "/learning-progress",
   ].some((path) => isAgentChatRouteActive(pathname, path))
 }
 

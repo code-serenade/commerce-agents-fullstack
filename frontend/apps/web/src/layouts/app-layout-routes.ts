@@ -14,6 +14,7 @@ const AGENT_SHELL_ROUTE_PATHS = new Set([
   "/approvals",
   "/operations",
   "/agent-output",
+  "/learning-progress",
   "/profile",
   "/team-school",
 ])

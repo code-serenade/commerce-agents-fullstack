@@ -10,6 +10,8 @@ import {
   AppRolesPage,
   AppUsersPage,
   DashboardPage,
+  LearningAnalyticsPage,
+  LearningStudentDetailPage,
   ProfilePage,
   RolePermissionsPage,
   RolesPage,
@@ -81,6 +83,14 @@ export const protectedRoutes: RouteObject = {
     {
       path: "analytics/access",
       element: withSuspense(<AccessAnalyticsPage />),
+    },
+    {
+      path: "analytics/learning",
+      element: withSuspense(<LearningAnalyticsPage />),
+    },
+    {
+      path: "analytics/learning/:userId",
+      element: withSuspense(<LearningStudentDetailPage />),
     },
   ],
 }

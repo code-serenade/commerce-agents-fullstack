@@ -25,6 +25,10 @@ const error = {
   "-11000": "admin user not found",
   "-12000": "app user not found",
   "-12001": "app user disabled",
+  "-12072": "invalid learning request",
+  "-12073": "learning profile not found",
+  "-12074": "learning probe not found",
+  "-12075": "learning probe access denied",
 } as const
 
 export default error

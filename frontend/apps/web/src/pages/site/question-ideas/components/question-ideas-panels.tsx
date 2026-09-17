@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next"
 import type {
   StudentPromptRecipeItem,
   StudentTaskEntry,
-} from "../../agent-chat/view-model/student-next-actions-view-model"
+} from "../../agent-chat/view-model/student-chat-entry-view-model"
 import { DocumentSection } from "../../commerce/components/document-section"
 
 export function QuestionIdeasTaskPanel({

@@ -1,0 +1,99 @@
+{
+  "version": "ecommerce_diagnostic_v5",
+  "baseVersion": "ecommerce_diagnostic_v4",
+  "frameworkVersion": "ecommerce_v1",
+  "evaluationMode": "deterministic_rubric_v1",
+  "sourceRevision": "2026-08-27",
+  "questions": [
+    {
+      "id": "market.trends_relative_index.choice.001", "version": 1, "status": "approved", "domainCode": "market", "questionType": "single_choice",
+      "prompt": "Google Trends 中某关键词在所选地区和时段的热度为 100，最准确的理解是什么？",
+      "choices": [{"id":"one_hundred_searches","text":"它表示该关键词恰好被搜索了100次"},{"id":"full_market_share","text":"它表示该关键词占全部市场需求的100%"},{"id":"one_hundred_buyers","text":"它表示已有100名用户完成购买"},{"id":"peak_relative","text":"它是该查询在所选地区和时段内的相对热度峰值，不代表恰好有100次搜索"}],
+      "correctChoiceId": "peak_relative", "referenceAnswer": "Google Trends 将所选地区和时段内的数据归一化并按 0 到 100 缩放；100 表示相对热度峰值，不是绝对搜索次数或成交人数。",
+      "rubric": {"version":1,"criteria":[{"code":"interpret_relative_peak","weight":1.0,"concepts":["相对热度峰值","不是绝对搜索次数"]}],"contradictions":[],"partialThreshold":0.5,"correctThreshold":1.0},
+      "sources": [{"sourceId":"google.trends.faq.data","authorityLevel":"primary_official","publisher":"Google","title":"FAQ about Google Trends data","url":"https://support.google.com/trends/answer/4365533?hl=en","publishedVersion":"Google Trends Help","checkedAt":"2026-08-27","validThrough":"2027-08-27","licenseType":"official_reference_only","useMode":"source_based_original","licenseUrl":"https://policies.google.com/terms"}],
+      "review": {"authorId":"source_backed_choice_seed_20260827","reviewerId":"question_bank_gate_v2","reviewScope":"source_and_rubric_engineering_review","reviewerType":"automated_engineering_gate","curriculumReviewRequired":true,"reviewedAt":"2026-08-27","decision":"approved_for_internal_pilot"}
+    },
+    {
+      "id": "market.trends_compare_context.choice.002", "version": 1, "status": "approved", "domainCode": "market", "questionType": "single_choice",
+      "prompt": "用 Google Trends 比较两个商品关键词时，哪种做法最能减少误判？",
+      "choices": [{"id":"compare_screenshots","text":"分别截取不同地区、不同时间范围的图后直接比较数值"},{"id":"same_context","text":"在相同地区、时间范围和分类条件下比较，并结合其他数据验证"},{"id":"treat_as_sales","text":"把 Trends 指数直接当作商品销量"},{"id":"ignore_low_volume","text":"只要指数较低就认定市场需求为零"}],
+      "correctChoiceId": "same_context", "referenceAnswer": "Trends 数值依赖所选地区、时间和类别并经过归一化；应在一致条件下比较，且不能把搜索兴趣直接等同于销量。",
+      "rubric": {"version":1,"criteria":[{"code":"compare_under_same_context","weight":1.0,"concepts":["相同地区时间分类","结合其他数据验证"]}],"contradictions":[],"partialThreshold":0.5,"correctThreshold":1.0},
+      "sources": [{"sourceId":"google.trends.faq.data","authorityLevel":"primary_official","publisher":"Google","title":"FAQ about Google Trends data","url":"https://support.google.com/trends/answer/4365533?hl=en","publishedVersion":"Google Trends Help","checkedAt":"2026-08-27","validThrough":"2027-08-27","licenseType":"official_reference_only","useMode":"source_based_original","licenseUrl":"https://policies.google.com/terms"}],
+      "review": {"authorId":"source_backed_choice_seed_20260827","reviewerId":"question_bank_gate_v2","reviewScope":"source_and_rubric_engineering_review","reviewerType":"automated_engineering_gate","curriculumReviewRequired":true,"reviewedAt":"2026-08-27","decision":"approved_for_internal_pilot"}
+    },
+    {
+      "id": "market.trends_zero_value.choice.003", "version": 1, "status": "approved", "domainCode": "market", "questionType": "single_choice",
+      "prompt": "Google Trends 图表中某个时点显示为 0，应该怎样解释？",
+      "choices": [{"id":"zero_sales","text":"该时点商品销量一定为零"},{"id":"no_people","text":"该地区一定没有任何人搜索过"},{"id":"insufficient_relative_data","text":"相对于当前比较范围，该点没有足够数据或数值过低，不能直接断言绝对搜索量为零"},{"id":"tracking_broken","text":"一定是网站埋点故障"}],
+      "correctChoiceId": "insufficient_relative_data", "referenceAnswer": "Trends 的 0 表示在当前归一化尺度下数据不足或相对值过低，并不等价于绝对搜索次数或销量必然为零。",
+      "rubric": {"version":1,"criteria":[{"code":"interpret_zero_conservatively","weight":1.0,"concepts":["数据不足或相对值过低","不能断言绝对量为零"]}],"contradictions":[],"partialThreshold":0.5,"correctThreshold":1.0},
+      "sources": [{"sourceId":"google.trends.faq.data","authorityLevel":"primary_official","publisher":"Google","title":"FAQ about Google Trends data","url":"https://support.google.com/trends/answer/4365533?hl=en","publishedVersion":"Google Trends Help","checkedAt":"2026-08-27","validThrough":"2027-08-27","licenseType":"official_reference_only","useMode":"source_based_original","licenseUrl":"https://policies.google.com/terms"}],
+      "review": {"authorId":"source_backed_choice_seed_20260827","reviewerId":"question_bank_gate_v2","reviewScope":"source_and_rubric_engineering_review","reviewerType":"automated_engineering_gate","curriculumReviewRequired":true,"reviewedAt":"2026-08-27","decision":"approved_for_internal_pilot"}
+    },
+    {
+      "id": "product.variant_item_group.choice.001", "version": 1, "status": "approved", "domainCode": "product", "questionType": "single_choice",
+      "prompt": "同一款 T 恤有红色 M 码和蓝色 L 码两个变体，提交 Google Merchant Center 商品数据时应怎样设置？",
+      "choices": [{"id":"same_id","text":"两个变体使用完全相同的 id，item_group_id 留空"},{"id":"no_variant_attrs","text":"只提交一个商品并删除颜色和尺码信息"},{"id":"different_groups","text":"两个变体使用不同 id，也使用不同 item_group_id"},{"id":"unique_ids_shared_group","text":"每个变体使用唯一 id，并使用相同 item_group_id 归为同一变体组"}],
+      "correctChoiceId": "unique_ids_shared_group", "referenceAnswer": "每个变体必须有唯一商品 id；同一商品的变体使用相同 item_group_id，并提交区分变体的颜色、尺码等属性。",
+      "rubric": {"version":1,"criteria":[{"code":"use_unique_variant_ids_and_shared_group","weight":1.0,"concepts":["变体唯一id","共享item_group_id"]}],"contradictions":[],"partialThreshold":0.5,"correctThreshold":1.0},
+      "sources": [{"sourceId":"google.merchant.product_spec.item_group_id","authorityLevel":"primary_official","publisher":"Google","title":"Product data specification: item group ID","url":"https://support.google.com/merchants/answer/6324507?hl=en","publishedVersion":"Merchant Center Help","checkedAt":"2026-08-27","validThrough":"2027-02-27","licenseType":"official_reference_only","useMode":"source_based_original","licenseUrl":"https://policies.google.com/terms"}],
+      "review": {"authorId":"source_backed_choice_seed_20260827","reviewerId":"question_bank_gate_v2","reviewScope":"source_and_rubric_engineering_review","reviewerType":"automated_engineering_gate","curriculumReviewRequired":true,"reviewedAt":"2026-08-27","decision":"approved_for_internal_pilot"}
+    },
+    {
+      "id": "product.gtin_integrity.choice.002", "version": 1, "status": "approved", "domainCode": "product", "questionType": "single_choice",
+      "prompt": "供应商没有为一款自有商品分配 GTIN。为了让商品更快通过审核，应该怎么做？",
+      "choices": [{"id":"invent_gtin","text":"自行编一个看起来有效的 GTIN"},{"id":"copy_competitor","text":"复制同类竞品的 GTIN"},{"id":"do_not_invent","text":"不要虚构 GTIN；按商品实际标识情况提交，并遵守平台对 identifier_exists 等属性的要求"},{"id":"reuse_sku","text":"把内部 SKU 直接当作 GTIN 提交"}],
+      "correctChoiceId": "do_not_invent", "referenceAnswer": "GTIN 必须是制造商分配的有效标识，不能猜测、编造或借用；没有已分配标识时应按官方规范如实提交相关属性。",
+      "rubric": {"version":1,"criteria":[{"code":"preserve_gtin_integrity","weight":1.0,"concepts":["不虚构GTIN","按实际标识提交"]}],"contradictions":[],"partialThreshold":0.5,"correctThreshold":1.0},
+      "sources": [{"sourceId":"google.merchant.product_spec.gtin","authorityLevel":"primary_official","publisher":"Google","title":"Product data specification: GTIN","url":"https://support.google.com/merchants/answer/6324461?hl=en","publishedVersion":"Merchant Center Help","checkedAt":"2026-08-27","validThrough":"2027-02-27","licenseType":"official_reference_only","useMode":"source_based_original","licenseUrl":"https://policies.google.com/terms"}],
+      "review": {"authorId":"source_backed_choice_seed_20260827","reviewerId":"question_bank_gate_v2","reviewScope":"source_and_rubric_engineering_review","reviewerType":"automated_engineering_gate","curriculumReviewRequired":true,"reviewedAt":"2026-08-27","decision":"approved_for_internal_pilot"}
+    },
+    {
+      "id": "product.feed_landing_price.choice.003", "version": 1, "status": "approved", "domainCode": "product", "questionType": "single_choice",
+      "prompt": "商品 Feed 中价格为 199 元，但落地页当前显示 229 元。最合理的处理是什么？",
+      "choices": [{"id":"keep_lower_feed","text":"保留更低的 Feed 价格以提高点击率"},{"id":"align_price","text":"及时同步数据，使 Feed 与落地页中用户实际可购买的价格一致"},{"id":"hide_page_price","text":"删除落地页价格，只在结账时显示"},{"id":"change_title","text":"只修改商品标题，价格差异无需处理"}],
+      "correctChoiceId": "align_price", "referenceAnswer": "商品数据中的价格应与落地页和购买流程中显示的价格一致；价格不一致会误导用户并可能导致商品被拒登。",
+      "rubric": {"version":1,"criteria":[{"code":"align_feed_and_landing_price","weight":1.0,"concepts":["Feed与落地页价格一致","同步实际可购买价格"]}],"contradictions":[],"partialThreshold":0.5,"correctThreshold":1.0},
+      "sources": [{"sourceId":"google.merchant.product_spec.price","authorityLevel":"primary_official","publisher":"Google","title":"Product data specification: price","url":"https://support.google.com/merchants/answer/6324371?hl=en","publishedVersion":"Merchant Center Help","checkedAt":"2026-08-27","validThrough":"2027-02-27","licenseType":"official_reference_only","useMode":"source_based_original","licenseUrl":"https://policies.google.com/terms"}],
+      "review": {"authorId":"source_backed_choice_seed_20260827","reviewerId":"question_bank_gate_v2","reviewScope":"source_and_rubric_engineering_review","reviewerType":"automated_engineering_gate","curriculumReviewRequired":true,"reviewedAt":"2026-08-27","decision":"approved_for_internal_pilot"}
+    },
+    {
+      "id": "service.eu_faulty_goods_remedy.choice.001", "version": 1, "status": "approved", "domainCode": "service", "questionType": "single_choice",
+      "prompt": "面向欧盟消费者销售的商品在法定保障期内被确认有缺陷，客服首先应依据哪种处理原则？",
+      "choices": [{"id":"customer_pays_repair","text":"要求消费者先承担全部维修费用"},{"id":"coupon_only","text":"无论情况如何只发优惠券，不处理商品问题"},{"id":"free_repair_or_replace","text":"先提供免费维修或更换；无法或不能合理完成时再考虑降价或退款"},{"id":"manufacturer_only","text":"一律让消费者自行联系制造商，销售方不承担责任"}],
+      "correctChoiceId": "free_repair_or_replace", "referenceAnswer": "欧盟法定保障规则下，销售方应先免费维修或更换缺陷商品；若无法或不能在合理期限内完成，消费者可获得降价或退款等救济。",
+      "rubric": {"version":1,"criteria":[{"code":"apply_faulty_goods_remedy_order","weight":1.0,"concepts":["免费维修或更换","无法完成时降价或退款"]}],"contradictions":[],"partialThreshold":0.5,"correctThreshold":1.0},
+      "sources": [{"sourceId":"eu.your_europe.guarantees_returns","authorityLevel":"primary_official","publisher":"European Union","title":"Guarantees and returns","url":"https://europa.eu/youreurope/citizens/consumers/shopping/guarantees-returns/index_en.htm","publishedVersion":"Your Europe consumer guidance","checkedAt":"2026-08-27","validThrough":"2027-02-27","licenseType":"official_reference_only","useMode":"source_based_original","licenseUrl":"https://commission.europa.eu/legal-notice_en"}],
+      "review": {"authorId":"source_backed_choice_seed_20260827","reviewerId":"question_bank_gate_v2","reviewScope":"source_and_rubric_engineering_review","reviewerType":"automated_engineering_gate","curriculumReviewRequired":true,"reviewedAt":"2026-08-27","decision":"approved_for_internal_pilot"}
+    },
+    {
+      "id": "service.eu_legal_guarantee.choice.002", "version": 1, "status": "approved", "domainCode": "service", "questionType": "single_choice",
+      "prompt": "欧盟消费者购买的新商品出现非人为缺陷，关于最低法定保障期哪项表述更准确？",
+      "choices": [{"id":"thirty_days","text":"所有商品统一只有30天法定保障"},{"id":"seller_optional","text":"是否提供保障完全由销售方自愿决定"},{"id":"manufacturer_only","text":"只有制造商可以提供法定保障"},{"id":"at_least_two_years","text":"通常至少有2年法定保障，销售方不能用商业保修替代这一法定义务"}],
+      "correctChoiceId": "at_least_two_years", "referenceAnswer": "欧盟规则通常为消费者提供至少两年的法定保障，责任对象是销售方；商业保修可以附加，但不能取代法定保障。",
+      "rubric": {"version":1,"criteria":[{"code":"recognize_two_year_legal_guarantee","weight":1.0,"concepts":["至少两年法定保障","销售方责任"]}],"contradictions":[],"partialThreshold":0.5,"correctThreshold":1.0},
+      "sources": [{"sourceId":"eu.your_europe.guarantees_returns","authorityLevel":"primary_official","publisher":"European Union","title":"Guarantees and returns","url":"https://europa.eu/youreurope/citizens/consumers/shopping/guarantees-returns/index_en.htm","publishedVersion":"Your Europe consumer guidance","checkedAt":"2026-08-27","validThrough":"2027-02-27","licenseType":"official_reference_only","useMode":"source_based_original","licenseUrl":"https://commission.europa.eu/legal-notice_en"}],
+      "review": {"authorId":"source_backed_choice_seed_20260827","reviewerId":"question_bank_gate_v2","reviewScope":"source_and_rubric_engineering_review","reviewerType":"automated_engineering_gate","curriculumReviewRequired":true,"reviewedAt":"2026-08-27","decision":"approved_for_internal_pilot"}
+    },
+    {
+      "id": "service.ftc_shipping_delay.choice.003", "version": 1, "status": "approved", "domainCode": "service", "questionType": "single_choice",
+      "prompt": "面向美国消费者的网店发现无法在承诺时间内发货，按 FTC 规则最合适的客服动作是什么？",
+      "choices": [{"id":"silent_delay","text":"保持沉默并无限期等待库存"},{"id":"notify_and_offer_choice","text":"及时通知延迟，提供新的发货时间，并让消费者选择同意延迟或取消并获得及时退款"},{"id":"mark_shipped","text":"先把订单标记为已发货，之后再补寄"},{"id":"store_credit_only","text":"直接改发仅限店内使用的余额，不允许退款"}],
+      "correctChoiceId": "notify_and_offer_choice", "referenceAnswer": "无法按承诺时间发货时，应发送延迟通知，说明新的发货日期并取得消费者同意；消费者不同意延迟时应取消并及时退款。",
+      "rubric": {"version":1,"criteria":[{"code":"notify_delay_and_offer_refund","weight":1.0,"concepts":["通知延迟","同意新日期或取消退款"]}],"contradictions":[],"partialThreshold":0.5,"correctThreshold":1.0},
+      "sources": [{"sourceId":"ftc.mail_internet_order_rule","authorityLevel":"primary_official","publisher":"U.S. Federal Trade Commission","title":"Selling on the Internet: Prompt Delivery Rules","url":"https://www.ftc.gov/business-guidance/resources/selling-internet-prompt-delivery-rules","publishedVersion":"FTC Business Guidance","checkedAt":"2026-08-27","validThrough":"2027-02-27","licenseType":"official_reference_only","useMode":"source_based_original","licenseUrl":"https://www.ftc.gov/site-information/no-fear-act/copyright-policy"}],
+      "review": {"authorId":"source_backed_choice_seed_20260827","reviewerId":"question_bank_gate_v2","reviewScope":"source_and_rubric_engineering_review","reviewerType":"automated_engineering_gate","curriculumReviewRequired":true,"reviewedAt":"2026-08-27","decision":"approved_for_internal_pilot"}
+    },
+    {
+      "id": "finance.gross_profit_calculation.choice.003", "version": 1, "status": "approved", "domainCode": "finance", "questionType": "single_choice",
+      "prompt": "某月销售收入为 200 万元，销售成本为 120 万元。忽略其他项目，该月毛利是多少？",
+      "choices": [{"id":"three_twenty","text":"320万元"},{"id":"one_twenty","text":"120万元"},{"id":"eighty","text":"80万元"},{"id":"two_hundred","text":"200万元"}],
+      "correctChoiceId": "eighty", "referenceAnswer": "毛利等于销售收入减去销售成本，即 200 万元减 120 万元，结果为 80 万元。",
+      "rubric": {"version":1,"criteria":[{"code":"calculate_gross_profit","weight":1.0,"concepts":["收入减销售成本","80万元"]}],"contradictions":[],"partialThreshold":0.5,"correctThreshold":1.0},
+      "sources": [{"sourceId":"ifrs.ias1.profit_loss","authorityLevel":"primary_official","publisher":"IFRS Foundation","title":"IAS 1 Presentation of Financial Statements","url":"https://www.ifrs.org/issued-standards/list-of-standards/ias-1-presentation-of-financial-statements/","publishedVersion":"Issued Standards 2026","checkedAt":"2026-08-27","validThrough":"2027-08-27","licenseType":"official_reference_only","useMode":"source_based_original","licenseUrl":"https://www.ifrs.org/legal/terms-and-conditions/"}],
+      "review": {"authorId":"source_backed_choice_seed_20260827","reviewerId":"question_bank_gate_v2","reviewScope":"source_and_rubric_engineering_review","reviewerType":"automated_engineering_gate","curriculumReviewRequired":true,"reviewedAt":"2026-08-27","decision":"approved_for_internal_pilot"}
+    }
+  ]
+}

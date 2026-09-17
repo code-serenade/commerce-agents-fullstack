@@ -12,6 +12,7 @@ export {
   verifyEmailApi,
   type LoginRequest,
   type LoginResponse,
+  type MeApiOptions,
   type MeResponse,
   type RegisterRequest,
   type UpdateEmailPayload,
@@ -44,6 +45,7 @@ export {
 export * from "./commerce"
 export * from "./form-draft-stream"
 export * from "./analytics"
+export * from "./learning-progress"
 
 export {
   buildMemoryLoadedEventFromContextPreview,

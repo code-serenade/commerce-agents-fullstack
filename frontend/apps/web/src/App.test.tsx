@@ -74,6 +74,9 @@ describe("App", () => {
 
     render(<TestProviders><App /></TestProviders>)
 
+    expect(appApiState.meApi).toHaveBeenCalledWith({
+      suppressGlobalError: true,
+    })
     expect(screen.getByText("App restoring session")).toBeInTheDocument()
 
     await act(async () => {

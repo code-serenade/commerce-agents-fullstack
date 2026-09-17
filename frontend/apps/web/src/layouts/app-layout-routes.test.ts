@@ -15,6 +15,8 @@ describe("app layout routes", () => {
     expect(isAgentShellRoute("/products")).toBe(true)
     expect(isAgentShellRoute("/campaigns")).toBe(true)
     expect(isAgentShellRoute("/agent-output")).toBe(true)
+    expect(isAgentShellRoute("/learning-progress")).toBe(true)
+    expect(isAgentShellRoute("/learning-progress/")).toBe(true)
     expect(isAgentShellRoute("/home")).toBe(true)
     expect(isAgentShellRoute("/profile")).toBe(true)
     expect(isAgentShellRoute("/team-school")).toBe(true)

@@ -24,6 +24,7 @@ use uuid::Uuid;
 use crate::{
     api::{
         document_text_extraction_manager::DocumentTextExtractionManager,
+        learning_analysis::LearningAnalysisApi,
         storage_object_analysis::StorageObjectAnalysisApi,
         storage_reference::{RetainStorageReferenceRequest, StorageReferenceApi},
     },
@@ -94,7 +95,7 @@ impl ConversationApi {
         self.ensure_app_user_enabled(user_id).await?;
 
         let tx = self.db.begin().await?;
-        let result: BizResult<ConversationDetailResponse> = async {
+        let result: BizResult<(ConversationDetailResponse, Option<ConversationMessage>)> = async {
             let api = ConversationApi::new(tx.clone());
             let conversation = api
                 .conversation_svc
@@ -111,36 +112,51 @@ impl ConversationApi {
 
             let mut messages = Vec::new();
             if let Some(first_message) = normalize_optional(req.first_message) {
-                messages.push(
-                    api.message_svc
-                        .create(CreateConversationMessage {
-                            id: Uuid::new_v4(),
-                            conversation_id: conversation.id,
-                            user_id,
-                            role: "user".to_string(),
-                            content_text: Some(first_message),
-                            content_json: None,
-                            sequence: 1,
-                            token_count: None,
-                            metadata: json!({}),
-                            strategy_id: None,
-                            response_mode: None,
-                            routing_mode: None,
-                            collaboration_mode: None,
-                            learning_level: None,
-                        })
-                        .await?,
-                );
+                let message = api
+                    .message_svc
+                    .create(CreateConversationMessage {
+                        id: Uuid::new_v4(),
+                        conversation_id: conversation.id,
+                        user_id,
+                        role: "user".to_string(),
+                        content_text: Some(first_message),
+                        content_json: None,
+                        sequence: 1,
+                        token_count: None,
+                        metadata: json!({}),
+                        strategy_id: None,
+                        response_mode: None,
+                        routing_mode: None,
+                        collaboration_mode: None,
+                        learning_level: None,
+                    })
+                    .await?;
+                messages.push(message);
             }
 
-            Ok(ConversationDetailResponse {
-                conversation: Self::map_conversation(conversation),
-                messages: messages.into_iter().map(Self::map_message).collect(),
-                files: Vec::new(),
-            })
+            let first_student_message = messages.first().cloned();
+            Ok((
+                ConversationDetailResponse {
+                    conversation: Self::map_conversation(conversation),
+                    messages: messages.into_iter().map(Self::map_message).collect(),
+                    files: Vec::new(),
+                },
+                first_student_message,
+            ))
         }
         .await;
-        commit_or_rollback(tx, result).await
+        let (response, first_student_message) = commit_or_rollback(tx, result).await?;
+        if let Some(message) = first_student_message {
+            spawn_learning_analysis(
+                self.db.clone(),
+                user_id,
+                message.conversation_id,
+                message.id,
+                message.sequence,
+                message.content_text.clone(),
+            );
+        }
+        Ok(response)
     }
 
     pub async fn get_conversation(
@@ -220,6 +236,7 @@ impl ConversationApi {
         }
 
         let sequence = self.message_svc.next_sequence(conversation_id).await?;
+        let is_student_message = role == "user";
         let message = self
             .message_svc
             .create(CreateConversationMessage {
@@ -239,6 +256,16 @@ impl ConversationApi {
                 learning_level,
             })
             .await?;
+        if is_student_message {
+            spawn_learning_analysis(
+                self.db.clone(),
+                user_id,
+                conversation_id,
+                message.id,
+                message.sequence,
+                message.content_text.clone(),
+            );
+        }
         Ok(Self::map_message(message))
     }
 
@@ -1514,6 +1541,29 @@ async fn commit_or_rollback<T>(tx: DbContext, result: BizResult<T>) -> BizResult
             Err(err)
         }
     }
+}
+
+fn spawn_learning_analysis(
+    db: DbContext,
+    user_id: Uuid,
+    conversation_id: Uuid,
+    message_id: Uuid,
+    sequence: i64,
+    content: Option<String>,
+) {
+    tokio::spawn(async move {
+        if let Err(error) = LearningAnalysisApi::new(db)
+            .analyze_student_message(user_id, conversation_id, message_id, sequence, content)
+            .await
+        {
+            tracing::warn!(
+                conversation_id = %conversation_id,
+                message_id = %message_id,
+                error = ?error,
+                "learning analysis failed"
+            );
+        }
+    });
 }
 
 #[cfg(test)]

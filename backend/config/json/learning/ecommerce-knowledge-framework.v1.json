@@ -1,0 +1,61 @@
+{
+  "version": "ecommerce_v1",
+  "probePolicy": {
+    "interactionMode": "contextual_micro",
+    "rewardCode": "progress_feedback",
+    "deliveryCadence": "every_eligible_turn",
+    "maxContinuationDepth": 0,
+    "retentionReviewIntervalDays": 7,
+    "minimumAnswerCharacters": 6
+  },
+  "domains": [
+    {
+      "code": "market",
+      "name": "市场洞察",
+      "importance": 1.0,
+      "probe": "如果要判断一个商品是否值得进入某个市场，你会先看哪两类信息？"
+    },
+    {
+      "code": "product",
+      "name": "商品策略",
+      "importance": 1.0,
+      "probe": "面对两个功能相近的商品，你会用什么依据决定主推哪一个？"
+    },
+    {
+      "code": "content",
+      "name": "内容表达",
+      "importance": 0.9,
+      "probe": "商品有很多卖点时，你会怎样选出详情页最先强调的那个？"
+    },
+    {
+      "code": "traffic",
+      "name": "流量运营",
+      "importance": 1.0,
+      "probe": "点击量上涨但成交没有变化时，你会先排查流量的哪个方面？"
+    },
+    {
+      "code": "conversion",
+      "name": "转化优化",
+      "importance": 1.0,
+      "probe": "点击率提高但付款率下降时，你会先检查什么？"
+    },
+    {
+      "code": "finance",
+      "name": "经营核算",
+      "importance": 1.0,
+      "probe": "销售额增长时，为什么还需要同时检查毛利和投放成本？"
+    },
+    {
+      "code": "service",
+      "name": "客户服务",
+      "importance": 0.8,
+      "probe": "同类售后问题反复出现时，你会怎样判断它是服务问题还是商品问题？"
+    },
+    {
+      "code": "compliance",
+      "name": "合规经营",
+      "importance": 1.0,
+      "probe": "发布商品宣传内容前，你会检查哪些合规风险？"
+    }
+  ]
+}

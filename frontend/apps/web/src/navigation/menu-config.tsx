@@ -5,6 +5,7 @@ import {
   Boxes,
   ClipboardCheck,
   FileText,
+  GraduationCap,
   Library,
   LayoutDashboard,
   Megaphone,
@@ -103,6 +104,18 @@ export const webNavigationSections: WebNavigationSectionConfig[] = [
         labelKey: "web.shell.navigation.agentOutput",
         path: "/agent-output",
         icon: <FileText />,
+      },
+    ],
+  },
+  {
+    id: "learning",
+    labelKey: "web.shell.navigation.learningSection",
+    items: [
+      {
+        id: "learning-progress",
+        labelKey: "web.shell.navigation.learningProgress",
+        path: "/learning-progress",
+        icon: <GraduationCap />,
       },
     ],
   },

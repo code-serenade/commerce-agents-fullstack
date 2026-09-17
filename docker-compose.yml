@@ -19,6 +19,7 @@ services:
       context: .
       dockerfile: deploy/db-init/Dockerfile
     image: ${IMAGE_PREFIX:-commerce-agents}-db-init:local
+    restart: "no"
     environment:
       DATABASE_URL: postgres://postgres:123456@postgres:5432/app
       APP_DATABASE_URL: postgres://postgres:123456@postgres:5432/app
@@ -44,10 +45,13 @@ services:
       args:
         APP_NAME: web
     image: ${IMAGE_PREFIX:-commerce-agents}-web:local
+    restart: unless-stopped
     environment:
       API_UPSTREAM: ${API_UPSTREAM:-http://backend:19878}
-      AUTH_UPSTREAM: ${AUTH_UPSTREAM:-http://1.85.61.130:29001}
-      FILE_UPSTREAM: ${FILE_UPSTREAM:-http://1.85.61.130:29002}
+      AUTH_UPSTREAM: ${AUTH_UPSTREAM:-http://host.docker.internal:29001}
+      FILE_UPSTREAM: ${FILE_UPSTREAM:-http://host.docker.internal:29002}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - backend
     ports:
@@ -63,8 +67,10 @@ services:
     restart: unless-stopped
     environment:
       API_UPSTREAM: ${API_UPSTREAM:-http://backend:19878}
-      AUTH_UPSTREAM: ${AUTH_UPSTREAM:-http://1.85.61.130:29001}
-      FILE_UPSTREAM: ${FILE_UPSTREAM:-http://1.85.61.130:29002}
+      AUTH_UPSTREAM: ${AUTH_UPSTREAM:-http://host.docker.internal:29001}
+      FILE_UPSTREAM: ${FILE_UPSTREAM:-http://host.docker.internal:29002}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - backend
     ports:

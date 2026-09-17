@@ -26,6 +26,8 @@ const messages = {
         agent: "Commerce Multi-Agent Platform",
         agentOutput: "Conversation report",
         profile: "Profile",
+        learningSection: "Learning",
+        learningProgress: "Learning Progress",
       },
       topbar: {
         meta: "Personal training space",
@@ -45,6 +47,344 @@ const messages = {
           teamSchool: "Team school",
         },
       },
+    },
+  },
+  learningProgress: {
+    loading: "Loading learning progress",
+    loadErrorTitle: "Learning progress is temporarily unavailable",
+    loadErrorDescription:
+      "Please refresh the page later. You can still continue using the assistant.",
+    evidenceLoadError: "Recent learning records are temporarily unavailable.",
+    evidenceLoading: "Loading learning records.",
+    evidenceSignal: "Record signal strength: {{strength}}%",
+    assessmentScore: "Assessment score: {{strength}}%",
+    evidenceQuestion: "Question",
+    evidenceSelectedChoice: "Your choice",
+    viewRelatedConversation: "View related conversation",
+    timelineToday: "Today",
+    timelineYesterday: "Yesterday",
+    eyebrow: "Learning progress",
+    title: "Your e-commerce knowledge progress",
+    description:
+      "The system records conversation attention from real questions and practice, then builds reviewable evaluations from structured answers.",
+    views: {
+      overview: "Progress overview",
+      review: "Review center",
+      path: "Learning path",
+      map: "Capability map",
+      portfolio: "Answer review",
+    },
+    reviewCenter: {
+      title: "Answers to reinforce",
+      description:
+        "Review incorrect and partially correct structured answers. These records come from question-bank grading, not ordinary Chat attention.",
+      continuePractice: "Continue in Chat",
+      total: "To reinforce",
+      incorrect: "Incorrect",
+      partial: "Partially correct",
+      loading: "Preparing reinforcement records...",
+      loadError:
+        "Reinforcement records are temporarily unavailable. The overview and learning path remain available.",
+      emptyTitle: "No reinforcement records right now",
+      emptyDescription:
+        "Keep completing lightweight questions in real commerce conversations. Judgments that need review will appear here automatically.",
+      outcomes: {
+        incorrect: "Incorrect | Review first",
+        partial: "Partially correct | Complete the missing conditions",
+      },
+      questionUnavailable:
+        "The full question cannot be restored for this historical record.",
+      selectedChoice: "Your choice: {{choice}}",
+      openConversation: "Open related conversation",
+    },
+    learningPath: {
+      title: "Stage learning path",
+      description:
+        "Organizes what to learn next from existing domain status, evidence gaps, and next-action rules. The frontend explains backend decisions and does not rescore them.",
+      continueChat: "Continue Chat practice",
+      emptyTitle: "Complete a related question to create a path",
+      emptyDescription:
+        "Ask a real commerce question in Chat and complete the lightweight question that follows. The system can then form an explainable domain learning path.",
+      openConversation: "Open related conversation",
+      startPractice: "Start related practice",
+      groups: {
+        priority: {
+          title: "Reinforce first",
+          description:
+            "Domains with a recent incorrect answer or unstable understanding.",
+          empty: "No domain currently needs priority correction.",
+        },
+        evidence: {
+          title: "Add assessment angles",
+          description:
+            "Domains already encountered but still missing structured answers or breadth.",
+          empty: "No domain is currently waiting for another assessment angle.",
+        },
+        retention: {
+          title: "Retain and recheck",
+          description:
+            "Domains with positive evidence that should be maintained through application and spaced checks.",
+          empty:
+            "This section will schedule retention after positive multi-angle evidence is formed.",
+        },
+      },
+    },
+    capabilityMap: {
+      title: "Commerce capability map",
+      description:
+        "Compare the real evaluation status and evidence composition across eight domains. Only question-bank answers appear here; ordinary Chat attention is not converted into a capability score.",
+      continueChat: "Add evidence in Chat",
+      assessedDomains: "Domains with answers",
+      multiAngleDomains: "Multi-angle domains",
+      angleProgress: "Assessment angles {{count}} / 2",
+      answerCount: "{{count}} answers",
+      questions: "Questions",
+      correct: "Complete",
+      partial: "Partial",
+      incorrect: "Incorrect",
+      latest: "Latest assessment: {{date}}",
+      notAssessed:
+        "No structured answer yet, so the system does not infer mastery.",
+    },
+    portfolio: {
+      title: "Answer review and reinforcement",
+      description:
+        "Review questions, your choices, and evaluations by date, with answers needing reinforcement in the same place.",
+      continueChat: "Continue learning in Chat",
+      total: "Answers in range",
+      correct: "Complete judgments",
+      toReview: "Still to reinforce",
+      loading: "Preparing the growth portfolio...",
+      loadError:
+        "The growth portfolio is temporarily unavailable. Other learning views remain available.",
+      emptyTitle: "Complete a related question to start the portfolio",
+      emptyDescription:
+        "Ask a real commerce question in Chat and complete the lightweight question that follows. Structured learning results will accumulate here.",
+      dayCount: "{{count}} answers that day",
+      outcomes: {
+        correct: "Complete judgment",
+        partial: "Partially correct | Complete the missing conditions",
+        incorrect: "Incorrect | Review the explanation",
+      },
+      questionUnavailable:
+        "The full question cannot be restored for this historical result.",
+      selectedChoice: "Your choice: {{choice}}",
+      openConversation: "Open source conversation",
+      allAnswers: "All answers",
+      reviewAnswers: "To reinforce",
+      rangeNotice:
+        "Shows the scorable answers currently loaded for the selected range, not the full history. Earlier incorrect answers remain in history; current mastery follows the latest evidence in the capability map. Ordinary Chat attention does not count as mastery evidence.",
+    },
+    coverage: "Conversation attention coverage",
+    observed: "Observed knowledge points",
+    assessed: "Assessed knowledge domains",
+    assessedValue: "{{count}} / {{total}}",
+    multiAngleAssessed: "Multi-angle evidence {{count}} / {{total}}",
+    demonstrated: "Understanding shown {{count}} / {{total}}",
+    retained: "Spaced verification {{count}} / {{total}}",
+    assessmentTimeline: {
+      title: "13-week mastery evidence",
+      description:
+        "Only structured assessment status is shown. Conversation attention is not included.",
+      empty: "No structured assessment evidence yet.",
+      assessed: "Assessed domains",
+      demonstrated: "Understanding shown",
+      retained: "Spaced verification",
+    },
+    updated: "Last updated",
+    pending: "Waiting for learning conversations",
+    settingsTitle: "Learning tracking",
+    settingsDescription:
+      "When enabled, the system records conversation attention from real questions and practice separately from evaluations formed by structured micro-questions.",
+    trackingOn: "Enabled",
+    trackingOff: "Disabled",
+    covered: "Observed",
+    remaining: "Not observed",
+    coverageSection: "Conversation attention coverage",
+    coverageDescription:
+      "This is only the share of knowledge domains with conversation observations; it does not mean mastery. Mastery evidence comes from structured assessments.",
+    dynamicsTitle: "Recent learning activity",
+    dynamicsDescription:
+      "What the system has recorded from conversation attention and structured assessments.",
+    dynamicsEmpty:
+      "No learning records yet. Start a conversation and share your thinking.",
+    dynamicsStats:
+      "{{evidence}} evidence records formed from {{messages}} analyzed replies.",
+    continueChat: "Continue practicing",
+    domainTitle: "Why each domain has this status",
+    domainDescription:
+      "Expand a domain to see why its status was assigned, which answers support it, what evidence is missing, and what to do next. Conversation attention shows exposure only, not mastery.",
+    evaluationMethod: {
+      title: "How the evaluation works",
+      description:
+        "The system does not calculate an opaque total score. It applies the same auditable gates to every domain. Regular Chat records attention only; structured question-bank answers are the only evidence used for mastery evaluation.",
+      stages: {
+        notAssessed: {
+          title: "Not assessed",
+          description: "No structured answer",
+        },
+        collecting: {
+          title: "Gathering evidence",
+          description: "Answered, but not enough angles",
+        },
+        demonstrated: {
+          title: "Understanding shown",
+          description: "Positive evidence across 2+ angles",
+        },
+        retained: {
+          title: "Retained over time",
+          description: "Positive evidence at least 7 days apart",
+        },
+      },
+      priorityRule:
+        "Priority rule: the latest incorrect answer immediately shows Needs reinforcement. After a corrective answer, the system reevaluates the latest result for each angle. Repeating the same kind of question does not add another angle.",
+    },
+    domainAssessmentCount: "{{count}} answers",
+    domainWhy: "Why this status",
+    domainRuleCheck: {
+      title: "Domain decision checklist",
+      description:
+        "These are the backend evaluation gates. Any unmet item explains exactly why the status cannot advance yet.",
+      met: "Met",
+      notMet: "Not met",
+      answersRecorded: "{{current}} recorded",
+      angleProgress: "{{current}} / {{target}} angles",
+      conditions: {
+        structured_assessment: {
+          title: "Has a scorable structured answer",
+          description:
+            "Chat attention does not count; this gate is met only after a question-bank answer is submitted.",
+        },
+        multiple_angles: {
+          title: "Covers at least 2 curriculum angles",
+          description:
+            "Breadth is counted by angle; repeated questions from the same angle do not add breadth.",
+        },
+        positive_multi_angle: {
+          title: "Latest result for every angle is correct or partial",
+          description:
+            "At least one angle must be fully correct. A currently incorrect angle prevents Understanding shown.",
+        },
+        spaced_verification: {
+          title: "Has spaced verification",
+          description:
+            "The earliest and latest positive multi-angle evidence must be at least 7 days apart.",
+        },
+      },
+    },
+    domainEvidenceBasis: "Evidence so far",
+    domainMissing: "Evidence still needed",
+    domainMissingNone:
+      "The basic evidence for this status is present. Keep applying it in real tasks.",
+    domainNext: "Next step",
+    domainRecentEvidence: "Recent supporting evidence",
+    domainHistoricalAssessment: "Historical structured answer",
+    domainEvidenceChoice: "Your choice: {{choice}}",
+    domainLatestAssessment: "Latest: {{outcome}} · {{date}}",
+    domainNoAssessment: "No scorable structured answer yet.",
+    domainLegacyObserved:
+      "This domain has appeared in conversation, but the service has not returned an explainable assessment yet. Attention is not mastery.",
+    domainLegacyUnobserved:
+      "There is no conversation observation or structured assessment for this domain yet.",
+    domainMetrics: {
+      answers: "Answers",
+      questions: "Questions",
+      angles: "Assessment angles",
+      correct: "Correct",
+      partial: "Partial",
+      incorrect: "Incorrect",
+    },
+    domainReasons: {
+      no_structured_assessment:
+        "No structured micro-question has been completed, so the system does not infer mastery from conversation attention alone.",
+      single_angle_only:
+        "There is a scorable answer, but it covers only one curriculum angle and is not enough to confirm stable understanding.",
+      latest_answer_incorrect:
+        "The latest structured answer in this domain was incorrect, so the current status highlights the gap that needs correction.",
+      mixed_or_partial_evidence:
+        "Several angles are covered, but their latest results are partial or inconsistent, so understanding is not yet confirmed.",
+      multi_angle_positive_evidence:
+        "The latest results from at least two curriculum angles are correct or partial, with at least one fully correct result.",
+      spaced_positive_evidence:
+        "Positive multi-angle evidence was verified again across an interval of at least seven days.",
+    },
+    domainMissingEvidence: {
+      first_assessment:
+        "Complete one structured question related to a real conversation.",
+      another_assessment_angle:
+        "Complete a different curriculum angle instead of repeating the same kind of question.",
+      positive_correction:
+        "Form a new positive result for an incorrect or partial angle.",
+      spaced_review:
+        "Recheck this area after an interval of at least seven days.",
+    },
+    domainNextActions: {
+      answer_first_context_question:
+        "Ask a real question in Chat and complete the related micro-question that follows.",
+      correct_latest_gap:
+        "Review the latest incorrect answer, then complete a related correction question later.",
+      answer_another_angle:
+        "Continue with a real task; the system will prioritize an uncovered angle in this domain.",
+      strengthen_mixed_results:
+        "Review partial or inconsistent records and check the key decision conditions in their explanations.",
+      repeat_after_interval:
+        "Apply the method in a real task, then take a light recheck after an interval.",
+      continue_context_practice:
+        "Keep applying these judgments in real commerce tasks with occasional light checks.",
+    },
+    waitingObservation: "Awaiting observation",
+    domainStatus: {
+      observed: "Observed",
+      unobserved: "Awaiting observation",
+      assessed: "Assessment confirmed",
+      developing: "Developing",
+      needs_attention: "Needs reinforcement",
+      not_assessed: "Not assessed",
+      collecting_evidence: "Gathering evidence",
+      demonstrated: "Understanding shown",
+      retained: "Retained over time",
+    },
+    domains: {
+      market: "Market insight",
+      product: "Product strategy",
+      content: "Content expression",
+      traffic: "Traffic operations",
+      conversion: "Conversion optimization",
+      finance: "Business accounting",
+      service: "Customer service",
+      compliance: "Compliance",
+    },
+    evidenceTitle: "Learning records",
+    evidenceDescription:
+      "Review structured answer assessments and conversation observations over time.",
+    evidenceLegendLabel: "Learning record type guide",
+    evidenceLegend: {
+      assessed: "Answer assessment",
+      assessedMeaning: "Counts toward knowledge evaluation",
+      observed: "Conversation observation",
+      observedMeaning: "Shows attention or exposure only",
+    },
+    evidenceRangeSummary: "{{count}} learning records shown for {{range}}.",
+    evidenceEmpty:
+      "No learning records yet. Start a conversation and share your thinking.",
+    evidenceRanges: {
+      recent: "Recent",
+      days30: "30 days",
+      days90: "90 days",
+    },
+    evidenceTypes: {
+      explanation: "Explanation",
+      application: "Application",
+      correction: "Correction",
+      probeAnswer: "Check-in answer",
+    },
+    assessmentOutcomes: {
+      correct: "Assessed · Complete",
+      partial: "Assessed · Partially complete",
+      incorrect: "Assessed · Needs reinforcement",
+      unscorable: "Assessed · Not determined",
+      observed_unscored: "Observed in conversation",
+      legacy_unscored: "Historical · Unscored",
     },
   },
   commerce: {
@@ -1245,6 +1585,11 @@ const messages = {
   },
   home: {
     welcome: "Welcome back",
+    learning: {
+      title: "Learning Progress",
+      description:
+        "Review your e-commerce knowledge mastery, coverage, and check-in questions.",
+    },
     publicWelcome: "Welcome",
     publicTitle: "Commerce Multi-Agent Platform",
     publicSubtitle:
@@ -1410,8 +1755,7 @@ const messages = {
       ariaLabel: "Commerce multi-agent role preview",
       summary:
         "They split work by question and show who is checking what during an answer",
-      footer:
-        "",
+      footer: "",
     },
     sidebar: {
       newChat: "New chat",
@@ -2683,6 +3027,112 @@ const messages = {
         referenceSynced: "synced",
         routeFallback: "current method",
       },
+      learningProbe: {
+        title: "Quick check",
+        compactPending: "Awaiting answer",
+        compactRecorded: "Recorded",
+        collapse: "Collapse question",
+        expand: "Expand question",
+        questionLabel: "Question",
+        contextHint: "Choose one answer related to what we just discussed.",
+        answer: "Share my judgment",
+        answerStarter: "My judgment is: ",
+        engageFailed:
+          "This answer could not be started. Try again; the question is still here.",
+        choiceHint: "Choose one answer, then submit it for feedback.",
+        submitChoice: "Submit answer",
+        submittingChoice: "Submitting…",
+        submitChoiceFailed:
+          "Your answer was not submitted. Try again; the selected option is still here.",
+        choiceAnswerStarter: "My choice is: {{choice}}",
+        later: "Answer later",
+        skipping: "Closing…",
+        skipFailed:
+          "This question could not be postponed. Try again; it is still here.",
+        viewProgress: "View learning progress",
+        recorded: "This answer was recorded in Learning Progress",
+        viewRecord: "View record",
+        waitingAnswer:
+          "Once you send your answer, I'll compare it with the reviewed reference guidance.",
+        evaluating: "Comparing your answer with the reference guidance…",
+        resultFailed:
+          "Feedback could not be loaded. The question and answer record are still saved.",
+        retryResult: "Reload feedback",
+        resultTitle: "Feedback on this answer",
+        selectedChoice: "Your choice",
+        correctChoice: "Correct choice",
+        answerComparison: {
+          matches_reference:
+            "Your choice matches the question bank answer. The explanation below shows the conditions that make it correct.",
+          differs_from_reference:
+            "Your choice differs from the question bank answer. Compare the two choices against the key decision conditions below.",
+          not_available:
+            "The option comparison cannot be restored for this historical record; use the reference principle below.",
+        },
+        outcome: {
+          correct: "Correct · Complete judgment",
+          partial: "Partially correct · Add more detail",
+          incorrect: "Incorrect · Review the answer",
+          unscorable: "Not assessed yet",
+          legacy_unscored: "Historical record · Not scored",
+        },
+        outcomeStatus: {
+          correct: "Correct",
+          partial: "Partially correct",
+          incorrect: "Incorrect answer",
+          unscorable: "Not assessed",
+          legacy_unscored: "Historical record",
+        },
+        outcomeDetail: {
+          correct: "Complete judgment",
+          partial: "Some conditions are missing",
+          incorrect: "Different from the reference; review recommended",
+          unscorable: "Not counted toward progress",
+          legacy_unscored: "Not scored at the time",
+        },
+        referenceAnswer: "Why the correct answer holds",
+        knowledgePoints: "Key points to learn",
+        reviewGuidanceTitle: "Turn this answer into a skill",
+        reviewGuidance: {
+          correct:
+            "Without looking at the choices, restate the rule and its deciding conditions in your own words. Then find the matching data, action, or constraint in this conversation and apply the same rule to a different product or operating scenario. Being able to explain and transfer the rule matters more than recalling the option.",
+          partial:
+            "Keep the part you got right, compare it with each key point above, and name the condition you missed. Correct one concrete judgment in this conversation, then practice the rule in a similar scenario. Check every required condition before choosing next time.",
+          incorrect:
+            "Compare your choice with the correct choice line by line and identify the condition your choice missed or contradicted. Restate the reference principle in your own words, then correct one concrete judgment from this conversation. The goal is to explain the rule in a new scenario, not memorize an option.",
+        },
+        assessmentImpactTitle: "How this answer affects Learning Progress",
+        assessmentImpact: {
+          correct:
+            "This complete judgment becomes one positive structured evidence item for the knowledge domain. One answer does not establish mastery: the system also checks different questions, different assessment angles, and another assessment at least seven days later.",
+          partial:
+            "This becomes partial positive evidence and preserves the conditions that still need work. You will need complete judgments across different questions and assessment angles, followed by a later reassessment, before the domain can be considered stable.",
+          incorrect:
+            "This needs-review result becomes the latest structured evidence for the domain and gives related reinforcement priority. The status improves only after correct judgments across different questions and angles and a later reassessment.",
+          unscored:
+            "This response stays in the learning record but is not treated as proof of mastery. A structured question with a deterministic result is required before the domain assessment changes.",
+        },
+        sources: "Sources",
+        dismissResult: "Collapse feedback",
+        continue: "Answer one more",
+        continuing: "Preparing the next question…",
+        continueFailed:
+          "The next question could not be loaded. This feedback is still here.",
+        continueUnavailable:
+          "There are no more suitable questions right now. This feedback is still here.",
+        continuationComplete:
+          "You have completed the relevant questions for this turn. Continue chatting or review your learning record.",
+        historyTitle: "Answered in this turn",
+        historyTitleWithCount: "{{count}} answered in this turn",
+        historyItem: "Question {{number}}",
+        retryContinue: "Retry next question",
+        reward: {
+          progress_feedback:
+            "You'll get focused feedback and add one learning record for this area. Skipping never lowers your progress.",
+        },
+      },
+      learningHint:
+        "The system tracks your knowledge mastery. After answering check-in questions, view your records in Learning Progress.",
       nextActions: {
         title: "Useful next steps",
         meta: {
@@ -2716,10 +3166,20 @@ const messages = {
             detail:
               "This answer is about campaign planning, so you can continue with goals, budget, rhythm, and an execution checklist.",
           },
+          compliance: {
+            label: "Compliance",
+            detail:
+              "This answer involves platform rules, personal information, or user choice, so continue by clarifying the applicable boundaries.",
+          },
           data: {
             label: "Data context",
             detail:
               "This answer is about metrics or anomalies, so you can add data, check causes, and list validation steps.",
+          },
+          service: {
+            label: "Customer service",
+            detail:
+              "This answer is about after-sales handling or a consumer dispute, so continue with the reply, conditions, records, and escalation boundary.",
           },
           task: {
             label: "Task context",
@@ -2767,6 +3227,12 @@ const messages = {
             "Format this as a coursework task brief",
             "Separate the risks, evidence, and suggestions",
           ],
+          compliance: [
+            "Turn this requirement into a pre-launch compliance checklist",
+            "Separate required, optional, and prohibited practices",
+            "List the platform rules, legal clauses, and effective dates still to verify",
+            "Check whether notice, choice, opt-out, and re-enable steps are complete",
+          ],
           quick: [
             "Expand the short answer into actionable steps",
             "Keep only the conclusion and evidence for submission",
@@ -2802,6 +3268,12 @@ const messages = {
             "List the operating data I still need to add",
             "Turn the diagnosis into an improvement checklist",
             "Follow up on the key metric most likely to affect results",
+          ],
+          service: [
+            "Rewrite this as a customer reply I can send directly",
+            "Separate reasonable refund conditions from unreasonable restrictions",
+            "Turn the dispute into service steps and escalation conditions",
+            "List the contract, communication, and refund records to retain",
           ],
           task: [
             "Turn this into task steps and submission requirements",
@@ -3236,7 +3708,8 @@ const messages = {
   },
   agentOutput: {
     header: {
-      description: "Review and organize reports and deliverables generated from Q&A.",
+      description:
+        "Review and organize reports and deliverables generated from Q&A.",
     },
     prompt:
       "I run coffee operations. My main marketing platform is Douyin, and May Day is coming soon. Can you help me write an operations plan to improve conversion rate?",
@@ -3525,23 +3998,29 @@ const messages = {
         items: [
           {
             problem: "You do not know where to start",
-            action: "State the task. The system asks for missing details and organizes the key points.",
+            action:
+              "State the task. The system asks for missing details and organizes the key points.",
             result: "A clear analysis direction and next steps.",
           },
           {
             problem: "You have materials but do not know how to use them",
-            action: "Select the products, files, or campaigns needed for this task, and the system analyzes them.",
+            action:
+              "Select the products, files, or campaigns needed for this task, and the system analyzes them.",
             result: "Judgments and suggestions grounded in the current task.",
           },
           {
             problem: "A general AI answer is difficult to use directly",
-            action: "AI roles analyze the task from operations, data, and creative perspectives, then organize the content.",
-            result: "Plans, checklists, copy, and reports ready for execution or submission.",
+            action:
+              "AI roles analyze the task from operations, data, and creative perspectives, then organize the content.",
+            result:
+              "Plans, checklists, copy, and reports ready for execution or submission.",
           },
           {
             problem: "Task history and results are easily lost",
-            action: "The system retains conversations, revisions, and final results.",
-            result: "A task record that can be continued, submitted, reviewed, and reused.",
+            action:
+              "The system retains conversations, revisions, and final results.",
+            result:
+              "A task record that can be continued, submitted, reviewed, and reused.",
           },
         ],
       },
@@ -3550,72 +4029,220 @@ const messages = {
         description:
           "The sidebar entries are stages of one task, not unrelated features.",
         items: [
-          { stage: "Before", title: "Prepare materials", detail: "Choose products, files, images, or campaigns." },
-          { stage: "Start", title: "State the problem", detail: "Explain the goal, constraints, and expected result." },
-          { stage: "In progress", title: "AI role collaboration", detail: "The system selects operations, data, and other roles." },
-          { stage: "Finish", title: "Review the result", detail: "Receive conclusions, plans, checklists, or reports." },
-          { stage: "After", title: "Submit and review", detail: "Save tasks, review records, and business results." },
+          {
+            stage: "Before",
+            title: "Prepare materials",
+            detail: "Choose products, files, images, or campaigns.",
+          },
+          {
+            stage: "Start",
+            title: "State the problem",
+            detail: "Explain the goal, constraints, and expected result.",
+          },
+          {
+            stage: "In progress",
+            title: "AI role collaboration",
+            detail: "The system selects operations, data, and other roles.",
+          },
+          {
+            stage: "Finish",
+            title: "Review the result",
+            detail: "Receive conclusions, plans, checklists, or reports.",
+          },
+          {
+            stage: "After",
+            title: "Submit and review",
+            detail: "Save tasks, review records, and business results.",
+          },
         ],
       },
       tasks: {
         title: "Choose the task you want to complete",
-        description: "Choose campaign planning, product analysis, or data review to see what information to prepare and what results you can receive.",
+        description:
+          "Choose campaign planning, product analysis, or data review to see what information to prepare and what results you can receive.",
         resultLabel: "You will get",
         items: [
-          { title: "Campaign planning", shortDescription: "Goals, budget, timing, and execution", description: "Prepare product details, then state the campaign goal, budget, and dates so the system can generate a timeline, content direction, execution checklist, and review metrics.", results: ["Campaign plan", "Execution checklist", "Risk notes"] },
-          { title: "Product analysis", shortDescription: "Selling points, competitors, price, and opportunity", description: "Select a product and add its price, selling points, and competitor materials so the system can assess demand, margin, content, and service risk.", results: ["Opportunity assessment", "Selling-point advice", "Test plan"] },
-          { title: "Data review", shortDescription: "Anomalies, causes, evidence, and actions", description: "Upload browsing, click, cart, order, or refund data so the system can locate likely problems and propose the next validation steps.", results: ["Diagnosis", "Evidence gaps", "Optimization actions"] },
+          {
+            title: "Campaign planning",
+            shortDescription: "Goals, budget, timing, and execution",
+            description:
+              "Prepare product details, then state the campaign goal, budget, and dates so the system can generate a timeline, content direction, execution checklist, and review metrics.",
+            results: ["Campaign plan", "Execution checklist", "Risk notes"],
+          },
+          {
+            title: "Product analysis",
+            shortDescription:
+              "Selling points, competitors, price, and opportunity",
+            description:
+              "Select a product and add its price, selling points, and competitor materials so the system can assess demand, margin, content, and service risk.",
+            results: [
+              "Opportunity assessment",
+              "Selling-point advice",
+              "Test plan",
+            ],
+          },
+          {
+            title: "Data review",
+            shortDescription: "Anomalies, causes, evidence, and actions",
+            description:
+              "Upload browsing, click, cart, order, or refund data so the system can locate likely problems and propose the next validation steps.",
+            results: ["Diagnosis", "Evidence gaps", "Optimization actions"],
+          },
         ],
       },
       journey: {
         title: "How to complete one task",
-        description: "Follow the actual operating sequence shown below. The feature locations match the current product.",
+        description:
+          "Follow the actual operating sequence shown below. The feature locations match the current product.",
         steps: [
-          { navLabel: "Prepare", title: "Prepare the product and materials needed for this task", description: "Add the product, selling points, assets, and competitors under Product Analysis. You can also start Q&A before every detail is ready.", screenshotAlt: "Product analysis after sign-in", note: "1 Add or select a product; 2 Review selling points, assets, knowledge, and competitor materials." },
-          { navLabel: "Open Q&A", title: "Start from New Conversation", description: "Enter the task and add files, products, or campaigns as needed. Only explicitly selected context is used in this turn.", screenshotAlt: "Q&A entry after sign-in", note: "1 New conversation; 2 Enter the task; 3 Choose files, products, campaigns, and response settings." },
-          { navLabel: "Choose mode", title: "Keep Automatically select for your first task", description: "Open Response settings only when you need to control answer style, depth, speed, or participating roles.", screenshotAlt: "Response settings after sign-in", note: "1 Choose response preferences; 2 Automatically select, one role, or multiple roles." },
-          { navLabel: "State task", title: "Describe the problem with four pieces of information", description: "State what to complete, what you can provide, the constraints, and the desired result. When details are incomplete, the system asks for the key information it still needs." },
-          { navLabel: "Save result", title: "Save the result according to its next use", description: "Use the corresponding page when you need to continue execution, organize or download the result, or submit it for review.", screenshotAlt: "Training tasks and deliverables after sign-in", note: "1 Create a training task; 2 Review, edit, or continue an existing task." },
+          {
+            navLabel: "Prepare",
+            title: "Prepare the product and materials needed for this task",
+            description:
+              "Add the product, selling points, assets, and competitors under Product Analysis. You can also start Q&A before every detail is ready.",
+            screenshotAlt: "Product analysis after sign-in",
+            note: "1 Add or select a product; 2 Review selling points, assets, knowledge, and competitor materials.",
+          },
+          {
+            navLabel: "Open Q&A",
+            title: "Start from New Conversation",
+            description:
+              "Enter the task and add files, products, or campaigns as needed. Only explicitly selected context is used in this turn.",
+            screenshotAlt: "Q&A entry after sign-in",
+            note: "1 New conversation; 2 Enter the task; 3 Choose files, products, campaigns, and response settings.",
+          },
+          {
+            navLabel: "Choose mode",
+            title: "Keep Automatically select for your first task",
+            description:
+              "Open Response settings only when you need to control answer style, depth, speed, or participating roles.",
+            screenshotAlt: "Response settings after sign-in",
+            note: "1 Choose response preferences; 2 Automatically select, one role, or multiple roles.",
+          },
+          {
+            navLabel: "State task",
+            title: "Describe the problem with four pieces of information",
+            description:
+              "State what to complete, what you can provide, the constraints, and the desired result. When details are incomplete, the system asks for the key information it still needs.",
+          },
+          {
+            navLabel: "Save result",
+            title: "Save the result according to its next use",
+            description:
+              "Use the corresponding page when you need to continue execution, organize or download the result, or submit it for review.",
+            screenshotAlt: "Training tasks and deliverables after sign-in",
+            note: "1 Create a training task; 2 Review, edit, or continue an existing task.",
+          },
         ],
         recipeTitle: "The four types of information AI needs first",
         recipeDescription:
           "The task goal sets the direction, available materials provide evidence, constraints define the execution boundary, and the desired result determines the answer format. When information is incomplete, the system asks follow-up questions.",
         recipe: [
-          { title: "What to complete", detail: "Assess a product, create a plan, improve content, or review data" },
-          { title: "What you can provide", detail: "Product details, budget, platform data, or course requirements" },
-          { title: "What constraints apply", detail: "Time, budget, format, and mandatory rules" },
-          { title: "What result you want", detail: "A plan, checklist, report, or next action" },
+          {
+            title: "What to complete",
+            detail:
+              "Assess a product, create a plan, improve content, or review data",
+          },
+          {
+            title: "What you can provide",
+            detail:
+              "Product details, budget, platform data, or course requirements",
+          },
+          {
+            title: "What constraints apply",
+            detail: "Time, budget, format, and mandatory rules",
+          },
+          {
+            title: "What result you want",
+            detail: "A plan, checklist, report, or next action",
+          },
         ],
         promptLabel: "Complete question example",
-        prompt: "Using the product and materials I selected, identify the three strongest selling points and provide a campaign direction, execution checklist, main risks, and the data still needed.",
+        prompt:
+          "Using the product and materials I selected, identify the three strongest selling points and provide a campaign direction, execution checklist, main risks, and the data still needed.",
         destinationsTitle: "Choose where to save based on the next use",
         destinations: [
-          { purpose: "Continue executing the task", title: "Training tasks and delivery", detail: "Save tasks, runs, execution guidance, and inspectable submissions." },
-          { purpose: "Organize, copy, or download", title: "Conversation reports and review", detail: "Preview, copy, download, and archive plans or reports from this turn." },
-          { purpose: "Submit for teacher review", title: "Teacher review records", detail: "Review submissions, decisions, returned revisions, and key actions." },
+          {
+            purpose: "Continue executing the task",
+            title: "Training tasks and delivery",
+            detail:
+              "Save tasks, runs, execution guidance, and inspectable submissions.",
+          },
+          {
+            purpose: "Organize, copy, or download",
+            title: "Conversation reports and review",
+            detail:
+              "Preview, copy, download, and archive plans or reports from this turn.",
+          },
+          {
+            purpose: "Submit for teacher review",
+            title: "Teacher review records",
+            detail:
+              "Review submissions, decisions, returned revisions, and key actions.",
+          },
         ],
       },
       reference: {
         title: "Open the feature for your current task",
-        description: "Choose what you want to do next and go directly to the corresponding page.",
+        description:
+          "Choose what you want to do next and go directly to the corresponding page.",
         items: [
-          { title: "Q&A entry", detail: "Start a task, enter the question, and view AI collaboration." },
-          { title: "Product selection analysis", detail: "Manage products, selling points, assets, knowledge, and competitors." },
-          { title: "Files and images", detail: "Upload files that can be selected and read for the current turn." },
-          { title: "Campaign planning practice", detail: "Plan goals, budget, dates, and deliverables." },
-          { title: "Review reports", detail: "Preview, copy, download, and archive plans or reports from this task." },
-          { title: "Training tasks and delivery", detail: "Store task history, revisions, and deliverables." },
-          { title: "Teacher review records", detail: "Track submissions, decisions, returned revisions, and actions." },
-          { title: "Business result tracking", detail: "Review long tasks, notifications, alerts, and stage results." },
+          {
+            title: "Q&A entry",
+            detail:
+              "Start a task, enter the question, and view AI collaboration.",
+          },
+          {
+            title: "Product selection analysis",
+            detail:
+              "Manage products, selling points, assets, knowledge, and competitors.",
+          },
+          {
+            title: "Files and images",
+            detail:
+              "Upload files that can be selected and read for the current turn.",
+          },
+          {
+            title: "Campaign planning practice",
+            detail: "Plan goals, budget, dates, and deliverables.",
+          },
+          {
+            title: "Review reports",
+            detail:
+              "Preview, copy, download, and archive plans or reports from this task.",
+          },
+          {
+            title: "Training tasks and delivery",
+            detail: "Store task history, revisions, and deliverables.",
+          },
+          {
+            title: "Teacher review records",
+            detail:
+              "Track submissions, decisions, returned revisions, and actions.",
+          },
+          {
+            title: "Business result tracking",
+            detail:
+              "Review long tasks, notifications, alerts, and stage results.",
+          },
         ],
       },
       boundary: {
         title: "What the system does and does not do",
-        description: "Important data, budgets, and real platform actions always require human verification.",
+        description:
+          "Important data, budgets, and real platform actions always require human verification.",
         supportedTitle: "The system can",
         guardedTitle: "The system will not do automatically",
-        supported: ["Read products, files, and campaigns explicitly selected for this turn.", "Generate plans, checklists, reports, scripts, and form drafts.", "Keep conversations, tasks, deliverables, and review history."],
-        guarded: ["It will not read every file in the account by default.", "It will not present recommendations as real platform execution results.", "It will not bypass review for publishing, budget changes, or deletion."],
+        supported: [
+          "Read products, files, and campaigns explicitly selected for this turn.",
+          "Generate plans, checklists, reports, scripts, and form drafts.",
+          "Keep conversations, tasks, deliverables, and review history.",
+        ],
+        guarded: [
+          "It will not read every file in the account by default.",
+          "It will not present recommendations as real platform execution results.",
+          "It will not bypass review for publishing, budget changes, or deletion.",
+        ],
       },
     },
     header: {

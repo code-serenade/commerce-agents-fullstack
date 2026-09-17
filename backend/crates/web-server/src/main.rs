@@ -18,8 +18,8 @@ use crate::{
     logging::init_tracing_to_file,
     statics::{
         agent_manager::init_agent_manager, db_manager::init_db,
-        external_search::init_external_search, request_client::init_request_client,
-        storage_manager::init_storage,
+        external_search::init_external_search, learning_runtime::init_learning_runtime,
+        request_client::init_request_client, storage_manager::init_storage,
     },
 };
 
@@ -65,6 +65,7 @@ async fn main() {
         search_enabled = settings.external_search.enabled,
         search_base_url = ?settings.external_search.base_url,
         search_endpoint = ?settings.external_search.search_endpoint,
+        learning_question_delivery_mode = ?settings.learning.question_delivery_mode,
         worker_cognition_timeout_sec = settings
             .agent_runtime
             .worker_cognition_timeout_sec
@@ -85,6 +86,8 @@ async fn main() {
     .expect("Agent manager initialization failed");
     init_external_search(settings.external_search.clone())
         .expect("External search config initialization failed");
+    init_learning_runtime(settings.learning.question_delivery_mode)
+        .expect("Learning runtime initialization failed");
     let jwt = Arc::new(
         fetch_verify_jwt()
             .await

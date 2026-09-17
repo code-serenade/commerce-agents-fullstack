@@ -26,6 +26,8 @@ const messages = {
         agent: "电商多智能体平台",
         agentOutput: "对话报告",
         profile: "个人资料",
+        learningSection: "学习成长",
+        learningProgress: "学习进度",
       },
       topbar: {
         meta: "个人实训空间",
@@ -45,6 +47,322 @@ const messages = {
           teamSchool: "队伍学校",
         },
       },
+    },
+  },
+  learningProgress: {
+    loading: "正在载入学习进度",
+    loadErrorTitle: "学习进度暂时无法载入",
+    loadErrorDescription: "请稍后刷新页面；这不会影响继续使用智能体对话。",
+    evidenceLoadError: "最近学习记录暂时无法载入。",
+    evidenceLoading: "正在载入学习记录。",
+    evidenceSignal: "本条记录强度：{{strength}}%",
+    assessmentScore: "本次评价得分：{{strength}}%",
+    evidenceQuestion: "题目",
+    evidenceSelectedChoice: "你的选择",
+    viewRelatedConversation: "查看关联对话",
+    timelineToday: "今天",
+    timelineYesterday: "昨天",
+    eyebrow: "学习进展",
+    title: "你的电商知识进展",
+    description:
+      "系统会把真实提问和实践记录为对话关注，并用结构化答题逐步形成可回看的学习评价。",
+    views: {
+      overview: "进展概览",
+      review: "巩固中心",
+      path: "学习路径",
+      map: "能力图谱",
+      portfolio: "答题回顾",
+    },
+    reviewCenter: {
+      title: "待巩固答题",
+      description:
+        "集中回看答案有误和部分正确的结构化答题；这些记录来自题库判定，不会把普通 Chat 关注误当成掌握结果。",
+      continuePractice: "回到 Chat 继续练习",
+      total: "待巩固",
+      incorrect: "答案有误",
+      partial: "部分正确",
+      loading: "正在整理待巩固记录…",
+      loadError: "待巩固记录暂时无法载入，进展概览和学习路径仍可使用。",
+      emptyTitle: "当前没有待巩固记录",
+      emptyDescription:
+        "继续在真实电商问题中完成轻量小题；出现需要复盘的判断后，会自动汇总到这里。",
+      outcomes: {
+        incorrect: "答案有误｜建议优先复盘",
+        partial: "部分正确｜还有条件需补齐",
+      },
+      questionUnavailable: "这条历史记录暂时无法恢复完整题目。",
+      selectedChoice: "你的选择：{{choice}}",
+      openConversation: "回到关联对话",
+    },
+    learningPath: {
+      title: "阶段学习路径",
+      description:
+        "根据现有领域评价、证据缺口和下一步规则整理学习顺序；这里只解释后台结论，不在前端重新打分。",
+      continueChat: "继续 Chat 实践",
+      emptyTitle: "完成第一道相关小题后生成路径",
+      emptyDescription:
+        "先在 Chat 中提出真实电商问题，并完成随后出现的轻量小题，系统才会形成可解释的领域学习路径。",
+      openConversation: "回到相关对话",
+      startPractice: "开始相关练习",
+      groups: {
+        priority: {
+          title: "优先巩固",
+          description: "最近答案有误或理解仍不稳定的领域。",
+          empty: "当前没有需要优先纠正的领域。",
+        },
+        evidence: {
+          title: "补充评价角度",
+          description: "已有接触，但结构化答题或评价角度还不足。",
+          empty: "当前没有等待补充角度的领域。",
+        },
+        retention: {
+          title: "保持与复测",
+          description: "已经形成正向证据，后续通过真实应用和间隔复测保持。",
+          empty: "形成多角度正向证据后，会在这里安排保持与复测。",
+        },
+      },
+    },
+    capabilityMap: {
+      title: "电商能力图谱",
+      description:
+        "横向查看八个知识领域的真实评价状态和证据构成；这里只展示题库作答数据，不把普通 Chat 关注换算成能力分。",
+      continueChat: "去 Chat 补充证据",
+      assessedDomains: "已有答题领域",
+      multiAngleDomains: "多角度领域",
+      angleProgress: "评价角度 {{count}} / 2",
+      answerCount: "已答 {{count}} 次",
+      questions: "不同题目",
+      correct: "判断完整",
+      partial: "部分完整",
+      incorrect: "答案有误",
+      latest: "最近评价：{{date}}",
+      notAssessed: "尚无结构化答题，当前不会推断掌握程度。",
+    },
+    portfolio: {
+      title: "答题回顾与巩固",
+      description:
+        "按日期回看题目、你的选择和评价结果；需要巩固的作答也集中在这里。",
+      continueChat: "继续 Chat 学习",
+      total: "范围内作答",
+      correct: "判断完整",
+      toReview: "待继续巩固",
+      loading: "正在整理成长档案…",
+      loadError: "成长档案暂时无法载入，其他学习评价界面仍可使用。",
+      emptyTitle: "完成第一道相关小题后建立档案",
+      emptyDescription:
+        "在 Chat 中提出真实电商问题，并完成随后出现的轻量小题，结构化学习成果会持续归档在这里。",
+      dayCount: "当日 {{count}} 次作答",
+      outcomes: {
+        correct: "判断完整",
+        partial: "部分正确｜仍需补齐条件",
+        incorrect: "答案有误｜建议回看解析",
+      },
+      questionUnavailable: "这条历史成果暂时无法恢复完整题目。",
+      selectedChoice: "你的选择：{{choice}}",
+      openConversation: "回到原对话",
+      allAnswers: "全部作答",
+      reviewAnswers: "待巩固",
+      rangeNotice:
+        "仅显示所选范围内当前读取的可判定作答，不代表全部历史。历史有误的作答会保留；当前掌握状态以能力图谱的最新证据为准。普通 Chat 关注不计入掌握成果。",
+    },
+    coverage: "对话关注覆盖",
+    observed: "已观察知识点",
+    assessed: "已评价知识领域",
+    assessedValue: "{{count}} / {{total}}",
+    multiAngleAssessed: "多角度验证 {{count}} / {{total}}",
+    demonstrated: "理解已体现 {{count}} / {{total}}",
+    retained: "跨时段验证 {{count}} / {{total}}",
+    assessmentTimeline: {
+      title: "近 13 周掌握证据",
+      description: "仅显示结构化答题形成的评价状态，对话关注不计入曲线。",
+      empty: "还没有结构化答题评价。",
+      assessed: "已评价领域",
+      demonstrated: "理解已体现",
+      retained: "跨时段验证",
+    },
+    updated: "最近更新",
+    pending: "等待学习对话",
+    settingsTitle: "学习追踪设置",
+    settingsDescription:
+      "开启后，系统会分别记录你在真实提问和实践中的对话关注，以及结构化小题形成的学习评价。",
+    trackingOn: "已开启",
+    trackingOff: "已关闭",
+    covered: "已观察",
+    remaining: "未观察",
+    coverageSection: "对话关注覆盖概览",
+    coverageDescription:
+      "该比例只表示系统已形成观察记录的知识领域占比，不代表已经掌握；掌握情况以结构化答题评价为依据。",
+    dynamicsTitle: "最近学习动态",
+    dynamicsDescription: "系统最近从对话关注和结构化答题中记录的学习情况。",
+    dynamicsEmpty: "还没有学习记录，先去对话里聊聊你的思路吧。",
+    dynamicsStats:
+      "已形成 {{evidence}} 条学习证据，分析了 {{messages}} 条回答。",
+    continueChat: "继续对话练习",
+    domainTitle: "知识领域评价依据",
+    domainDescription:
+      "展开每个领域，查看当前结论为什么形成、依据哪些答题、还缺什么证据以及下一步如何提升。对话关注只表示接触过，不直接代表掌握。",
+    evaluationMethod: {
+      title: "评价规则公开说明",
+      description:
+        "系统不计算模糊总分，只按同一组可核对条件逐级形成结论；普通 Chat 只记录关注，只有题库小题的结构化作答进入掌握评价。",
+      stages: {
+        notAssessed: {
+          title: "尚未评价",
+          description: "没有结构化答题",
+        },
+        collecting: {
+          title: "证据积累中",
+          description: "已有答题，角度不足",
+        },
+        demonstrated: {
+          title: "理解已体现",
+          description: "至少 2 个角度均为正向",
+        },
+        retained: {
+          title: "跨时段保持",
+          description: "正向证据至少间隔 7 天",
+        },
+      },
+      priorityRule:
+        "优先规则：最近一次答错会立即显示“需要巩固”；答对纠错题后才会依据各角度的最新结果重新评价。重复回答同一类题不会增加评价角度。",
+    },
+    domainAssessmentCount: "已答 {{count}} 次",
+    domainWhy: "为什么是这个状态",
+    domainRuleCheck: {
+      title: "本领域判定明细",
+      description:
+        "逐项对照后台评价条件；未满足项就是当前状态不能升级的具体原因。",
+      met: "已满足",
+      notMet: "未满足",
+      answersRecorded: "已记录 {{current}} 次",
+      angleProgress: "{{current}} / {{target}} 个角度",
+      conditions: {
+        structured_assessment: {
+          title: "有可判定的结构化答题",
+          description: "Chat 关注不计入，只有提交题库小题后才满足。",
+        },
+        multiple_angles: {
+          title: "覆盖至少 2 个课程评价角度",
+          description: "按角度计算广度，同角度重复题不会重复增加。",
+        },
+        positive_multi_angle: {
+          title: "各角度最新结果均为正确或部分正确",
+          description:
+            "其中至少 1 个角度必须完全正确；任一当前角度错误都不会判为理解已体现。",
+        },
+        spaced_verification: {
+          title: "完成跨时段验证",
+          description: "多角度正向证据中，最早与最晚一次至少间隔 7 天。",
+        },
+      },
+    },
+    domainEvidenceBasis: "目前依据",
+    domainMissing: "还缺什么证据",
+    domainMissingNone:
+      "当前评价所需的基础证据已经齐备，后续继续在真实问题中保持练习。",
+    domainNext: "下一步建议",
+    domainRecentEvidence: "最近支撑证据",
+    domainHistoricalAssessment: "历史结构化答题记录",
+    domainEvidenceChoice: "你的选择：{{choice}}",
+    domainLatestAssessment: "最近一次：{{outcome}} · {{date}}",
+    domainNoAssessment: "还没有可判定的结构化答题。",
+    domainLegacyObserved:
+      "已经在对话中关注过这个领域，但当前服务尚未返回可解释答题依据；关注不等于掌握。",
+    domainLegacyUnobserved: "还没有这个领域的对话关注或结构化答题依据。",
+    domainMetrics: {
+      answers: "答题次数",
+      questions: "不同题目",
+      angles: "评价角度",
+      correct: "正确",
+      partial: "部分正确",
+      incorrect: "错误",
+    },
+    domainReasons: {
+      no_structured_assessment:
+        "尚未完成这个领域的结构化小题，因此系统不会仅凭聊天关注推断掌握程度。",
+      single_angle_only:
+        "已经有可判定答题，但目前只覆盖一个课程角度，证据不足以确认稳定理解。",
+      latest_answer_incorrect:
+        "这个领域最近一次结构化答题为错误，当前结论优先提示需要纠正的知识缺口。",
+      mixed_or_partial_evidence:
+        "已经覆盖多个角度，但各角度的最新结果仍有部分正确或前后不一致，暂不能确认理解已稳定。",
+      multi_angle_positive_evidence:
+        "至少两个不同课程角度的最新结果均为正确或部分正确，且至少一个完全正确，因此已形成多角度理解证据。",
+      spaced_positive_evidence:
+        "已形成多角度正向证据，并在至少 7 天的间隔后再次得到验证，因此标记为跨时段保持。",
+    },
+    domainMissingEvidence: {
+      first_assessment: "完成一道与真实对话相关的结构化小题。",
+      another_assessment_angle:
+        "再完成一个不同课程角度的小题，避免用同类题重复作答代替广度。",
+      positive_correction: "针对错误或部分正确的角度形成一次新的正向结果。",
+      spaced_review: "间隔至少 7 天后再在相关对话中复测一次。",
+    },
+    domainNextActions: {
+      answer_first_context_question:
+        "继续在 Chat 中提出真实问题，并完成随后出现的一道相关小题。",
+      correct_latest_gap:
+        "先查看最近错误题的解析，再在后续相关对话中完成纠错题。",
+      answer_another_angle:
+        "继续实际任务，系统会优先补充这个领域尚未覆盖的评价角度。",
+      strengthen_mixed_results:
+        "复盘部分正确或不一致的记录，重点核对解析中的核心判断条件。",
+      repeat_after_interval:
+        "先把方法用于真实任务，间隔一段时间后再接受轻量复测。",
+      continue_context_practice:
+        "继续在真实电商任务中应用这些判断，保持轻量抽查即可。",
+    },
+    waitingObservation: "等待观察",
+    domainStatus: {
+      observed: "已观察",
+      unobserved: "等待观察",
+      assessed: "评价已确认",
+      developing: "正在巩固",
+      needs_attention: "需要巩固",
+      not_assessed: "尚未评价",
+      collecting_evidence: "证据积累中",
+      demonstrated: "理解已体现",
+      retained: "跨时段保持",
+    },
+    domains: {
+      market: "市场洞察",
+      product: "商品策略",
+      content: "内容表达",
+      traffic: "流量运营",
+      conversion: "转化优化",
+      finance: "经营核算",
+      service: "客户服务",
+      compliance: "合规经营",
+    },
+    evidenceTitle: "学习记录",
+    evidenceDescription: "按时间查看结构化答题评价和对话观察记录。",
+    evidenceLegendLabel: "学习记录类型说明",
+    evidenceLegend: {
+      assessed: "答题评价",
+      assessedMeaning: "计入知识掌握评价",
+      observed: "对话观察",
+      observedMeaning: "只表示关注或接触",
+    },
+    evidenceRangeSummary: "{{range}}内共显示 {{count}} 条学习记录。",
+    evidenceEmpty: "还没有学习记录，先去对话里聊聊你的思路吧。",
+    evidenceRanges: {
+      recent: "最近",
+      days30: "30 天",
+      days90: "90 天",
+    },
+    evidenceTypes: {
+      explanation: "解释",
+      application: "应用",
+      correction: "纠错",
+      probeAnswer: "回答关切问题",
+    },
+    assessmentOutcomes: {
+      correct: "已评价 · 判断完整",
+      partial: "已评价 · 部分完整",
+      incorrect: "已评价 · 需要巩固",
+      unscorable: "已评价 · 暂不判定",
+      observed_unscored: "交流中观察到",
+      legacy_unscored: "历史未评分",
     },
   },
   commerce: {
@@ -1216,6 +1534,10 @@ const messages = {
   },
   home: {
     welcome: "欢迎回来",
+    learning: {
+      title: "学习进度",
+      description: "查看你的电商知识掌握情况、学习覆盖率和系统关切问题。",
+    },
     publicWelcome: "欢迎",
     publicTitle: "电商多智能体平台",
     publicSubtitle:
@@ -1466,7 +1788,8 @@ const messages = {
         "请在这里补充文件或数据约束，例如商品价格、预算、库存、目标人群、当前转化率和平台账号状态。",
       uploadValidation: {
         empty: "文件“{{fileName}}”为空，无法提供给 AI 读取。",
-        mimeMismatch: "文件“{{fileName}}”的实际类型与扩展名不一致，请检查文件后重试。",
+        mimeMismatch:
+          "文件“{{fileName}}”的实际类型与扩展名不一致，请检查文件后重试。",
         tooLarge: "文件“{{fileName}}”超过 {{maxSize}} 的大小限制。",
         unsupportedFormat:
           "文件“{{fileName}}”格式不支持。仅可上传 PNG、JPG、JPEG、WebP、PDF、DOCX、XLS、XLSX、CSV、TXT、MD、Markdown、JSON、TSV、HTML 和 HTM。",
@@ -2573,6 +2896,103 @@ const messages = {
         referenceSynced: "已同步",
         routeFallback: "当前方式",
       },
+      learningProbe: {
+        title: "本轮小题",
+        compactPending: "待回答",
+        compactRecorded: "已记录",
+        collapse: "收起本题",
+        expand: "展开本题",
+        questionLabel: "题目",
+        contextHint: "选一道与刚才内容相关的小题，逐步记录你的理解。",
+        answer: "说说我的判断",
+        answerStarter: "我的判断是：",
+        engageFailed: "暂时无法开始作答，请重试；当前题目仍保留在这里。",
+        choiceHint: "请选择一个答案，再提交查看反馈。",
+        submitChoice: "提交答案",
+        submittingChoice: "正在提交…",
+        submitChoiceFailed: "答案暂未提交成功，请重试；你已选择的选项会保留。",
+        choiceAnswerStarter: "我的选择是：{{choice}}",
+        later: "稍后再答",
+        skipping: "正在收起…",
+        skipFailed: "暂时无法稍后再答，请重试；当前题目仍保留在这里。",
+        viewProgress: "查看学习进度",
+        recorded: "本次作答已记录到学习进度",
+        viewRecord: "查看记录",
+        waitingAnswer: "等你发出回答后，我会按经过审核的参考依据整理反馈。",
+        evaluating: "正在对照参考依据整理反馈…",
+        resultFailed: "反馈暂时加载失败，题目和作答记录均已保留。",
+        retryResult: "重新加载反馈",
+        resultTitle: "这次回答的反馈",
+        selectedChoice: "你的选择",
+        correctChoice: "正确选择",
+        answerComparison: {
+          matches_reference:
+            "你的选择与题库参考答案一致。下面的原理说明了这个判断成立的条件。",
+          differs_from_reference:
+            "你的选择与题库参考答案不同。请重点比较两个选项在核心判断条件上的差异。",
+          not_available: "这条历史记录暂时无法恢复选项对照，请以参考原理为准。",
+        },
+        outcome: {
+          correct: "回答正确 · 判断完整",
+          partial: "部分正确 · 还需补充",
+          incorrect: "答案有误 · 与参考答案不同",
+          unscorable: "暂未判定",
+          legacy_unscored: "历史记录 · 未评分",
+        },
+        outcomeStatus: {
+          correct: "回答正确",
+          partial: "部分正确",
+          incorrect: "答案有误",
+          unscorable: "暂未判定",
+          legacy_unscored: "历史记录",
+        },
+        outcomeDetail: {
+          correct: "判断完整",
+          partial: "还有条件需补齐",
+          incorrect: "与参考答案不同，建议复习",
+          unscorable: "本题暂不计分",
+          legacy_unscored: "当时未评分",
+        },
+        referenceAnswer: "为什么正确答案成立",
+        knowledgePoints: "这道题要掌握的关键点",
+        reviewGuidanceTitle: "把答案真正学会",
+        reviewGuidance: {
+          correct:
+            "先不看选项，用自己的话复述上面的规则和关键条件；再回到本次对话，找出对应的数据、动作或限制；最后换一个商品或运营场景再判断一次。只有能解释、能应用、换场景仍能判断，才不只是记住了选项。",
+          partial:
+            "先保留已经正确的判断，再逐项对照上面的关键点，明确自己漏掉了哪个条件；然后回到本次对话补全一个具体判断，并换一个相近场景再练一次。下一次作答前，先把必要条件逐项核对完整。",
+          incorrect:
+            "先逐行比较“你的选择”和“正确选择”，指出原选择漏掉或违背了哪个关键条件；再用自己的话重述参考原理，并回到本次对话改正一个具体判断。不要只背选项文字，换一个商品或运营场景仍能说明理由才算学会。",
+        },
+        assessmentImpactTitle: "本题怎样进入学习进度",
+        assessmentImpact: {
+          correct:
+            "本次“判断完整”会成为该知识领域的一条正向结构化证据。系统不会凭一题直接判定掌握，还会综合不同题目、不同评价角度，以及间隔至少 7 天后的复测结果。",
+          partial:
+            "本次结果会成为该知识领域的一条部分正向证据，并保留仍需补齐的条件。后续还需要在不同题目和评价角度中把关键条件判断完整，再通过跨时段复测确认。",
+          incorrect:
+            "本次“答案有误”会成为该知识领域的最新结构化证据，并让系统优先安排相关巩固。后续需要在不同题目和评价角度中重新判断正确，再经过跨时段复测，状态才会逐步提升。",
+          unscored:
+            "本次回答会保留为学习记录，但不会被当作已掌握的证明。完成可确定判分的结构化小题后，系统才会把结果纳入知识领域评价。",
+        },
+        sources: "参考来源",
+        dismissResult: "收起反馈",
+        continue: "再答一题",
+        continuing: "正在准备下一题…",
+        continueFailed: "下一题暂时加载失败，当前反馈已保留。",
+        continueUnavailable: "暂时没有更多合适的小题，当前反馈已保留。",
+        continuationComplete: "本轮相关小题已完成，可以继续聊天或查看学习记录。",
+        historyTitle: "本轮已答题目",
+        historyTitleWithCount: "本轮已答 {{count}} 题",
+        historyItem: "第 {{number}} 题",
+        retryContinue: "重试下一题",
+        reward: {
+          progress_feedback:
+            "回答后会得到针对性反馈，并为这个知识领域补充一条学习记录；跳过不会扣分。",
+        },
+      },
+      learningHint:
+        "系统会追踪你的知识掌握情况，回答关切问题后，可随时在“学习进度”查看记录。",
       nextActions: {
         title: "下一步可以这样继续",
         meta: {
@@ -2603,10 +3023,20 @@ const messages = {
             detail:
               "当前回答围绕活动方案，可继续拆目标、预算、节奏和执行清单。",
           },
+          compliance: {
+            label: "合规经营",
+            detail:
+              "当前回答涉及平台规则、个人信息或用户选择权，可以继续把适用边界问清。",
+          },
           data: {
             label: "数据语境",
             detail:
               "当前回答围绕指标和异常，可继续补数据、查原因和列验证办法。",
+          },
+          service: {
+            label: "客服售后",
+            detail:
+              "当前回答围绕售后处理或消费争议，可以继续把话术、条件、记录和升级边界问清。",
           },
           task: {
             label: "任务语境",
@@ -2652,6 +3082,12 @@ const messages = {
             "按课堂提交格式整理成一版任务说明",
             "把风险、参考材料和建议分别列清楚",
           ],
+          compliance: [
+            "把这项要求整理成上线前必须检查的合规清单",
+            "区分必须提供、可以选择和应当避免的做法",
+            "列出还需要核对的平台规则、法律条款和生效时间",
+            "按用户流程检查告知、选择、关闭和重新开启是否完整",
+          ],
           quick: [
             "把刚才的简答展开成可操作步骤",
             "只保留结论和关键参考，整理成提交说明",
@@ -2687,6 +3123,12 @@ const messages = {
             "列出我还需要补哪些经营数据",
             "把诊断结论整理成改进建议清单",
             "继续追问最可能影响结果的关键指标",
+          ],
+          service: [
+            "把本次客服回复改成可直接发送给消费者的话术",
+            "区分合理退还条件和不合理限制",
+            "把这次争议整理成客服处理步骤和升级条件",
+            "列出需要保留的合同、沟通和退款记录",
           ],
           task: [
             "把上面的内容整理成任务步骤和提交要求",
@@ -3362,7 +3804,8 @@ const messages = {
           },
           {
             problem: "有商品和资料，但不知道怎么结合使用",
-            action: "选择本轮需要的商品、文件或活动，系统根据这些资料进行分析。",
+            action:
+              "选择本轮需要的商品、文件或活动，系统根据这些资料进行分析。",
             result: "获得贴合当前任务的判断和建议。",
           },
           {

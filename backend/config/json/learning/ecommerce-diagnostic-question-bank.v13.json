@@ -1,0 +1,961 @@
+{
+  "version": "ecommerce_diagnostic_v13",
+  "baseVersion": "ecommerce_diagnostic_v12",
+  "frameworkVersion": "ecommerce_v1",
+  "sourceRevision": "2026-09-17",
+  "evaluationMode": "deterministic_rubric_v1",
+  "questions": [
+    {
+      "id": "product.title_fact_consistency.choice.016",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "product",
+      "questionType": "single_choice",
+      "prompt": "已知商品参数表只确认容量为 500ml，没有保温时长测试记录。优化商品标题时，哪种写法最有事实依据？",
+      "choices": [
+        {
+          "id": "a",
+          "text": "保温杯 500ml"
+        },
+        {
+          "id": "b",
+          "text": "保温杯 500ml 保温整整48小时"
+        },
+        {
+          "id": "c",
+          "text": "全网保温时间第一的杯子"
+        },
+        {
+          "id": "d",
+          "text": "无论容量，先写销量冠军"
+        }
+      ],
+      "correctChoiceId": "a",
+      "referenceAnswer": "题干唯一确认的规格是 500ml，所以可以把品类与这一已知容量写清楚。48小时保温、全网第一和销量冠军都没有证据支持，不能因为听起来有吸引力就当成事实。Google 的实用可靠内容指南要求标题准确概括内容、避免夸大，并检查可验证的事实错误。这是信息可靠性的原则，不是保温性能认证；若以后有测试，应注明条件并核对产品一致性。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "title_fact_consistency",
+            "weight": 1,
+            "concepts": [
+              "标题使用已确认事实",
+              "未验证性能不写成确定结论"
+            ]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1
+      },
+      "sources": [
+        {
+          "sourceId": "google.search.helpful_content",
+          "authorityLevel": "primary_official",
+          "publisher": "Google Search Central",
+          "title": "创建实用、可靠、以用户为中心的内容",
+          "url": "https://developers.google.cn/search/docs/fundamentals/creating-helpful-content?hl=zh-cn",
+          "publishedVersion": "Google Search Central official guidance, checked 2026-09-17",
+          "checkedAt": "2026-09-17",
+          "validThrough": "2027-03-17",
+          "licenseType": "cc_by_4_0",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://creativecommons.org/licenses/by/4.0/"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260917",
+        "reviewerId": "question_bank_gate_v13",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-09-17",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "product.title_variant_identity.choice.017",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "product",
+      "questionType": "single_choice",
+      "prompt": "同款背包分为 15L 和 25L，当前商品链接实际销售 15L。下面哪条标题与已知商品信息一致？",
+      "choices": [
+        {
+          "id": "a",
+          "text": "25L背包，因为大容量更容易吸引点击"
+        },
+        {
+          "id": "b",
+          "text": "15L背包，准确对应当前销售款式"
+        },
+        {
+          "id": "c",
+          "text": "15L或25L任选，实际上只能购买15L"
+        },
+        {
+          "id": "d",
+          "text": "所有容量通用，不必说明款式"
+        }
+      ],
+      "correctChoiceId": "b",
+      "referenceAnswer": "当前可购买的是 15L 款，因此标题应写 15L，而不是用 25L 提高吸引力，也不能声称两种容量任选。标题与实际内容不一致会让消费者在识别商品时得到错误信息。官方可靠内容指南强调描述性总结与可核实事实；这里判断的是标题事实一致性，并不是要求所有平台都采用同一标题格式。换成颜色、包装数量或型号时，也应先核对当前销售对象。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "title_variant_identity",
+            "weight": 1,
+            "concepts": [
+              "标题规格对应当前销售款式",
+              "不把其他款式的事实移植到当前商品"
+            ]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1
+      },
+      "sources": [
+        {
+          "sourceId": "google.search.helpful_content",
+          "authorityLevel": "primary_official",
+          "publisher": "Google Search Central",
+          "title": "创建实用、可靠、以用户为中心的内容",
+          "url": "https://developers.google.cn/search/docs/fundamentals/creating-helpful-content?hl=zh-cn",
+          "publishedVersion": "Google Search Central official guidance, checked 2026-09-17",
+          "checkedAt": "2026-09-17",
+          "validThrough": "2027-03-17",
+          "licenseType": "cc_by_4_0",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://creativecommons.org/licenses/by/4.0/"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260917",
+        "reviewerId": "question_bank_gate_v13",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-09-17",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "product.title_claim_evidence.choice.018",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "product",
+      "questionType": "single_choice",
+      "prompt": "商家要在标题中新增“可承重20kg”，但现有资料没有承重数据。仅从标题事实可靠性看，应先做什么？",
+      "choices": [
+        {
+          "id": "a",
+          "text": "直接加入数字，显得专业"
+        },
+        {
+          "id": "b",
+          "text": "先核对适用该款商品的测试或资料，无依据就不写为确定性能"
+        },
+        {
+          "id": "c",
+          "text": "从别的型号复制同一数字"
+        },
+        {
+          "id": "d",
+          "text": "把20kg改成30kg，突出优势"
+        }
+      ],
+      "correctChoiceId": "b",
+      "referenceAnswer": "性能数字必须有与当前商品对应的事实依据。正确动作是先核对该型号的测试方法、条件和结果；资料不足时不要把未证实的数字写成确定性能。增加数字或复制另一型号并不能补足证据。官方指南要求内容可靠、避免容易验证的事实错误，并说明第一手经验的依据。即使取得测试结果，也不能忽略适用条件；这道题不评价具体安全标准是否已经达标。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "title_claim_evidence",
+            "weight": 1,
+            "concepts": [
+              "性能主张先核验对应证据",
+              "不同型号的证据不能自动通用"
+            ]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1
+      },
+      "sources": [
+        {
+          "sourceId": "google.search.helpful_content",
+          "authorityLevel": "primary_official",
+          "publisher": "Google Search Central",
+          "title": "创建实用、可靠、以用户为中心的内容",
+          "url": "https://developers.google.cn/search/docs/fundamentals/creating-helpful-content?hl=zh-cn",
+          "publishedVersion": "Google Search Central official guidance, checked 2026-09-17",
+          "checkedAt": "2026-09-17",
+          "validThrough": "2027-03-17",
+          "licenseType": "cc_by_4_0",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://creativecommons.org/licenses/by/4.0/"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260917",
+        "reviewerId": "question_bank_gate_v13",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-09-17",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "product.highlight_test_conditions.choice.019",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "product",
+      "questionType": "single_choice",
+      "prompt": "写杯子的卖点时，现有测试仅记录“室内25℃、起始水温95℃，6小时后水温60℃”。哪种表达保留了证据边界？",
+      "choices": [
+        {
+          "id": "a",
+          "text": "任何环境下都能永久保温"
+        },
+        {
+          "id": "b",
+          "text": "说明测试条件与6小时后测得60℃，不推断所有环境的效果"
+        },
+        {
+          "id": "c",
+          "text": "保证所有用户24小时后仍是95℃"
+        },
+        {
+          "id": "d",
+          "text": "不提条件，只说绝对最强"
+        }
+      ],
+      "correctChoiceId": "b",
+      "referenceAnswer": "证据只覆盖题干列出的环境、初始水温和测量时间，可靠表达应把这些条件和结果一起说明。它不能推出任何环境下永久保温，也不能保证所有人24小时后仍为95℃。Google 指南建议实际测试内容说明测试方式和结果并提供证明。本题强调证据适用边界，不代表这一测试已满足某个平台或产品认证要求。换一个环境或使用方式，需要对应的新证据。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "highlight_test_conditions",
+            "weight": 1,
+            "concepts": [
+              "卖点保留测试条件与结果",
+              "不从局部测试推出无限保证"
+            ]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1
+      },
+      "sources": [
+        {
+          "sourceId": "google.search.helpful_content",
+          "authorityLevel": "primary_official",
+          "publisher": "Google Search Central",
+          "title": "创建实用、可靠、以用户为中心的内容",
+          "url": "https://developers.google.cn/search/docs/fundamentals/creating-helpful-content?hl=zh-cn",
+          "publishedVersion": "Google Search Central official guidance, checked 2026-09-17",
+          "checkedAt": "2026-09-17",
+          "validThrough": "2027-03-17",
+          "licenseType": "cc_by_4_0",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://creativecommons.org/licenses/by/4.0/"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260917",
+        "reviewerId": "question_bank_gate_v13",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-09-17",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "product.highlight_comparison_evidence.choice.020",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "product",
+      "questionType": "single_choice",
+      "prompt": "目前只测过自己的背包，没有测过其他品牌。哪种卖点表述与现有证据相符？",
+      "choices": [
+        {
+          "id": "a",
+          "text": "超过所有品牌，根本不用对比"
+        },
+        {
+          "id": "b",
+          "text": "描述自己实际测试到的功能及条件，不声称胜过未测试的竞品"
+        },
+        {
+          "id": "c",
+          "text": "所有竞品都不耐用"
+        },
+        {
+          "id": "d",
+          "text": "使用全行业第一来代替测试数据"
+        }
+      ],
+      "correctChoiceId": "b",
+      "referenceAnswer": "只测过自己的商品，能支持的是该商品在相应条件下的测试结果，不能证明它优于所有品牌。其他三个选项都把没有进行的比较写成结论。官方指南强调第一手经验、测试方式和相关证明，以及避免夸大标题或内容。若要写比较，应先确定可比对象、同一测试条件和可靠结果；本题不提供竞品数据，因此不能得出排名或全面优越性。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "highlight_comparison_evidence",
+            "weight": 1,
+            "concepts": [
+              "商品测试只支持其覆盖的事实",
+              "未经比较不能推出竞品优劣"
+            ]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1
+      },
+      "sources": [
+        {
+          "sourceId": "google.search.helpful_content",
+          "authorityLevel": "primary_official",
+          "publisher": "Google Search Central",
+          "title": "创建实用、可靠、以用户为中心的内容",
+          "url": "https://developers.google.cn/search/docs/fundamentals/creating-helpful-content?hl=zh-cn",
+          "publishedVersion": "Google Search Central official guidance, checked 2026-09-17",
+          "checkedAt": "2026-09-17",
+          "validThrough": "2027-03-17",
+          "licenseType": "cc_by_4_0",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://creativecommons.org/licenses/by/4.0/"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260917",
+        "reviewerId": "question_bank_gate_v13",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-09-17",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "product.highlight_usage_evidence.choice.021",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "product",
+      "questionType": "single_choice",
+      "prompt": "要为商品补充真实使用卖点，以下哪份资料更能支撑第一手经验，而不是空泛口号？",
+      "choices": [
+        {
+          "id": "a",
+          "text": "只有必买、爆款四个字"
+        },
+        {
+          "id": "b",
+          "text": "写明实际使用场景、观察结果、限制，并附对应照片或记录"
+        },
+        {
+          "id": "c",
+          "text": "复制其他商品的买家评价"
+        },
+        {
+          "id": "d",
+          "text": "把店铺历史当作商品性能测试"
+        }
+      ],
+      "correctChoiceId": "b",
+      "referenceAnswer": "第一手使用资料应让读者知道实际用了什么、在什么场景观察到什么、还存在哪些限制，并用对应照片或记录支撑。爆款口号没有这些信息；别的商品评价不能代表本商品；店铺历史也不是性能测试。Google 指南明确强调实际使用产品形成的知识，并建议提供测试方式、结果和证明。真实记录也不等于对所有用户的保证，应保留场景与样本限制。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "highlight_usage_evidence",
+            "weight": 1,
+            "concepts": [
+              "使用卖点由实际场景和观察支持",
+              "证据对应本商品且说明限制"
+            ]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1
+      },
+      "sources": [
+        {
+          "sourceId": "google.search.helpful_content",
+          "authorityLevel": "primary_official",
+          "publisher": "Google Search Central",
+          "title": "创建实用、可靠、以用户为中心的内容",
+          "url": "https://developers.google.cn/search/docs/fundamentals/creating-helpful-content?hl=zh-cn",
+          "publishedVersion": "Google Search Central official guidance, checked 2026-09-17",
+          "checkedAt": "2026-09-17",
+          "validThrough": "2027-03-17",
+          "licenseType": "cc_by_4_0",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://creativecommons.org/licenses/by/4.0/"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260917",
+        "reviewerId": "question_bank_gate_v13",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-09-17",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "content.original_value.choice.011",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "content",
+      "questionType": "single_choice",
+      "prompt": "准备商品介绍内容时，下面哪种做法更能增加面向买家的原创价值？",
+      "choices": [
+        {
+          "id": "a",
+          "text": "复制竞品全文，只换品牌名"
+        },
+        {
+          "id": "b",
+          "text": "结合本商品的实测与使用限制，回答买家真正关心的问题"
+        },
+        {
+          "id": "c",
+          "text": "堆入无关热词，忽略商品事实"
+        },
+        {
+          "id": "d",
+          "text": "把同一句口号重复几十遍"
+        }
+      ],
+      "correctChoiceId": "b",
+      "referenceAnswer": "原创价值不是简单换词，而是为读者增加可靠信息。例如把本商品的实际使用结果、适用场景和限制整理出来，回答买家关心的问题。复制内容、无关热词和重复口号没有补充这种价值。Google 官方指南要求原创信息、分析和实质性的额外价值，并以满足目标受众为重点。这不意味着写了实测就保证排名提高；内容还应准确、可理解并遵守适用规则。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "original_value",
+            "weight": 1,
+            "concepts": [
+              "内容增加本商品的可靠原创信息",
+              "内容解决目标买家的实际问题"
+            ]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1
+      },
+      "sources": [
+        {
+          "sourceId": "google.search.helpful_content",
+          "authorityLevel": "primary_official",
+          "publisher": "Google Search Central",
+          "title": "创建实用、可靠、以用户为中心的内容",
+          "url": "https://developers.google.cn/search/docs/fundamentals/creating-helpful-content?hl=zh-cn",
+          "publishedVersion": "Google Search Central official guidance, checked 2026-09-17",
+          "checkedAt": "2026-09-17",
+          "validThrough": "2027-03-17",
+          "licenseType": "cc_by_4_0",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://creativecommons.org/licenses/by/4.0/"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260917",
+        "reviewerId": "question_bank_gate_v13",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-09-17",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "content.no_fixed_word_count.choice.012",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "content",
+      "questionType": "single_choice",
+      "prompt": "某商品介绍已经准确回答买家关注的问题。有人说“Google 要求每篇必须3000字”，应该怎样处理？",
+      "choices": [
+        {
+          "id": "a",
+          "text": "无论内容，先重复到3000字"
+        },
+        {
+          "id": "b",
+          "text": "以实用完整为标准，不为不存在的固定首选字数机械补长"
+        },
+        {
+          "id": "c",
+          "text": "删除重要事实以越短越好"
+        },
+        {
+          "id": "d",
+          "text": "只保留关键词，不解释商品"
+        }
+      ],
+      "correctChoiceId": "b",
+      "referenceAnswer": "Google 的官方指南明确说明没有首选字数，不能把3000字当作通用要求。应检查买家是否获得足够、准确、实用的信息，而不是机械补长或为了缩短删掉必要事实。重复文字和单纯关键词并不能替代解释。这里讨论的是 Google 的内容指南，不是其他平台的字段长度规则；若平台有明确字数限制，应另外遵守，不能混为一谈。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "no_fixed_word_count",
+            "weight": 1,
+            "concepts": [
+              "Google没有固定首选内容字数",
+              "长度服务于准确完整回答用户需求"
+            ]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1
+      },
+      "sources": [
+        {
+          "sourceId": "google.search.helpful_content",
+          "authorityLevel": "primary_official",
+          "publisher": "Google Search Central",
+          "title": "创建实用、可靠、以用户为中心的内容",
+          "url": "https://developers.google.cn/search/docs/fundamentals/creating-helpful-content?hl=zh-cn",
+          "publishedVersion": "Google Search Central official guidance, checked 2026-09-17",
+          "checkedAt": "2026-09-17",
+          "validThrough": "2027-03-17",
+          "licenseType": "cc_by_4_0",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://creativecommons.org/licenses/by/4.0/"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260917",
+        "reviewerId": "question_bank_gate_v13",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-09-17",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "traffic.ga4_remove_from_cart.choice.011",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "traffic",
+      "questionType": "single_choice",
+      "prompt": "在 GA4 电商埋点中，用户从购物车移除一件商品，应使用哪个推荐事件记录这一动作？",
+      "choices": [
+        {
+          "id": "a",
+          "text": "purchase"
+        },
+        {
+          "id": "b",
+          "text": "remove_from_cart"
+        },
+        {
+          "id": "c",
+          "text": "view_item_list"
+        },
+        {
+          "id": "d",
+          "text": "add_to_cart"
+        }
+      ],
+      "correctChoiceId": "b",
+      "referenceAnswer": "从购物车移除商品对应 remove_from_cart，事件应携带相关商品的 items 信息。add_to_cart 记录加入购物车，view_item_list 记录商品列表展示，purchase 记录购买，不能互相替代。GA4 官方电商文档对添加与移除商品分别定义事件。正确埋点能帮助区分行为，但某次移除并不自动说明商品质量有问题，原因仍需其他证据分析。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "ga4_remove_from_cart",
+            "weight": 1,
+            "concepts": [
+              "移除购物车使用remove_from_cart",
+              "区分移除添加展示和购买行为"
+            ]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1
+      },
+      "sources": [
+        {
+          "sourceId": "google.analytics.ga4.ecommerce",
+          "authorityLevel": "primary_official",
+          "publisher": "Google Analytics",
+          "title": "衡量电子商务",
+          "url": "https://developers.google.cn/analytics/devguides/collection/ga4/ecommerce?hl=zh-cn",
+          "publishedVersion": "GA4 ecommerce developer guide, checked 2026-09-17",
+          "checkedAt": "2026-09-17",
+          "validThrough": "2027-03-17",
+          "licenseType": "cc_by_4_0",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://creativecommons.org/licenses/by/4.0/"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260917",
+        "reviewerId": "question_bank_gate_v13",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-09-17",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "traffic.ga4_select_not_purchase.choice.012",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "traffic",
+      "questionType": "single_choice",
+      "prompt": "用户在商品列表中点击一件商品查看详情，但还没有购买。GA4 哪个事件适合记录列表中的选择动作？",
+      "choices": [
+        {
+          "id": "a",
+          "text": "purchase，点击就是成交"
+        },
+        {
+          "id": "b",
+          "text": "refund"
+        },
+        {
+          "id": "c",
+          "text": "select_item"
+        },
+        {
+          "id": "d",
+          "text": "begin_checkout，点击列表就是结账"
+        }
+      ],
+      "correctChoiceId": "c",
+      "referenceAnswer": "从列表选择商品应记录 select_item。之后实际打开详情时可另记录 view_item；完成购买才记录 purchase，进入结账才记录 begin_checkout，退款使用 refund。GA4 将这些事件分别定义，不能把一次点击计作成交。题干只问列表选择动作，并不要求用一个事件覆盖整个用户旅程；准确区分阶段后，才能查看点击、浏览与购买的差异。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "ga4_select_not_purchase",
+            "weight": 1,
+            "concepts": [
+              "列表选择使用select_item",
+              "点击商品不等于完成购买"
+            ]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1
+      },
+      "sources": [
+        {
+          "sourceId": "google.analytics.ga4.ecommerce",
+          "authorityLevel": "primary_official",
+          "publisher": "Google Analytics",
+          "title": "衡量电子商务",
+          "url": "https://developers.google.cn/analytics/devguides/collection/ga4/ecommerce?hl=zh-cn",
+          "publishedVersion": "GA4 ecommerce developer guide, checked 2026-09-17",
+          "checkedAt": "2026-09-17",
+          "validThrough": "2027-03-17",
+          "licenseType": "cc_by_4_0",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://creativecommons.org/licenses/by/4.0/"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260917",
+        "reviewerId": "question_bank_gate_v13",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-09-17",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "conversion.ga4_partial_refund_items.choice.011",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "conversion",
+      "questionType": "single_choice",
+      "prompt": "GA4 中记录同一订单里某件商品部分数量的退款时，哪组信息能支持订单与商品级退款识别？",
+      "choices": [
+        {
+          "id": "a",
+          "text": "仅写一句发生退款，不带订单信息"
+        },
+        {
+          "id": "b",
+          "text": "refund 事件带对应 transaction_id，并注明相关 item_id 与 quantity"
+        },
+        {
+          "id": "c",
+          "text": "发送 view_item_list 代替退款"
+        },
+        {
+          "id": "d",
+          "text": "重新发送 purchase，假装退款是新购买"
+        }
+      ],
+      "correctChoiceId": "b",
+      "referenceAnswer": "GA4 官方电商指南使用 refund 记录退款，transaction_id 用来对应原交易，items 中的 item_id 和 quantity 可说明退了哪件商品及数量。官方建议加入商品信息以查看商品级退款指标。缺少订单信息的一句描述不能提供相同识别能力；列表展示和重新购买事件都不表示退款。本题评价的是分析埋点，不代表提交事件就完成支付系统里的退款，实际资金退款是另一流程。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "ga4_partial_refund_items",
+            "weight": 1,
+            "concepts": [
+              "退款对应原交易transaction_id",
+              "商品级退款说明item_id和quantity"
+            ]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1
+      },
+      "sources": [
+        {
+          "sourceId": "google.analytics.ga4.ecommerce",
+          "authorityLevel": "primary_official",
+          "publisher": "Google Analytics",
+          "title": "衡量电子商务",
+          "url": "https://developers.google.cn/analytics/devguides/collection/ga4/ecommerce?hl=zh-cn",
+          "publishedVersion": "GA4 ecommerce developer guide, checked 2026-09-17",
+          "checkedAt": "2026-09-17",
+          "validThrough": "2027-03-17",
+          "licenseType": "cc_by_4_0",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://creativecommons.org/licenses/by/4.0/"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260917",
+        "reviewerId": "question_bank_gate_v13",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-09-17",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "conversion.cart_event_not_purchase.choice.012",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "conversion",
+      "questionType": "single_choice",
+      "prompt": "分析购物车行为时，目前只确认用户触发 add_to_cart，还没有 purchase 记录。仅凭这些信息，哪项判断成立？",
+      "choices": [
+        {
+          "id": "a",
+          "text": "已经完成付款"
+        },
+        {
+          "id": "b",
+          "text": "只能确认已加购，不能把加购直接算作完成购买"
+        },
+        {
+          "id": "c",
+          "text": "用户肯定永远不会购买"
+        },
+        {
+          "id": "d",
+          "text": "退款已经完成"
+        }
+      ],
+      "correctChoiceId": "b",
+      "referenceAnswer": "add_to_cart 表示把商品加入购物车，purchase 表示购买，它们在 GA4 中是不同事件。只有加购记录时，能确认的是加购动作，不能把它计成已购买，也不能断言用户永远不买。缺少 purchase 还可能涉及观察时间、埋点或数据延迟，应与订单和采集情况核对。准确区别加购与购买是漏斗分析的基础，但不能仅凭这一条事件断定弃购原因或最终结果。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "cart_event_not_purchase",
+            "weight": 1,
+            "concepts": [
+              "加购与购买是不同阶段",
+              "缺少购买记录不直接证明永久流失"
+            ]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1
+      },
+      "sources": [
+        {
+          "sourceId": "google.analytics.ga4.ecommerce",
+          "authorityLevel": "primary_official",
+          "publisher": "Google Analytics",
+          "title": "衡量电子商务",
+          "url": "https://developers.google.cn/analytics/devguides/collection/ga4/ecommerce?hl=zh-cn",
+          "publishedVersion": "GA4 ecommerce developer guide, checked 2026-09-17",
+          "checkedAt": "2026-09-17",
+          "validThrough": "2027-03-17",
+          "licenseType": "cc_by_4_0",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://creativecommons.org/licenses/by/4.0/"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260917",
+        "reviewerId": "question_bank_gate_v13",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-09-17",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "finance.cost_plus_inclusive.choice.011",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "finance",
+      "questionType": "single_choice",
+      "prompt": "假设某商品每件材料成本40元、人工10元、已分摊其他相关供货成本10元，且无其他成本；按总成本加成20%定价，价格是多少？",
+      "choices": [
+        {
+          "id": "a",
+          "text": "48元，只对材料成本加成"
+        },
+        {
+          "id": "b",
+          "text": "72元：总成本60元×1.2"
+        },
+        {
+          "id": "c",
+          "text": "60元，忽略加成"
+        },
+        {
+          "id": "d",
+          "text": "75元，把20%成本加成误当作20%销售利润率"
+        }
+      ],
+      "correctChoiceId": "b",
+      "referenceAnswer": "题干明确总成本为40+10+10=60元，成本加成20%是在成本基础上增加60×20%=12元，所以价格为72元。48元漏算人工与其他供货成本；60元没有加成；75元按60÷(1-20%)计算，属于以售价为分母的20%利润率，不是本题的成本加成。澳大利亚政府定价指南要求成本加成策略先计算制作和供应的全部相关成本。这里的20%是题干假设，不是推荐所有商品都用20%。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "cost_plus_inclusive",
+            "weight": 1,
+            "concepts": [
+              "成本加成先计入全部题设相关成本",
+              "成本加成百分比以成本为基数"
+            ]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1
+      },
+      "sources": [
+        {
+          "sourceId": "au.business.pricing_strategy",
+          "authorityLevel": "primary_official",
+          "publisher": "Australian Government",
+          "title": "Choose a pricing strategy",
+          "url": "https://business.gov.au/products-and-services/choose-a-pricing-strategy",
+          "publishedVersion": "business.gov.au official pricing guidance, checked 2026-09-17",
+          "checkedAt": "2026-09-17",
+          "validThrough": "2027-03-17",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://business.gov.au/products-and-services/choose-a-pricing-strategy"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260917",
+        "reviewerId": "question_bank_gate_v13",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-09-17",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "finance.cost_plus_margin_difference.choice.012",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "finance",
+      "questionType": "single_choice",
+      "prompt": "假设每件商品的全部相关成本为80元，按成本加成25%出售；没有其他费用。售价及按售价计算的利润率分别是多少？",
+      "choices": [
+        {
+          "id": "a",
+          "text": "100元，20%"
+        },
+        {
+          "id": "b",
+          "text": "100元，25%"
+        },
+        {
+          "id": "c",
+          "text": "80元，25%"
+        },
+        {
+          "id": "d",
+          "text": "120元，25%"
+        }
+      ],
+      "correctChoiceId": "a",
+      "referenceAnswer": "成本加成25%得到售价80×1.25=100元，题设利润为100-80=20元。以售价为分母的利润率是20÷100=20%，不是25%；25%是20÷80的成本加成比例。澳大利亚政府指南介绍了在完整相关成本上加成的定价策略，本题数字与假设为原创算例。现实经营还要核对未包含的成本、税费和退货等，本题的20%只在所写无其他费用假设下成立。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "cost_plus_margin_difference",
+            "weight": 1,
+            "concepts": [
+              "成本加成与销售利润率分母不同",
+              "按题设完整成本复核售价与利润率"
+            ]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1
+      },
+      "sources": [
+        {
+          "sourceId": "au.business.pricing_strategy",
+          "authorityLevel": "primary_official",
+          "publisher": "Australian Government",
+          "title": "Choose a pricing strategy",
+          "url": "https://business.gov.au/products-and-services/choose-a-pricing-strategy",
+          "publishedVersion": "business.gov.au official pricing guidance, checked 2026-09-17",
+          "checkedAt": "2026-09-17",
+          "validThrough": "2027-03-17",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://business.gov.au/products-and-services/choose-a-pricing-strategy"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260917",
+        "reviewerId": "question_bank_gate_v13",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-09-17",
+        "decision": "approved_for_internal_pilot"
+      }
+    }
+  ]
+}
