@@ -13,6 +13,7 @@ const messages = {
       appRolePermissions: "User Role Permissions",
       analytics: "Analytics",
       accessAnalytics: "Access Analytics",
+      learning: "Learning Evaluation",
       usageManagement: "Usage",
       teamUsage: "Account Usage",
     },
@@ -21,8 +22,8 @@ const messages = {
       route: "Preparing admin page",
     },
     authLayout: {
-        eyebrow: "Workspace Admin",
-        title: "Admin Entry",
+      eyebrow: "Workspace Admin",
+      title: "Admin Entry",
     },
     shell: {
       brand: {
@@ -115,7 +116,8 @@ const messages = {
         },
         productMix: {
           title: "Product Usage Summary",
-          description: "A quick view of whether users are actively using the product.",
+          description:
+            "A quick view of whether users are actively using the product.",
         },
         series: {
           pv: "Visits",
@@ -141,7 +143,8 @@ const messages = {
       },
       schoolTeams: {
         title: "School / Team Activity",
-        description: "Visits, active accounts, and AI questions by school and team.",
+        description:
+          "Visits, active accounts, and AI questions by school and team.",
         rowDetail: "{{accounts}} active accounts, {{questions}} AI questions",
         empty: "No school or team traffic yet.",
       },
@@ -169,7 +172,8 @@ const messages = {
         loading: "Loading",
         analytics: {
           name: "Access Analytics",
-          detail: "From product visits, sources, pages, and daily traffic APIs.",
+          detail:
+            "From product visits, sources, pages, and daily traffic APIs.",
         },
         accounts: {
           name: "Account Statistics",
@@ -318,7 +322,8 @@ const messages = {
         rolesDialog: {
           title: "Edit roles{{name}}",
           id: "ID {{id}}",
-          description: "Only user roles are changed here. User information is not affected.",
+          description:
+            "Only user roles are changed here. User information is not affected.",
           loading: "Loading roles.",
           empty: "No configurable roles.",
           selected: "Selected",
@@ -418,7 +423,8 @@ const messages = {
         rolesDialog: {
           title: "Edit roles{{name}}",
           id: "ID {{id}}",
-          description: "Only user roles are changed here. User information is not affected.",
+          description:
+            "Only user roles are changed here. User information is not affected.",
           loading: "Loading roles.",
           empty: "No configurable roles.",
           selected: "Selected",
@@ -485,7 +491,8 @@ const messages = {
             edit: {
               label: "Edit quota",
               title: "Edit account quota {{account}}",
-              description: "Adjust this account's question limit, status, and remark.",
+              description:
+                "Adjust this account's question limit, status, and remark.",
               success: "Account quota updated",
             },
             toggle: {
@@ -510,6 +517,248 @@ const messages = {
       },
     },
     analytics: {
+      learning: {
+        heading: {
+          title: "Learning Evaluation",
+          description:
+            "Review conversation attention and structured assessments separately without treating observation as mastery.",
+        },
+        tabs: {
+          students: "Student evaluation",
+          questions: "Question quality",
+        },
+        metrics: {
+          total: "Students",
+          enabled: "Tracking Enabled",
+          observed: "Observed Students",
+          avgCoverage: "Avg Coverage",
+          assessed: "Students Assessed",
+          demonstrated: "Understanding Shown",
+          needsAttention: "Need Reinforcement",
+          avgCoverageTail: "Avg conversation coverage {{rate}}%",
+          retainedTail: "{{count}} retained over time",
+        },
+        pilotMetrics: {
+          title: "Micro-question participation",
+          issued: "Cards Delivered",
+          issuedTail: "{{active}} active, {{superseded}} replaced",
+          answered: "Answers Completed",
+          answeredTail: "{{rate}}% answer rate, {{seconds}}s average",
+          skipped: "Skipped",
+          skippedTail: "{{rate}}% skip rate, {{expired}} expired",
+          correct: "Correct Answers",
+          correctTail:
+            "{{rate}}% scorable accuracy, {{continuations}} voluntary follow-ups",
+        },
+        questionGovernance: {
+          version: "Question bank",
+          versionTail: "Current runtime version",
+          total: "Questions",
+          totalTail: "Current composed catalog",
+          angles: "Curriculum angles",
+          anglesTail: "{{count}} currently have one question",
+          anglesUnavailableTail: "Angle depth is not available",
+          approved: "Production approved",
+          approvedTail: "Verified release list only",
+          pending: "Curriculum review",
+          pendingTail: "Awaiting named company review",
+          validThrough: "Nearest validity",
+          validThroughTail: "Earliest source expiry",
+          coverageGaps: "Coverage gaps",
+          coverageGapsTail: "Top domain {{domain}}, {{count}} turns",
+          coverageGapsEmptyTail: "No related-question gaps recorded",
+        },
+        questionTable: {
+          notAvailable: "Unknown",
+          releaseStatuses: {
+            production_approved: "Production approved",
+            curriculum_pending: "Curriculum review",
+            internal_pilot: "Internal pilot",
+            unknown: "Status unknown",
+          },
+          columns: {
+            domain: "Domain",
+            question: "Question",
+            applicabilityScope: "Applicability",
+            choiceDistribution: "Option distribution",
+            releaseStatus: "Release status",
+            sources: "Source publishers",
+            validThrough: "Valid through",
+            issued: "Delivered",
+            issuedDetail: "{{active}} active · {{superseded}} replaced",
+            answered: "Answered",
+            skipped: "Skipped",
+            expiredDetail: "{{expired}} expired",
+            answerRate: "Answer rate",
+            correctRate: "Scorable accuracy",
+            averageSeconds: "Average time",
+            secondsValue: "{{count}}s",
+          },
+          scopeLabels: {
+            jurisdiction: "Region",
+            platform: "Platform",
+            businessStage: "Stage",
+          },
+          jurisdictions: {
+            not_region_specific: "Not region-specific",
+            cn: "China",
+            eu: "European Union",
+            us: "United States",
+            unknown: "Unknown scope",
+          },
+          platforms: {
+            platform_agnostic: "Platform agnostic",
+            google_trends: "Google Trends",
+            google_merchant_center: "Google Merchant Center",
+            google_analytics_4: "Google Analytics 4",
+            google_search: "Google Search",
+            google_ads: "Google Ads",
+            unknown: "Unknown platform",
+          },
+          businessStages: {
+            market_research: "Market research",
+            product_operations: "Product operations",
+            content_operations: "Content operations",
+            traffic_acquisition: "Traffic acquisition",
+            conversion_optimization: "Conversion optimization",
+            financial_management: "Financial management",
+            customer_service: "Customer service",
+            compliance_governance: "Compliance governance",
+            unknown: "Unknown stage",
+          },
+          choiceSelection: "{{count}} · {{rate}}%",
+          noChoiceResponses: "No valid option responses",
+          unmappedChoices: "{{count}} historical responses could not be mapped",
+          query: {
+            keyword: {
+              label: "Search questions",
+              placeholder: "Search question text, ID, or applicability",
+            },
+            domain: {
+              label: "Domain",
+              placeholder: "All domains",
+            },
+            releaseStatus: {
+              label: "Release status",
+              placeholder: "All statuses",
+            },
+          },
+        },
+        table: {
+          student: "Student",
+          school: "School / Team",
+          coverageRate: "Conversation Coverage",
+          observed: "Observed Domains",
+          structuredAssessment: "Structured Assessment",
+          assessedDomains: "{{count}} domains",
+          assessmentCount: "{{count}} responses",
+          evaluation: "Evaluation Status",
+          mastery: "Mastery",
+          evaluationStatus: {
+            unassessed: "Not assessed",
+            accumulating: "Evidence accumulating",
+            demonstrated: "Understanding shown",
+            retained: "Retained over time",
+            needs_attention: "Needs reinforcement",
+          },
+          enabled: "Tracking",
+          enabledYes: "Enabled",
+          enabledNo: "Disabled",
+          lastAnalyzedAt: "Last Analyzed",
+          query: {
+            keyword: {
+              label: "Search",
+              placeholder: "Search student name or ID",
+            },
+          },
+          actions: {
+            viewDetail: "View details",
+          },
+        },
+        detail: {
+          back: "Back to learning evaluation",
+          heading: {
+            title: "Student details",
+            description:
+              "Review conversation attention, structured assessment, and domain evidence separately.",
+          },
+          metrics: {
+            coverage: "Conversation coverage",
+            coverageTail: "{{count}} domains observed",
+            observed: "Observed knowledge points",
+            mastery: "Mastery",
+            assessed: "Assessed domains",
+            assessmentTail: "{{count}} responses recorded",
+            demonstrated: "Understanding shown",
+            retained: "Retained over time",
+            needsAttention: "Needs reinforcement",
+            tracking: "Tracking",
+            trackingOn: "Enabled",
+            trackingOff: "Disabled",
+          },
+          sections: {
+            mastery: {
+              title: "Domain evidence summary",
+              description:
+                "Evidence signals by domain; a conversation observation is not treated as a mastery conclusion.",
+              empty: "No domain evidence yet.",
+            },
+            evidence: {
+              title: "Evidence summary",
+              description:
+                "Structured assessments show the question and selected answer; conversation observations show summaries only.",
+              empty: "No learning evidence yet.",
+            },
+          },
+          fields: {
+            question: "Question",
+            selectedChoice: "Student choice",
+          },
+          domains: {
+            market: "Market insight",
+            product: "Product strategy",
+            content: "Content expression",
+            traffic: "Traffic operations",
+            conversion: "Conversion optimization",
+            finance: "Business accounting",
+            service: "Customer service",
+            compliance: "Compliance",
+          },
+          masteryStatus: {
+            unobserved: "Unobserved",
+            developing: "Developing",
+            proficient: "Proficient",
+          },
+          domainEvidenceStatus: {
+            unobserved: "No evidence",
+            observed: "Observed",
+            developing: "Evidence accumulating",
+            proficient: "Strong understanding evidence",
+            assessed: "Assessed",
+            needs_attention: "Needs reinforcement",
+          },
+          evidenceKind: {
+            conversationObservation: "Conversation observation",
+            structuredAssessment: "Structured assessment",
+            historical: "Historical record",
+          },
+          evidenceDirection: {
+            positive: "Positive evidence",
+            neutral: "Corrective evidence",
+            negative: "Needs correction",
+          },
+          assessmentOutcome: {
+            correct: "Complete",
+            partial: "Partially complete",
+            incorrect: "Needs reinforcement",
+            unscorable: "Not determined",
+            observed_unscored: "Observed in conversation",
+            legacy_unscored: "Historical · Unscored",
+          },
+          evidenceSignal:
+            "Evidence direction: {{direction}}; record signal strength: {{strength}}%",
+        },
+      },
       heading: {
         title: "Access Analytics",
         description:
@@ -630,7 +879,8 @@ const messages = {
           },
           products: {
             label: "Product Management",
-            description: "Page for product data, selling points, and knowledge.",
+            description:
+              "Page for product data, selling points, and knowledge.",
           },
           campaigns: {
             label: "Campaigns",
@@ -646,7 +896,8 @@ const messages = {
           },
           approvals: {
             label: "Approvals",
-            description: "Page for tool, publishing, or business action approvals.",
+            description:
+              "Page for tool, publishing, or business action approvals.",
           },
           operations: {
             label: "Operations",
@@ -654,7 +905,8 @@ const messages = {
           },
           agentOutput: {
             label: "AI Outputs",
-            description: "Page for generated plans, reports, and reusable content.",
+            description:
+              "Page for generated plans, reports, and reusable content.",
           },
           agentCapabilities: {
             label: "AI Capabilities",
@@ -903,7 +1155,8 @@ const messages = {
     },
     welcome: "ADMIN SIGN IN",
     title: "Sign in to Admin",
-    subtitle: "Enter your account identifier and password to enter the admin shell.",
+    subtitle:
+      "Enter your account identifier and password to enter the admin shell.",
     notice: {
       title: "Local Backend Ready",
       description:
@@ -911,9 +1164,12 @@ const messages = {
     },
     error: {
       title: "Sign-in failed",
-      invalidCredentials: "The account or password is incorrect. Please try again.",
-      serviceUnavailable: "The admin auth service is temporarily unavailable. Please try again later.",
-      permissionUnavailable: "Admin permissions could not be loaded. Please try again or contact an administrator.",
+      invalidCredentials:
+        "The account or password is incorrect. Please try again.",
+      serviceUnavailable:
+        "The admin auth service is temporarily unavailable. Please try again later.",
+      permissionUnavailable:
+        "Admin permissions could not be loaded. Please try again or contact an administrator.",
     },
     form: {
       password: {

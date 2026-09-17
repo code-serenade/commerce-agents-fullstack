@@ -4,7 +4,7 @@ import { useOptionalAgentChatContext } from "../agent-chat/context/use-agent-cha
 import {
   getStudentPromptRecipeItems,
   getStudentTaskEntries,
-} from "../agent-chat/view-model/student-next-actions-view-model"
+} from "../agent-chat/view-model/student-chat-entry-view-model"
 import {
   CommerceBody,
   CommercePageHeader,

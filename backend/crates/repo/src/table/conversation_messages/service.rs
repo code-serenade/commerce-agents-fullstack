@@ -74,6 +74,10 @@ impl ConversationMessageService {
             .collect())
     }
 
+    pub async fn get_by_id(&self, id: Uuid) -> BizResult<Option<ConversationMessage>> {
+        Ok(self.repo.find_by_id(id).await?.map(Self::from_model))
+    }
+
     pub async fn next_sequence(&self, conversation_id: Uuid) -> BizResult<i64> {
         let count = self
             .repo

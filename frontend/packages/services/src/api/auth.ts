@@ -91,11 +91,16 @@ export const registerApi = async (payload: RegisterRequest): Promise<void> => {
   })
 }
 
-export const meApi = async (): Promise<UserInfo> => {
+export interface MeApiOptions {
+  suppressGlobalError?: boolean
+}
+
+export const meApi = async (options: MeApiOptions = {}): Promise<UserInfo> => {
   const response = await request<undefined, MeResponse>({
     method: "GET",
     url: "/auth/user/me",
     group: "auth",
+    suppressGlobalError: options.suppressGlobalError,
   })
   const avatar = await resolveAvatarUrl(response.avatar ?? "")
 

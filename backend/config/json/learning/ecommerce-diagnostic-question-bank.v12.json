@@ -1,0 +1,156 @@
+{
+  "version": "ecommerce_diagnostic_v12",
+  "baseVersion": "ecommerce_diagnostic_v11",
+  "frameworkVersion": "ecommerce_v1",
+  "sourceRevision": "2026-09-09",
+  "evaluationMode": "deterministic_rubric_v1",
+  "questions": [
+    {
+      "id": "product.title_key_details.choice.013",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "product",
+      "questionType": "single_choice",
+      "prompt": "为一款有明确规格或变体的商品写标题时，哪组信息最值得保留在标题中？",
+      "choices": [
+        { "id": "category_pack_and_variant", "text": "商品品类、真实规格，以及能区分商品的颜色、尺寸、口味或形态信息" },
+        { "id": "store_history", "text": "店铺成立年份、客服在线时间和退换货承诺" },
+        { "id": "promotion_only", "text": "只写限时折扣、包邮和活动截止日期" },
+        { "id": "symbols_only", "text": "只用符号和重复关键词吸引注意，不说明商品是什么" }
+      ],
+      "correctChoiceId": "category_pack_and_variant",
+      "referenceAnswer": "Google Merchant Center 商品名规范要求用切中要点的商品名准确描述落地页上的商品，并用颜色、尺寸等变体特有细节区分不同款式；同时不得在商品名中加入价格、促销日期或运费等促销文字。因此，商品品类、真实规格及颜色、尺寸、口味或形态等可区分信息，比店铺介绍或促销口号更适合进入标题。",
+      "rubric": {
+        "version": 1,
+        "criteria": [{
+          "code": "title_prioritizes_product_pack_and_variant_details",
+          "weight": 1.0,
+          "concepts": ["标题优先说明商品品类和真实规格", "使用颜色尺寸口味形态等真实变体信息区分商品"]
+        }],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [{
+        "sourceId": "google.merchant.title_specification",
+        "authorityLevel": "primary_official",
+        "publisher": "Google Merchant Center",
+        "title": "商品名 [title]",
+        "url": "https://support.google.com/merchants/answer/6324415?hl=zh-Hans",
+        "publishedVersion": "Merchant Center product data specification",
+        "checkedAt": "2026-09-09",
+        "validThrough": "2027-03-09",
+        "licenseType": "official_reference_only",
+        "useMode": "source_based_original",
+        "licenseUrl": "https://support.google.com/merchants/answer/6324415?hl=zh-Hans"
+      }],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260909",
+        "reviewerId": "question_bank_gate_v12",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-09-09",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "product.title_promotion_boundary.choice.014",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "product",
+      "questionType": "single_choice",
+      "prompt": "继续优化本轮商品标题时，哪种内容不应直接塞进商品标题？",
+      "choices": [
+        { "id": "product_type", "text": "与落地页一致的商品品类" },
+        { "id": "pack_count", "text": "商品真实的包装数量或尺寸规格" },
+        { "id": "promotion_dates_and_shipping", "text": "限时促销日期、价格和包邮信息" },
+        { "id": "real_variant_detail", "text": "与落地页一致的真实口味或规格差异" }
+      ],
+      "correctChoiceId": "promotion_dates_and_shipping",
+      "referenceAnswer": "Google Merchant Center 商品名规范明确要求商品名准确描述商品，并禁止加入价格、促销价格、促销日期、运费和配送日期等促销文字。品类、包装数量和真实变体信息可以帮助买家识别商品；限时促销日期、价格和包邮信息应放在相应属性或活动位置，而不是塞进商品标题。",
+      "rubric": {
+        "version": 1,
+        "criteria": [{
+          "code": "title_excludes_promotional_terms",
+          "weight": 1.0,
+          "concepts": ["商品标题不加入价格和促销日期", "商品标题不加入运费或配送促销文字"]
+        }],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [{
+        "sourceId": "google.merchant.title_specification",
+        "authorityLevel": "primary_official",
+        "publisher": "Google Merchant Center",
+        "title": "商品名 [title]",
+        "url": "https://support.google.com/merchants/answer/6324415?hl=zh-Hans",
+        "publishedVersion": "Merchant Center product data specification",
+        "checkedAt": "2026-09-09",
+        "validThrough": "2027-03-09",
+        "licenseType": "official_reference_only",
+        "useMode": "source_based_original",
+        "licenseUrl": "https://support.google.com/merchants/answer/6324415?hl=zh-Hans"
+      }],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260909",
+        "reviewerId": "question_bank_gate_v12",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-09-09",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "product.highlight_verifiable.choice.015",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "product",
+      "questionType": "single_choice",
+      "prompt": "为本轮商品补充卖点时，哪种写法更可靠？",
+      "choices": [
+        { "id": "verifiable_product_fact", "text": "围绕商品本身写可核实的规格、形态或使用场景，并保持表达专业清楚" },
+        { "id": "absolute_superiority", "text": "写成“全网最好、效果碾压所有品牌”，无需提供依据" },
+        { "id": "keyword_repetition", "text": "反复堆砌“提神、爆款、必买”等词，越多越好" },
+        { "id": "store_policy", "text": "用店铺历史、退换政策和其他商品介绍代替本商品卖点" }
+      ],
+      "correctChoiceId": "verifiable_product_fact",
+      "referenceAnswer": "Google Merchant Center 商品亮点规范要求只描述商品本身，使用专业且符合语法的语言，并避免促销文字、关键词堆砌和与其他商品比较。因而应围绕本轮商品可核实的规格、形态或真实使用信息清楚表达；没有依据的绝对化比较、重复关键词和店铺政策都不能可靠地说明商品卖点。",
+      "rubric": {
+        "version": 1,
+        "criteria": [{
+          "code": "highlight_uses_verifiable_product_facts",
+          "weight": 1.0,
+          "concepts": ["卖点围绕商品本身且可核实", "卖点表达专业清楚并避免夸大比较和关键词堆砌"]
+        }],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [{
+        "sourceId": "google.merchant.product_highlight_specification",
+        "authorityLevel": "primary_official",
+        "publisher": "Google Merchant Center",
+        "title": "商品亮点 [product_highlight]",
+        "url": "https://support.google.com/merchants/answer/9216100?hl=zh-Hans",
+        "publishedVersion": "Merchant Center product data specification",
+        "checkedAt": "2026-09-09",
+        "validThrough": "2027-03-09",
+        "licenseType": "official_reference_only",
+        "useMode": "source_based_original",
+        "licenseUrl": "https://support.google.com/merchants/answer/9216100?hl=zh-Hans"
+      }],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260909",
+        "reviewerId": "question_bank_gate_v12",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-09-09",
+        "decision": "approved_for_internal_pilot"
+      }
+    }
+  ]
+}

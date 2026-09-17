@@ -86,6 +86,13 @@ cargo xtask db --help
 cargo xtask migrate --help
 ```
 
+生成并核对内部教研审核参考包：
+
+```bash
+cargo xtask learning-question-review-pack generate
+cargo xtask learning-question-review-pack check
+```
+
 ## 命令说明
 
 ### 项目初始化
@@ -169,6 +176,20 @@ cargo xtask init-root
 - `init-root` 会登录 `auth` 服务，并把该 auth 用户绑定到本地 `root` 后台角色。
 
 `init-root` 会从 `config/services.toml` 读取 `jwt_verify.url`。
+
+### 学习题库教研审核参考包
+
+```bash
+cargo xtask learning-question-review-pack generate
+cargo xtask learning-question-review-pack check
+```
+
+- `generate` 按 `baseVersion` 合成当前不可变电商诊断题库，并连接课程角度、适用范围和生产批准清单，默认写入仓库根目录 `temp/REQUIREMENTS/`。
+- `check` 重新生成内容并与默认文件逐字节比较，同时执行题目身份、角度、范围、答案键和生产 schema v2 双人逐项签核校验。
+- 参考包包含服务端隐藏答案，只供公司具名教研内部复核，不得进入学生 API、前端静态资源或公开文档。
+- 两个命令都不会修改运行题库、人工审核清单或生产批准清单，也不能代替公司教研实名签字。
+- 只有具名 `ecommerce_curriculum_expert` 完成六项 `passed`，且不同的具名 `learning_product_owner` 随后批准，题目才会在参考包中显示生产已批准；旧单人批准格式会被拒绝。
+- 如需临时写到其它内部路径，可使用 `--output <PATH>`；相对路径从仓库根目录解析。
 
 ## 旧脚本映射
 

@@ -8,6 +8,7 @@ pub mod campaign;
 pub mod commerce_playbook;
 pub mod conversation;
 pub mod conversation_report;
+pub mod learning_progress;
 pub mod package_governance;
 pub mod platform_connect;
 pub mod product;

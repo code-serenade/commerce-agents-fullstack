@@ -2637,3 +2637,48 @@ pub struct CompetitorChangeResponse {
 
 pub type ProductCompetitorAnalysisResponse =
     service::dto::product_competitor::ProductCompetitorAnalysisResponse;
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateLearningSettingsRequest {
+    pub enabled: bool,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NextLearningProbeQuery {
+    pub conversation_id: Option<String>,
+    pub assistant_message_id: Option<String>,
+    pub continue_from_probe_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LearningProbeHistoryQuery {
+    pub conversation_id: String,
+    pub assistant_message_id: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SubmitLearningProbeChoiceRequest {
+    pub choice_id: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LearningEvidenceQuery {
+    #[serde(default)]
+    pub limit: Option<u64>,
+    pub range: Option<LearningEvidenceRange>,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum LearningEvidenceRange {
+    Recent,
+    #[serde(rename = "30d")]
+    Days30,
+    #[serde(rename = "90d")]
+    Days90,
+}

@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next"
-import { getStudentTaskEntries } from "../view-model/student-next-actions-view-model"
+import { getStudentTaskEntries } from "../view-model/student-chat-entry-view-model"
 import { AgentRoleClusterHomePanel } from "./agent-role-cluster-home-panel"
 
 export function AgentChatWelcomeContent({
@@ -74,6 +74,15 @@ export function AgentChatWelcomePromptChips({
           </button>
         ))}
       </div>
+      <p
+        className={
+          isPlain
+            ? "mx-auto mt-5 max-w-[880px] text-center text-xs/5 text-muted-foreground"
+            : "mt-4 text-xs/5 text-muted-foreground"
+        }
+      >
+        {t("agentChat.thread.learningHint")}
+      </p>
     </div>
   )
 }

@@ -1,0 +1,857 @@
+{
+  "version": "ecommerce_diagnostic_v8",
+  "baseVersion": "ecommerce_diagnostic_v7",
+  "frameworkVersion": "ecommerce_v1",
+  "sourceRevision": "2026-08-29",
+  "evaluationMode": "deterministic_rubric_v1",
+  "questions": [
+    {
+      "id": "market.customer_research_mix.choice.007",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "market",
+      "questionType": "single_choice",
+      "prompt": "准备验证一款新商品的市场需求时，哪种受访者组合更能减少只听到现有顾客意见造成的偏差？",
+      "choices": [
+        { "id": "employees_only", "text": "只询问公司内部员工" },
+        { "id": "loyal_customers_only", "text": "只询问复购次数最多的老顾客" },
+        { "id": "friends_only", "text": "只询问与经营者关系密切的朋友" },
+        { "id": "mixed_customer_groups", "text": "同时覆盖自己的顾客、竞品顾客和尚未向任何一方购买的人" }
+      ],
+      "correctChoiceId": "mixed_customer_groups",
+      "referenceAnswer": "澳大利亚政府市场研究指南建议在条件允许时混合研究自己的顾客、竞争对手的顾客以及尚未向任何一方购买的人。这样比只询问忠诚顾客更能发现未满足需求和潜在偏差。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "sample_multiple_customer_groups",
+            "weight": 1.0,
+            "concepts": ["覆盖不同顾客群体", "避免只询问现有顾客"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "au.business.market_research",
+          "authorityLevel": "primary_official",
+          "publisher": "Australian Government",
+          "title": "Do market research",
+          "url": "https://business.gov.au/marketing-and-advertising/do-market-research",
+          "publishedVersion": "business.gov.au guidance",
+          "checkedAt": "2026-08-29",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://business.gov.au/"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260829",
+        "reviewerId": "question_bank_gate_v4",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-29",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "market.competitor_analysis_scope.choice.008",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "market",
+      "questionType": "single_choice",
+      "prompt": "店铺要研究主要竞争对手以找到自身差异化，下面哪种做法最完整？",
+      "choices": [
+        { "id": "compare_position_price_feedback", "text": "比较竞品目标顾客、市场定位、价格、沟通方式和顾客评价，并与自身优劣势对照" },
+        { "id": "copy_top_listing", "text": "直接复制销量最高竞品的页面和价格" },
+        { "id": "own_sales_only", "text": "只看自己店铺最近一个月销售额" },
+        { "id": "follower_count_only", "text": "只比较各竞品社交账号的粉丝总数" }
+      ],
+      "correctChoiceId": "compare_position_price_feedback",
+      "referenceAnswer": "竞品研究应比较主要竞争对手销售什么、面向谁、如何定位和沟通、价格如何以及顾客如何评价，并可把竞品 SWOT 与自身 SWOT 对照。单一粉丝量或照抄竞品不能形成可靠竞争分析。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "compare_competitor_strategy_and_feedback",
+            "weight": 1.0,
+            "concepts": ["比较定位价格和顾客", "与自身优劣势对照"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "au.business.market_research",
+          "authorityLevel": "primary_official",
+          "publisher": "Australian Government",
+          "title": "Do market research",
+          "url": "https://business.gov.au/marketing-and-advertising/do-market-research",
+          "publishedVersion": "business.gov.au guidance",
+          "checkedAt": "2026-08-29",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://business.gov.au/"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260829",
+        "reviewerId": "question_bank_gate_v4",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-29",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "product.gtin_no_reallocation.choice.007",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "product",
+      "questionType": "single_choice",
+      "prompt": "一个旧商品已经停售。商家现在推出完全不同的新商品，能否把旧商品的 GTIN 直接分配给新商品？",
+      "choices": [
+        { "id": "reuse_after_month", "text": "停售满一个月后即可直接复用" },
+        { "id": "reuse_same_category", "text": "只要属于同一品类就可以复用" },
+        { "id": "reuse_after_stock_zero", "text": "库存归零后即可改配给任何新商品" },
+        { "id": "do_not_reallocate", "text": "不应改配给另一商品；已分配的 GTIN 原则上保持唯一且持续" }
+      ],
+      "correctChoiceId": "do_not_reallocate",
+      "referenceAnswer": "GS1 规则规定，2018 年 12 月后分配给某一贸易项目的 GTIN 不得重新分配给另一贸易项目。题目中的新品完全不同，不属于从未生产或原商品未经改变重新引入等有限例外。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "preserve_gtin_unique_allocation",
+            "weight": 1.0,
+            "concepts": ["GTIN不得改配另一商品", "保持商品标识唯一持续"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "gs1.gtin.no_reuse",
+          "authorityLevel": "standard",
+          "publisher": "GS1",
+          "title": "Can a GTIN be reused?",
+          "url": "https://support.gs1.org/support/solutions/articles/43000734390-can-a-gtin-be-reused-",
+          "publishedVersion": "GS1 General Specifications reuse policy",
+          "checkedAt": "2026-08-29",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://www.gs1.org/terms-use"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260829",
+        "reviewerId": "question_bank_gate_v4",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-29",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "product.changed_item_new_gtin.choice.008",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "product",
+      "questionType": "single_choice",
+      "prompt": "商家把一款 T 恤正面的图案改成消费者能够明显区分的新图案，并继续同时销售新旧两款。商品标识应怎样处理？",
+      "choices": [
+        { "id": "keep_same_gtin", "text": "新旧两款始终共用原 GTIN" },
+        { "id": "delete_all_gtins", "text": "删除两个商品的 GTIN，只保留内部 SKU" },
+        { "id": "assign_new_gtin", "text": "为可区分的新款分配新的 GTIN，使顾客和交易渠道能够区分" },
+        { "id": "change_gtin_daily", "text": "每天随机更换 GTIN 以避免重复" }
+      ],
+      "correctChoiceId": "assign_new_gtin",
+      "referenceAnswer": "GS1 指南指出，当商品变化会影响消费者购买判断、满足新法律或设计要求，或对供应链有实质影响时通常需要新 GTIN；其官方示例也明确提到 T 恤图案变化需要新的 GTIN。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "assign_gtin_for_distinguishable_change",
+            "weight": 1.0,
+            "concepts": ["可区分商品变化使用新GTIN", "新旧商品保持独立标识"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "gs1.gtin.changed_product",
+          "authorityLevel": "standard",
+          "publisher": "GS1",
+          "title": "I've changed a product a little bit. Can I keep using its GS1 GTIN?",
+          "url": "https://support.gs1.org/support/solutions/articles/43000734072-i-ve-changed-a-product-a-little-bit-can-i-keep-using-its-gs1-gtin-",
+          "publishedVersion": "GS1 GTIN Management guidance",
+          "checkedAt": "2026-08-29",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://www.gs1.org/terms-use"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260829",
+        "reviewerId": "question_bank_gate_v4",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-29",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "content.people_first_purpose.choice.007",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "content",
+      "questionType": "single_choice",
+      "prompt": "店铺准备批量发布商品指南，哪种内容策略更符合 Google 所说的“以用户为中心”？",
+      "choices": [
+        { "id": "mass_topics_for_traffic", "text": "大量覆盖与店铺无关的热门主题，只为获得搜索流量" },
+        { "id": "rewrite_without_value", "text": "简单改写其他网站内容，不增加实际经验或价值" },
+        { "id": "help_target_users", "text": "围绕目标顾客的真实问题，结合实际使用经验提供能帮助其完成目标的内容" },
+        { "id": "pad_word_count", "text": "为了猜测排名偏好，把每篇文章机械扩写到固定字数" }
+      ],
+      "correctChoiceId": "help_target_users",
+      "referenceAnswer": "Google Search Central 将以用户为中心的内容描述为主要为用户而创建、对既有或目标受众有用、体现第一手经验，并让用户充分了解主题以完成目标；单纯追逐搜索流量、机械扩字或低价值改写是警告信号。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "create_content_for_target_users",
+            "weight": 1.0,
+            "concepts": ["帮助目标用户", "体现实际经验和实质价值"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "google.search.people_first_content",
+          "authorityLevel": "primary_official",
+          "publisher": "Google Search Central",
+          "title": "创建实用、可靠、以用户为中心的内容",
+          "url": "https://developers.google.cn/search/docs/fundamentals/creating-helpful-content?hl=zh-cn",
+          "publishedVersion": "Google Search Central, updated 2025-12-18",
+          "checkedAt": "2026-08-29",
+          "validThrough": "2027-02-28",
+          "licenseType": "cc_by_4_0",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://developers.google.com/terms/site-terms"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260829",
+        "reviewerId": "question_bank_gate_v4",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-29",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "content.ftc_endorsement_disclosure.choice.008",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "content",
+      "questionType": "single_choice",
+      "prompt": "面向可能影响美国消费者的视频中，创作者收到品牌免费商品后进行推荐。怎样披露更符合 FTC 指南？",
+      "choices": [
+        { "id": "profile_only", "text": "只在个人主页深处写一次合作关系" },
+        { "id": "hidden_hashtags", "text": "把模糊缩写混在大量标签和链接中" },
+        { "id": "description_only", "text": "只放在视频说明末尾，视频本身完全不提示" },
+        { "id": "clear_in_video_disclosure", "text": "在推荐内容附近清楚披露免费商品关系，并在视频本身提供容易看到和理解的提示" }
+      ],
+      "correctChoiceId": "clear_in_video_disclosure",
+      "referenceAnswer": "FTC 将免费或折扣商品视为可能需要披露的重要品牌关系。披露应与推荐内容放在一起、清楚且不易错过；视频推荐应在视频中披露，不能只依赖简介、更多按钮或模糊标签。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "disclose_material_connection_clearly",
+            "weight": 1.0,
+            "concepts": ["披露免费商品关系", "视频内清楚且不易错过"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "ftc.influencer_disclosures",
+          "authorityLevel": "primary_official",
+          "publisher": "U.S. Federal Trade Commission",
+          "title": "Disclosures 101 for Social Media Influencers",
+          "url": "https://www.ftc.gov/business-guidance/resources/disclosures-101-social-media-influencers",
+          "publishedVersion": "FTC Business Guidance",
+          "checkedAt": "2026-08-29",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://www.ftc.gov/site-information/no-fear-act/copyright-policy"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260829",
+        "reviewerId": "question_bank_gate_v4",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-29",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "traffic.search_impressions_clicks.choice.007",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "traffic",
+      "questionType": "single_choice",
+      "prompt": "Search Console 显示自然搜索展示次数基本不变，但点击次数明显下降。首先值得检查什么？",
+      "choices": [
+        { "id": "demand_is_zero", "text": "直接认定整个市场需求已经归零" },
+        { "id": "delete_all_pages", "text": "立即删除全部商品页面" },
+        { "id": "titles_and_snippets", "text": "检查网页标题和摘要是否准确且具有吸引力，并比较受影响的查询和页面" },
+        { "id": "ignore_clicks", "text": "只要展示次数不变，点击下降无需处理" }
+      ],
+      "correctChoiceId": "titles_and_snippets",
+      "referenceAnswer": "Google Search Central 指出，展示次数没有明显变化但点击下降时，可能是标题和摘要未能帮助用户理解页面内容，或其他结果更具吸引力。应结合效果报告检查受影响查询和页面，而不是直接断定需求归零。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "diagnose_click_drop_with_stable_impressions",
+            "weight": 1.0,
+            "concepts": ["检查标题和摘要", "比较受影响查询页面"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "google.search.debug_traffic_drops",
+          "authorityLevel": "primary_official",
+          "publisher": "Google Search Central",
+          "title": "调试 Google 搜索流量下降问题",
+          "url": "https://developers.google.cn/search/docs/monitor-debug/debugging-search-traffic-drops?hl=zh-cn",
+          "publishedVersion": "Google Search Central, updated 2025-12-18",
+          "checkedAt": "2026-08-29",
+          "validThrough": "2027-02-28",
+          "licenseType": "cc_by_4_0",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://developers.google.com/terms/site-terms"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260829",
+        "reviewerId": "question_bank_gate_v4",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-29",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "traffic.search_seasonality_compare.choice.008",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "traffic",
+      "questionType": "single_choice",
+      "prompt": "店铺自然搜索流量在某个月下降，怀疑是年度季节性。哪种验证方式更可靠？",
+      "choices": [
+        { "id": "compare_one_day", "text": "只比较下降当天与前一天" },
+        { "id": "ask_one_customer", "text": "只询问一名顾客是否还会搜索" },
+        { "id": "change_site_first", "text": "不分析数据，先全面重做网站" },
+        { "id": "year_over_year_and_trends", "text": "扩大日期范围并与去年同期比较，再用趋势数据判断行业兴趣是否同步变化" }
+      ],
+      "correctChoiceId": "year_over_year_and_trends",
+      "referenceAnswer": "Google 建议把效果报告日期范围扩展到能够观察年度变化，并与去年同期等类似时期比较；还可使用 Google Trends 判断下降是行业整体兴趣变化还是网站个别问题。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "validate_search_seasonality",
+            "weight": 1.0,
+            "concepts": ["同比类似时期", "结合趋势判断行业变化"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "google.search.debug_traffic_drops",
+          "authorityLevel": "primary_official",
+          "publisher": "Google Search Central",
+          "title": "调试 Google 搜索流量下降问题",
+          "url": "https://developers.google.cn/search/docs/monitor-debug/debugging-search-traffic-drops?hl=zh-cn",
+          "publishedVersion": "Google Search Central, updated 2025-12-18",
+          "checkedAt": "2026-08-29",
+          "validThrough": "2027-02-28",
+          "licenseType": "cc_by_4_0",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://developers.google.com/terms/site-terms"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260829",
+        "reviewerId": "question_bank_gate_v4",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-29",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "conversion.goal_metric_online_sales.choice.007",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "conversion",
+      "questionType": "single_choice",
+      "prompt": "店铺当前数字化目标是提高网站线上销售，哪项指标与这个目标最直接对应？",
+      "choices": [
+        { "id": "online_store_revenue", "text": "线上店铺产生的总收入" },
+        { "id": "social_followers", "text": "社交账号粉丝总数" },
+        { "id": "videos_published", "text": "本月发布的视频数量" },
+        { "id": "email_list_size", "text": "邮件通讯录中的地址总数" }
+      ],
+      "correctChoiceId": "online_store_revenue",
+      "referenceAnswer": "指标应直接对应数字化目标。Australian Government 指南以“线上店铺总收入”作为线上销售目标的指标示例；粉丝数更接近社群规模，内容数量和邮件地址数也不能直接证明销售提高。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "align_metric_with_online_sales_goal",
+            "weight": 1.0,
+            "concepts": ["指标直接对应销售目标", "使用线上收入衡量"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "au.business.digital_performance",
+          "authorityLevel": "primary_official",
+          "publisher": "Australian Government",
+          "title": "Measure your digital performance",
+          "url": "https://business.gov.au/online-and-digital/measure-your-digital-performance",
+          "publishedVersion": "business.gov.au guidance",
+          "checkedAt": "2026-08-29",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://business.gov.au/"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260829",
+        "reviewerId": "question_bank_gate_v4",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-29",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "conversion.ab_test_two_versions.choice.008",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "conversion",
+      "questionType": "single_choice",
+      "prompt": "团队想比较结账页按钮的两个版本，确认哪一个带来更好的表现。最合适的方法是什么？",
+      "choices": [
+        { "id": "change_everything", "text": "同时重做价格、商品、页面和流量来源，再凭感觉判断" },
+        { "id": "ask_designer", "text": "只让设计人员选择自己更喜欢的版本" },
+        { "id": "alternate_months_without_data", "text": "每月随意换一个版本，但不设指标也不保存数据" },
+        { "id": "run_ab_test", "text": "进行 A/B 测试，对两个版本使用同一目标指标比较表现" }
+      ],
+      "correctChoiceId": "run_ab_test",
+      "referenceAnswer": "A/B 测试又称拆分测试，用于比较网页或邮件的两个版本并观察哪个表现更好。应先确定与目标一致的指标，避免同时改变大量其他条件后仅凭感觉归因。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "compare_two_versions_with_ab_test",
+            "weight": 1.0,
+            "concepts": ["A/B测试两个版本", "使用同一目标指标比较"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "au.business.digital_performance",
+          "authorityLevel": "primary_official",
+          "publisher": "Australian Government",
+          "title": "Measure your digital performance",
+          "url": "https://business.gov.au/online-and-digital/measure-your-digital-performance",
+          "publishedVersion": "business.gov.au guidance",
+          "checkedAt": "2026-08-29",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://business.gov.au/"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260829",
+        "reviewerId": "question_bank_gate_v4",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-29",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "finance.cashflow_long_term_asset.choice.007",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "finance",
+      "questionType": "single_choice",
+      "prompt": "企业用现金购买一台长期使用的仓储设备。依据 IAS 7，这笔现金流通常属于哪类活动？",
+      "choices": [
+        { "id": "operating", "text": "经营活动" },
+        { "id": "financing", "text": "筹资活动" },
+        { "id": "non_cash", "text": "因为购买设备，所以一定属于非现金交易" },
+        { "id": "investing", "text": "投资活动" }
+      ],
+      "correctChoiceId": "investing",
+      "referenceAnswer": "IAS 7 将取得和处置长期资产以及不属于现金等价物的其他投资列为投资活动。题目明确使用现金购买长期设备，因此通常列入投资活动现金流。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "classify_long_term_asset_cashflow",
+            "weight": 1.0,
+            "concepts": ["长期资产取得", "投资活动现金流"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "ifrs.ias7.cash_flow_classification",
+          "authorityLevel": "primary_official",
+          "publisher": "IFRS Foundation",
+          "title": "IAS 7 Statement of Cash Flows",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/ias-7-statement-of-cash-flows/",
+          "publishedVersion": "Issued Standards 2026",
+          "checkedAt": "2026-08-29",
+          "validThrough": "2027-08-29",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://www.ifrs.org/legal/terms-and-conditions/"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260829",
+        "reviewerId": "question_bank_gate_v4",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-29",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "finance.cashflow_new_borrowing.choice.008",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "finance",
+      "questionType": "single_choice",
+      "prompt": "企业收到一笔新增银行借款，导致借款规模发生变化。依据 IAS 7，这笔现金流通常属于哪类活动？",
+      "choices": [
+        { "id": "investing", "text": "投资活动" },
+        { "id": "operating", "text": "经营活动" },
+        { "id": "financing", "text": "筹资活动" },
+        { "id": "no_cashflow", "text": "新增借款永远不属于现金流" }
+      ],
+      "correctChoiceId": "financing",
+      "referenceAnswer": "IAS 7 将导致投入权益和借款规模及构成发生变化的活动列为筹资活动。收到新增银行借款会改变借款规模，通常属于筹资活动现金流。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "classify_borrowing_cashflow",
+            "weight": 1.0,
+            "concepts": ["借款规模变化", "筹资活动现金流"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "ifrs.ias7.cash_flow_classification",
+          "authorityLevel": "primary_official",
+          "publisher": "IFRS Foundation",
+          "title": "IAS 7 Statement of Cash Flows",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/ias-7-statement-of-cash-flows/",
+          "publishedVersion": "Issued Standards 2026",
+          "checkedAt": "2026-08-29",
+          "validThrough": "2027-08-29",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://www.ifrs.org/legal/terms-and-conditions/"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260829",
+        "reviewerId": "question_bank_gate_v4",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-29",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "service.cn_return_reasonable_inspection.choice.007",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "service",
+      "questionType": "single_choice",
+      "prompt": "依据中国网络购买商品七日无理由退货规则，消费者仅为查验而打开包装并合理调试，商品原有品质、功能和外观未受影响。客服应怎样处理？",
+      "choices": [
+        { "id": "reject_any_opening", "text": "只要包装打开就一律拒绝退货" },
+        { "id": "treat_as_intact", "text": "不能仅因合理开包或调试拒绝，应按商品完好规则继续处理退货" },
+        { "id": "charge_full_price", "text": "必须先收取与商品原价相同的开包费" },
+        { "id": "ignore_request", "text": "无需回复消费者的退货通知" }
+      ],
+      "correctChoiceId": "treat_as_intact",
+      "referenceAnswer": "中国现行规则明确，消费者基于查验需要打开包装，或为确认品质、功能进行合理调试，不影响商品完好。商品本身、配件和标识齐全且品质功能保持时，客服不能仅以开包为由拒绝。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "recognize_reasonable_inspection_as_intact",
+            "weight": 1.0,
+            "concepts": ["合理查验不影响完好", "不能仅因开包拒绝"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "cn.samr.online_return_measures",
+          "authorityLevel": "primary_official",
+          "publisher": "State Administration for Market Regulation of China",
+          "title": "网络购买商品七日无理由退货暂行办法",
+          "url": "https://www.gov.cn/zhengce/zhengceku/2020-11/03/content_5557118.htm",
+          "publishedVersion": "2020 revision",
+          "checkedAt": "2026-08-29",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://www.gov.cn/home/2014-02/23/content_5046258.htm"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260829",
+        "reviewerId": "question_bank_gate_v4",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-29",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "service.cn_complaint_mechanism.choice.008",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "service",
+      "questionType": "single_choice",
+      "prompt": "依据中国《消费者权益保护法实施条例》，网店处理消费争议时更合适的常态机制是什么？",
+      "choices": [
+        { "id": "public_post_only", "text": "要求消费者必须先公开发帖，客服才受理" },
+        { "id": "delay_until_expiry", "text": "把所有投诉拖延到售后期限结束后再处理" },
+        { "id": "coupon_without_review", "text": "不核实事实，统一发优惠券后关闭投诉" },
+        { "id": "convenient_timely_process", "text": "建立便捷、高效的投诉处理机制，及时解决消费争议" }
+      ],
+      "correctChoiceId": "convenient_timely_process",
+      "referenceAnswer": "中国《消费者权益保护法实施条例》第四十四条要求经营者建立便捷、高效的投诉处理机制并及时解决消费争议，同时鼓励首问负责、先行赔付和在线争议解决等制度。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "establish_timely_complaint_process",
+            "weight": 1.0,
+            "concepts": ["便捷高效投诉机制", "及时解决消费争议"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "cn.consumer_rights_implementation_regulation",
+          "authorityLevel": "primary_official",
+          "publisher": "State Council of the People's Republic of China",
+          "title": "中华人民共和国消费者权益保护法实施条例",
+          "url": "https://www.gov.cn/zhengce/zhengceku/202403/content_6940159.htm",
+          "publishedVersion": "State Council Order No. 778, effective 2024-07-01",
+          "checkedAt": "2026-08-29",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://www.gov.cn/home/2014-02/23/content_5046258.htm"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260829",
+        "reviewerId": "question_bank_gate_v4",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-29",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "compliance.cn_personalized_search_option.choice.007",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "compliance",
+      "questionType": "single_choice",
+      "prompt": "依据中国《电子商务法》，网店根据消费者兴趣和消费习惯提供个性化商品搜索结果时，还应怎样做？",
+      "choices": [
+        { "id": "offer_non_personalized_option", "text": "同时提供不针对其个人特征的选项" },
+        { "id": "hide_personalization", "text": "隐瞒个性化处理且不提供其他选择" },
+        { "id": "force_high_price", "text": "只向该消费者展示价格最高的商品" },
+        { "id": "disable_search", "text": "完全取消消费者的搜索功能" }
+      ],
+      "correctChoiceId": "offer_non_personalized_option",
+      "referenceAnswer": "中国《电子商务法》第十八条规定，经营者依据兴趣爱好、消费习惯等个人特征提供搜索结果时，应同时提供不针对个人特征的选项，以尊重和平等保护消费者权益。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "offer_non_personalized_search_option",
+            "weight": 1.0,
+            "concepts": ["提供非个性化选项", "个性化搜索保护选择权"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "cn.ecommerce_law",
+          "authorityLevel": "primary_official",
+          "publisher": "Ministry of Commerce of the People's Republic of China",
+          "title": "中华人民共和国电子商务法",
+          "url": "https://www.mofcom.gov.cn/zhrmghgdzswf/fg/art/2018/art_cc9187dd95cd40158552d78a610e8c29.html",
+          "publishedVersion": "Adopted 2018-08-31, effective 2019-01-01",
+          "checkedAt": "2026-08-29",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://www.mofcom.gov.cn/zhrmghgdzswf/index.html"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260829",
+        "reviewerId": "question_bank_gate_v4",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-29",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "compliance.cn_personal_info_minimum.choice.008",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "compliance",
+      "questionType": "single_choice",
+      "prompt": "依据中国《个人信息保护法》，普通商品下单页设计个人信息收集范围时，哪种原则更合适？",
+      "choices": [
+        { "id": "collect_everything", "text": "不论履约是否需要，先强制读取通讯录、相册和持续定位" },
+        { "id": "reuse_without_purpose", "text": "只要以后可能有用，就可以无限扩展处理目的" },
+        { "id": "deny_without_extra_data", "text": "消费者不提供与交易无关的信息就一律拒绝下单" },
+        { "id": "purpose_related_minimum", "text": "明确处理目的，只收集与下单和履约直接相关的最小范围信息" }
+      ],
+      "correctChoiceId": "purpose_related_minimum",
+      "referenceAnswer": "中国《个人信息保护法》第六条要求处理目的明确、合理并与处理目的直接相关，采取对个人权益影响最小的方式；收集范围应限于实现目的所需，不得过度收集。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "collect_purpose_related_minimum_data",
+            "weight": 1.0,
+            "concepts": ["明确且直接相关目的", "只收集最小必要范围"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "cn.personal_information_protection_law",
+          "authorityLevel": "primary_official",
+          "publisher": "Cyberspace Administration of China",
+          "title": "中华人民共和国个人信息保护法",
+          "url": "https://www.cac.gov.cn/2021-08/20/c_1631050028355286.htm",
+          "publishedVersion": "Adopted 2021-08-20, effective 2021-11-01",
+          "checkedAt": "2026-08-29",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://www.cac.gov.cn/"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260829",
+        "reviewerId": "question_bank_gate_v4",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-29",
+        "decision": "approved_for_internal_pilot"
+      }
+    }
+  ]
+}

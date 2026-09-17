@@ -9,6 +9,7 @@ mod init;
 mod init_db;
 mod init_permissions;
 mod init_root;
+mod learning_question_review_pack;
 mod migrate;
 mod postgres;
 mod process;
@@ -16,7 +17,9 @@ mod process;
 use anyhow::Result;
 use clap::Parser;
 
-use crate::cli::{Cli, Command, DbCommand, EntityCommand, MigrateCommand};
+use crate::cli::{
+    Cli, Command, DbCommand, EntityCommand, LearningQuestionReviewPackCommand, MigrateCommand,
+};
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
@@ -34,6 +37,16 @@ impl Cli {
             Command::InitPermissions => init_permissions::run(),
             Command::InitAppPermissions => app_permissions::run(),
             Command::InitRoot => init_root::run(),
+            Command::LearningQuestionReviewPack { command } => command.run(),
+        }
+    }
+}
+
+impl LearningQuestionReviewPackCommand {
+    fn run(self) -> Result<()> {
+        match self {
+            Self::Generate { output } => learning_question_review_pack::generate(output.as_deref()),
+            Self::Check { output } => learning_question_review_pack::check(output.as_deref()),
         }
     }
 }

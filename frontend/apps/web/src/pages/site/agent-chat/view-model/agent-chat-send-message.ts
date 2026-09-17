@@ -120,12 +120,21 @@ export async function sendAgentChatMessage(
 
   async function saveAssistantIfReady(content: string) {
     if (!activeConversationId || !content || assistantMessageSaved) return
-    await saveAssistantConversationMessage({
+    const savedMessage = await saveAssistantConversationMessage({
       content,
       conversationId: activeConversationId,
       runtimeEvents,
     })
     assistantMessageSaved = true
+    if (savedMessage.id) {
+      input.setMessages((current) =>
+        current.map((message) =>
+          message.id === assistantId
+            ? { ...message, persistedId: savedMessage.id }
+            : message
+        )
+      )
+    }
   }
 
   try {

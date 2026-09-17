@@ -11,10 +11,12 @@ import { useTranslation } from "react-i18next"
 import type { AgentChatStrategy } from "../domain/agent-chat-strategy"
 import type { AgentChatMessage } from "../types"
 import {
+  getPersistedLearningProbeMessageId,
   getStudentNextActionMeta,
   getStudentNextActionPrompts,
 } from "../view-model/student-next-actions-view-model"
 import { AgentChatWelcomeContent } from "./agent-chat-welcome-content"
+import { StudentLearningProbeSlot } from "./student-learning-probe-slot"
 
 export function WelcomeCard({
   content,
@@ -155,41 +157,63 @@ export function MessageActions({ content }: { content: string }) {
 }
 
 export function StudentNextActions({
+  conversationId,
   message,
+  onAnswerProbe,
   onSelectPrompt,
   previousUserContent,
+  showLearningProbe = false,
+  isCurrentLearningProbe = false,
 }: {
+  conversationId?: string
   message?: AgentChatMessage
+  onAnswerProbe?: (question: string) => void
   onSelectPrompt?: (prompt: string) => void
   previousUserContent?: string
+  showLearningProbe?: boolean
+  isCurrentLearningProbe?: boolean
 }) {
   const { t } = useTranslation()
   const prompts = getStudentNextActionPrompts(t, message, previousUserContent)
   const meta = getStudentNextActionMeta(t, message, previousUserContent)
+  const learningProbeMessageId = getPersistedLearningProbeMessageId(message)
 
   return (
-    <div className="mt-3 w-full">
-      <div className="min-w-0">
-        <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-          <ListChecks className="size-3.5 shrink-0 text-primary" />
-          <span>{t("agentChat.thread.nextActions.title")}</span>
+    <div className="w-full">
+      {showLearningProbe &&
+      conversationId &&
+      learningProbeMessageId &&
+      onAnswerProbe ? (
+        <StudentLearningProbeSlot
+          conversationId={conversationId}
+          isCurrent={isCurrentLearningProbe}
+          messageId={learningProbeMessageId}
+          onAnswer={onAnswerProbe}
+        />
+      ) : null}
+      <div className="mt-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+            <ListChecks className="size-3.5 shrink-0 text-primary" />
+            <span>{t("agentChat.thread.nextActions.title")}</span>
+          </div>
+          <p className="mt-1 text-[11px]/5 text-muted-foreground">
+            {meta.detail}
+          </p>
         </div>
-        <p className="mt-1 text-[11px]/5 text-muted-foreground">
-          {meta.detail}
-        </p>
-      </div>
-      <div className="mt-2 flex flex-col gap-2">
-        {prompts.map((prompt) => (
-          <button
-            key={prompt}
-            type="button"
-            onClick={() => onSelectPrompt?.(prompt)}
-            className="group flex w-fit max-w-full min-w-0 cursor-pointer items-start gap-2 rounded-lg bg-(--agent-chat-accent-soft) px-2.5 py-1.5 text-left text-xs/5 text-foreground transition-colors hover:bg-(--agent-chat-accent-soft) hover:text-primary"
-          >
-            <Sparkles className="mt-0.5 size-3.5 shrink-0 text-primary" />
-            <span className="min-w-0 flex-1">{prompt}</span>
-          </button>
-        ))}
+        <div className="mt-2 flex flex-col gap-2">
+          {prompts.map((prompt) => (
+            <button
+              key={prompt}
+              type="button"
+              onClick={() => onSelectPrompt?.(prompt)}
+              className="group flex w-fit max-w-full min-w-0 cursor-pointer items-start gap-2 rounded-lg bg-(--agent-chat-accent-soft) px-2.5 py-1.5 text-left text-xs/5 text-foreground transition-colors hover:bg-(--agent-chat-accent-soft) hover:text-primary"
+            >
+              <Sparkles className="mt-0.5 size-3.5 shrink-0 text-primary" />
+              <span className="min-w-0 flex-1">{prompt}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )

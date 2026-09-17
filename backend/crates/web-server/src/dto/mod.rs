@@ -2,6 +2,7 @@ pub mod admin;
 pub mod analytics;
 pub mod app;
 pub mod common;
+pub mod learning;
 pub mod sse;
 pub mod team_usage;
 pub mod ws;

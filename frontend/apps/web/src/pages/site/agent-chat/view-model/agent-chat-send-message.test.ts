@@ -30,9 +30,9 @@ describe("sendAgentChatMessage", () => {
         updatedAt: "2026-05-16T00:00:00.000Z",
       },
     } as Awaited<ReturnType<typeof agentChatData.createConversation>>)
-    addConversationMessage.mockResolvedValue({} as Awaited<
-      ReturnType<typeof agentChatData.addConversationMessage>
-    >)
+    addConversationMessage.mockResolvedValue({
+      id: "persisted-assistant-a",
+    } as Awaited<ReturnType<typeof agentChatData.addConversationMessage>>)
     streamAgentSession.mockImplementation(async (_body, handlers) => {
       handlers.onDelta("ok")
       handlers.onDone()
@@ -120,6 +120,7 @@ describe("sendAgentChatMessage", () => {
     expect(messages[0]?.contextSummary?.campaigns).toEqual([])
     expect(messages[0]?.contextSummary?.sourceRefs).toEqual([])
     expect(messages[0]?.contextSummary?.sources).toEqual([])
+    expect(messages[1]?.persistedId).toBe("persisted-assistant-a")
   })
 
   it("cleans internal role quality failures from the live answer before saving", async () => {

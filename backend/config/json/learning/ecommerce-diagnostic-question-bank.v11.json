@@ -1,0 +1,77 @@
+{
+  "version": "ecommerce_diagnostic_v11",
+  "baseVersion": "ecommerce_diagnostic_v10",
+  "frameworkVersion": "ecommerce_v1",
+  "sourceRevision": "2026-09-09",
+  "evaluationMode": "deterministic_rubric_v1",
+  "questions": [
+    {
+      "id": "service.price_objection_needs.choice.011",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "service",
+      "questionType": "single_choice",
+      "prompt": "客户认为一款咖啡“太贵”时，为了判断其真实需求并给出合适方案，客服下一步最值得了解哪组信息？",
+      "choices": [
+        {
+          "id": "discount_without_questions",
+          "text": "不做任何了解，立即给出最低折扣"
+        },
+        {
+          "id": "ask_only_competitor_price",
+          "text": "只问客户在哪家店看到过更低价格"
+        },
+        {
+          "id": "ask_need_use_problem_price",
+          "text": "了解为什么需要、准备怎样使用、想解决什么问题以及可接受价格"
+        },
+        {
+          "id": "ask_social_followers",
+          "text": "只询问客户在社交平台有多少粉丝"
+        }
+      ],
+      "correctChoiceId": "ask_need_use_problem_price",
+      "referenceAnswer": "Australian Government 的市场研究指南建议了解顾客是否想要商品、为什么需要、可能的使用方式、正在解决的问题和愿意支付的价格。面对“太贵”反馈时，先了解这些需求和价格条件，才能判断应解释价值、调整规格还是提供其他匹配方案，而不是在信息不足时机械降价。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "clarify_need_use_problem_and_price",
+            "weight": 1.0,
+            "concepts": [
+              "了解顾客需要原因和使用方式",
+              "了解要解决的问题和可接受价格"
+            ]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "au.business.market_research",
+          "authorityLevel": "primary_official",
+          "publisher": "Australian Government",
+          "title": "Do market research",
+          "url": "https://business.gov.au/marketing-and-advertising/do-market-research",
+          "publishedVersion": "business.gov.au guidance",
+          "checkedAt": "2026-09-09",
+          "validThrough": "2027-03-09",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://business.gov.au/marketing-and-advertising/do-market-research"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260909",
+        "reviewerId": "question_bank_gate_v11",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-09-09",
+        "decision": "approved_for_internal_pilot"
+      }
+    }
+  ]
+}

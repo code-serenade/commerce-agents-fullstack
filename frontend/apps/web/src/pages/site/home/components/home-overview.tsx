@@ -1,6 +1,7 @@
 import {
   ArrowRight,
   BrainCircuit,
+  GraduationCap,
   LogIn,
   ShieldCheck,
   UserRound,
@@ -208,6 +209,31 @@ export function HomeOverview({
             <ArrowRight className="mt-1 size-4 shrink-0 text-(--app-muted-text) transition group-hover:translate-x-0.5" />
           </div>
         </button>
+      </section>
+
+      <section
+        className="mx-auto w-full max-w-[760px] cursor-pointer rounded-xl border border-[color-mix(in_oklch,var(--background)_98%,transparent)] bg-[linear-gradient(135deg,color-mix(in_oklch,var(--background)_96%,var(--primary)_4%)_0%,color-mix(in_oklch,var(--background)_88%,var(--primary)_12%)_100%)] p-4 text-left shadow-[0_18px_44px_color-mix(in_oklch,var(--primary)_8%,transparent),inset_0_1px_0_color-mix(in_oklch,var(--background)_98%,transparent)] backdrop-blur-xl transition hover:border-[color-mix(in_oklch,var(--background)_82%,var(--primary))]"
+        style={homeEntryCardStyle}
+        onClick={() =>
+          isLogin
+            ? navigateToPath("/learning-progress")
+            : requestLogin({ pathname: "/learning-progress" })
+        }
+      >
+        <div className="flex items-start gap-3">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-(--app-active-bg) text-(--app-active-text)">
+            <GraduationCap className="size-5" />
+          </div>
+          <div className="min-w-0 flex-1 space-y-1">
+            <h2 className="text-sm font-semibold text-(--app-text)">
+              {t("home.learning.title")}
+            </h2>
+            <p className="text-xs/5 text-(--app-muted-text)">
+              {t("home.learning.description")}
+            </p>
+          </div>
+          <ArrowRight className="mt-1 size-4 shrink-0 text-(--app-muted-text) transition group-hover:translate-x-0.5" />
+        </div>
       </section>
     </div>
   )

@@ -1,0 +1,117 @@
+{
+  "version": "ecommerce_diagnostic_v6",
+  "baseVersion": "ecommerce_diagnostic_v5",
+  "frameworkVersion": "ecommerce_v1",
+  "evaluationMode": "deterministic_rubric_v1",
+  "sourceRevision": "2026-08-27",
+  "questions": [
+    {
+      "id":"market.trends_topic_scope.choice.004","version":1,"status":"approved","domainCode":"market","questionType":"single_choice",
+      "prompt":"在 Google Trends 中研究跨语言市场对同一个概念的兴趣时，哪种比较对象通常更合适？",
+      "choices":[{"id":"exact_term_only","text":"只使用一种语言的精确搜索词，并假定它代表所有语言"},{"id":"topic","text":"在可用时选择对应主题（Topic），因为主题可聚合同一概念在不同语言中的相关搜索"},{"id":"sales_report","text":"把 Trends 主题直接当作平台成交报表"},{"id":"random_terms","text":"随机选择几个无关词并相加"}],
+      "correctChoiceId":"topic","referenceAnswer":"Google Trends 的主题表示跨语言共享同一概念的一组词；跨语言研究时，选择正确主题通常比单一语言的精确搜索词覆盖更完整。",
+      "rubric":{"version":1,"criteria":[{"code":"use_topic_for_cross_language_concept","weight":1.0,"concepts":["主题聚合同一概念","跨语言相关搜索"]}],"contradictions":[],"partialThreshold":0.5,"correctThreshold":1.0},
+      "sources":[{"sourceId":"google.trends.compare.terms_topics","authorityLevel":"primary_official","publisher":"Google","title":"Compare Trends search terms","url":"https://support.google.com/trends/answer/4359550?hl=en","publishedVersion":"Google Trends Help","checkedAt":"2026-08-27","validThrough":"2027-08-27","licenseType":"official_reference_only","useMode":"source_based_original","licenseUrl":"https://policies.google.com/terms"}],
+      "review":{"authorId":"source_backed_choice_seed_20260827","reviewerId":"question_bank_gate_v2","reviewScope":"source_and_rubric_engineering_review","reviewerType":"automated_engineering_gate","curriculumReviewRequired":true,"reviewedAt":"2026-08-27","decision":"approved_for_internal_pilot"}
+    },
+    {
+      "id":"product.availability_in_stock.choice.004","version":1,"status":"approved","domainCode":"product","questionType":"single_choice",
+      "prompt":"商品暂时无法接受订单，预计三天后才补货。当前商品 Feed 的 availability 最合适设置为什么？",
+      "choices":[{"id":"in_stock_for_clicks","text":"继续填写 in_stock，以免流量下降"},{"id":"preorder_without_date","text":"无论是否接受预订都填写 preorder"},{"id":"out_of_stock","text":"当前不能接受订单时填写 out_of_stock，恢复可购买后再同步库存状态"},{"id":"leave_old_value","text":"保留旧状态，不必与落地页同步"}],
+      "correctChoiceId":"out_of_stock","referenceAnswer":"availability 必须与落地页和实际购买能力一致；当前不能接受订单时应标记为 out_of_stock，恢复后及时更新。",
+      "rubric":{"version":1,"criteria":[{"code":"align_availability_with_orderability","weight":1.0,"concepts":["不能下单时缺货","与实际购买状态一致"]}],"contradictions":[],"partialThreshold":0.5,"correctThreshold":1.0},
+      "sources":[{"sourceId":"google.merchant.product_spec.availability","authorityLevel":"primary_official","publisher":"Google","title":"Product data specification: availability","url":"https://support.google.com/merchants/answer/6324448?hl=en","publishedVersion":"Merchant Center Help","checkedAt":"2026-08-27","validThrough":"2027-02-27","licenseType":"official_reference_only","useMode":"source_based_original","licenseUrl":"https://policies.google.com/terms"}],
+      "review":{"authorId":"source_backed_choice_seed_20260827","reviewerId":"question_bank_gate_v2","reviewScope":"source_and_rubric_engineering_review","reviewerType":"automated_engineering_gate","curriculumReviewRequired":true,"reviewedAt":"2026-08-27","decision":"approved_for_internal_pilot"}
+    },
+    {
+      "id":"content.functional_image_alt.choice.003","version":1,"status":"approved","domainCode":"content","questionType":"single_choice",
+      "prompt":"一个只有放大镜图标、点击后执行站内搜索的图片按钮，其替代文本最合适是什么？",
+      "choices":[{"id":"magnifier_shape","text":"一只黑色放大镜"},{"id":"icon_file","text":"search-icon.png"},{"id":"empty_alt","text":"始终使用空 alt，因为它是一张图"},{"id":"search_action","text":"搜索"}],
+      "correctChoiceId":"search_action","referenceAnswer":"功能性图片的替代文本应表达控件执行的动作或目标。该按钮执行搜索，因此应描述为“搜索”，而不是只描述图标外观或文件名。",
+      "rubric":{"version":1,"criteria":[{"code":"describe_function_not_appearance","weight":1.0,"concepts":["表达搜索功能","不是描述图标外观"]}],"contradictions":[],"partialThreshold":0.5,"correctThreshold":1.0},
+      "sources":[{"sourceId":"w3c.wai.functional_images","authorityLevel":"standard","publisher":"W3C Web Accessibility Initiative","title":"Images Tutorial: Functional Images","url":"https://www.w3.org/WAI/tutorials/images/functional/","publishedVersion":"WAI Images Tutorial","checkedAt":"2026-08-27","validThrough":"2027-08-27","licenseType":"official_reference_only","useMode":"source_based_original","licenseUrl":"https://www.w3.org/copyright/document-license-2023/"}],
+      "review":{"authorId":"source_backed_choice_seed_20260827","reviewerId":"question_bank_gate_v2","reviewScope":"source_and_rubric_engineering_review","reviewerType":"automated_engineering_gate","curriculumReviewRequired":true,"reviewedAt":"2026-08-27","decision":"approved_for_internal_pilot"}
+    },
+    {
+      "id":"content.image_of_text.choice.004","version":1,"status":"approved","domainCode":"content","questionType":"single_choice",
+      "prompt":"促销横幅图片中包含正文没有重复的“全场满299减50”。在暂时无法改为真实文本时，替代文本应怎样写？",
+      "choices":[{"id":"sale_banner","text":"只写“促销横幅”"},{"id":"same_words","text":"提供与图片中可见文字相同的信息，例如“全场满299减50”"},{"id":"empty_alt","text":"使用空 alt，让优惠信息不被读取"},{"id":"color_only","text":"只描述横幅颜色和字体"}],
+      "correctChoiceId":"same_words","referenceAnswer":"图片文字承载必要信息且无法替换为真实文本时，替代文本应包含相同文字信息；更优方案仍是尽可能使用可访问的真实文本。",
+      "rubric":{"version":1,"criteria":[{"code":"provide_equivalent_text","weight":1.0,"concepts":["替代文本包含相同优惠信息","优先真实文本"]}],"contradictions":[],"partialThreshold":0.5,"correctThreshold":1.0},
+      "sources":[{"sourceId":"w3c.wai.images_of_text","authorityLevel":"standard","publisher":"W3C Web Accessibility Initiative","title":"Images Tutorial: Images of Text","url":"https://www.w3.org/WAI/tutorials/images/textual/","publishedVersion":"WAI Images Tutorial","checkedAt":"2026-08-27","validThrough":"2027-08-27","licenseType":"official_reference_only","useMode":"source_based_original","licenseUrl":"https://www.w3.org/copyright/document-license-2023/"}],
+      "review":{"authorId":"source_backed_choice_seed_20260827","reviewerId":"question_bank_gate_v2","reviewScope":"source_and_rubric_engineering_review","reviewerType":"automated_engineering_gate","curriculumReviewRequired":true,"reviewedAt":"2026-08-27","decision":"approved_for_internal_pilot"}
+    },
+    {
+      "id":"traffic.ga4_view_item_list.choice.003","version":1,"status":"approved","domainCode":"traffic","questionType":"single_choice",
+      "prompt":"要在 GA4 中记录用户看到了商品列表或推荐位中的一组商品，推荐使用哪个电商事件？",
+      "choices":[{"id":"purchase","text":"purchase"},{"id":"add_payment_info","text":"add_payment_info"},{"id":"view_item_list","text":"view_item_list"},{"id":"refund","text":"refund"}],
+      "correctChoiceId":"view_item_list","referenceAnswer":"GA4 推荐使用 view_item_list 记录商品列表曝光，并通过 items 参数传递列表中的商品信息。",
+      "rubric":{"version":1,"criteria":[{"code":"use_view_item_list_event","weight":1.0,"concepts":["view_item_list","商品列表曝光"]}],"contradictions":[],"partialThreshold":0.5,"correctThreshold":1.0},
+      "sources":[{"sourceId":"google.ga4.ecommerce.events","authorityLevel":"primary_official","publisher":"Google for Developers","title":"Measure ecommerce","url":"https://developers.google.com/analytics/devguides/collection/ga4/ecommerce","publishedVersion":"GA4 recommended ecommerce events","checkedAt":"2026-08-27","validThrough":"2027-02-27","licenseType":"official_reference_only","useMode":"source_based_original","licenseUrl":"https://developers.google.com/terms/site-terms"}],
+      "review":{"authorId":"source_backed_choice_seed_20260827","reviewerId":"question_bank_gate_v2","reviewScope":"source_and_rubric_engineering_review","reviewerType":"automated_engineering_gate","curriculumReviewRequired":true,"reviewedAt":"2026-08-27","decision":"approved_for_internal_pilot"}
+    },
+    {
+      "id":"traffic.ga4_select_item.choice.004","version":1,"status":"approved","domainCode":"traffic","questionType":"single_choice",
+      "prompt":"用户从商品列表中点击并选择了某件商品，GA4 推荐用哪个事件记录这次选择？",
+      "choices":[{"id":"view_cart","text":"view_cart"},{"id":"begin_checkout","text":"begin_checkout"},{"id":"add_shipping_info","text":"add_shipping_info"},{"id":"select_item","text":"select_item"}],
+      "correctChoiceId":"select_item","referenceAnswer":"GA4 推荐使用 select_item 记录用户从列表、推荐位或其他商品集合中选择某一商品的行为。",
+      "rubric":{"version":1,"criteria":[{"code":"use_select_item_event","weight":1.0,"concepts":["select_item","从列表选择商品"]}],"contradictions":[],"partialThreshold":0.5,"correctThreshold":1.0},
+      "sources":[{"sourceId":"google.ga4.ecommerce.events","authorityLevel":"primary_official","publisher":"Google for Developers","title":"Measure ecommerce","url":"https://developers.google.com/analytics/devguides/collection/ga4/ecommerce","publishedVersion":"GA4 recommended ecommerce events","checkedAt":"2026-08-27","validThrough":"2027-02-27","licenseType":"official_reference_only","useMode":"source_based_original","licenseUrl":"https://developers.google.com/terms/site-terms"}],
+      "review":{"authorId":"source_backed_choice_seed_20260827","reviewerId":"question_bank_gate_v2","reviewScope":"source_and_rubric_engineering_review","reviewerType":"automated_engineering_gate","curriculumReviewRequired":true,"reviewedAt":"2026-08-27","decision":"approved_for_internal_pilot"}
+    },
+    {
+      "id":"conversion.ga4_begin_checkout.choice.003","version":1,"status":"approved","domainCode":"conversion","questionType":"single_choice",
+      "prompt":"用户进入结账流程时，GA4 推荐使用哪个电商事件？",
+      "choices":[{"id":"view_item","text":"view_item"},{"id":"begin_checkout","text":"begin_checkout"},{"id":"select_promotion","text":"select_promotion"},{"id":"refund","text":"refund"}],
+      "correctChoiceId":"begin_checkout","referenceAnswer":"GA4 推荐在用户开始结账流程时发送 begin_checkout，并通过 items 等参数描述本次结账涉及的商品。",
+      "rubric":{"version":1,"criteria":[{"code":"use_begin_checkout_event","weight":1.0,"concepts":["begin_checkout","开始结账"]}],"contradictions":[],"partialThreshold":0.5,"correctThreshold":1.0},
+      "sources":[{"sourceId":"google.ga4.ecommerce.events","authorityLevel":"primary_official","publisher":"Google for Developers","title":"Measure ecommerce","url":"https://developers.google.com/analytics/devguides/collection/ga4/ecommerce","publishedVersion":"GA4 recommended ecommerce events","checkedAt":"2026-08-27","validThrough":"2027-02-27","licenseType":"official_reference_only","useMode":"source_based_original","licenseUrl":"https://developers.google.com/terms/site-terms"}],
+      "review":{"authorId":"source_backed_choice_seed_20260827","reviewerId":"question_bank_gate_v2","reviewScope":"source_and_rubric_engineering_review","reviewerType":"automated_engineering_gate","curriculumReviewRequired":true,"reviewedAt":"2026-08-27","decision":"approved_for_internal_pilot"}
+    },
+    {
+      "id":"conversion.ga4_payment_info.choice.004","version":1,"status":"approved","domainCode":"conversion","questionType":"single_choice",
+      "prompt":"用户在结账流程中提交了付款信息，GA4 推荐用哪个事件记录？",
+      "choices":[{"id":"add_to_wishlist","text":"add_to_wishlist"},{"id":"view_promotion","text":"view_promotion"},{"id":"add_payment_info","text":"add_payment_info"},{"id":"select_item","text":"select_item"}],
+      "correctChoiceId":"add_payment_info","referenceAnswer":"GA4 推荐使用 add_payment_info 记录用户在结账流程中提交付款信息的步骤。",
+      "rubric":{"version":1,"criteria":[{"code":"use_add_payment_info_event","weight":1.0,"concepts":["add_payment_info","提交付款信息"]}],"contradictions":[],"partialThreshold":0.5,"correctThreshold":1.0},
+      "sources":[{"sourceId":"google.ga4.ecommerce.events","authorityLevel":"primary_official","publisher":"Google for Developers","title":"Measure ecommerce","url":"https://developers.google.com/analytics/devguides/collection/ga4/ecommerce","publishedVersion":"GA4 recommended ecommerce events","checkedAt":"2026-08-27","validThrough":"2027-02-27","licenseType":"official_reference_only","useMode":"source_based_original","licenseUrl":"https://developers.google.com/terms/site-terms"}],
+      "review":{"authorId":"source_backed_choice_seed_20260827","reviewerId":"question_bank_gate_v2","reviewScope":"source_and_rubric_engineering_review","reviewerType":"automated_engineering_gate","curriculumReviewRequired":true,"reviewedAt":"2026-08-27","decision":"approved_for_internal_pilot"}
+    },
+    {
+      "id":"finance.gross_margin_rate.choice.004","version":1,"status":"approved","domainCode":"finance","questionType":"single_choice",
+      "prompt":"销售收入为 200 万元、销售成本为 120 万元。以销售收入为分母，毛利率是多少？",
+      "choices":[{"id":"sixty_percent","text":"60%"},{"id":"eighty_percent","text":"80%"},{"id":"one_hundred_sixty_percent","text":"160%"},{"id":"forty_percent","text":"40%"}],
+      "correctChoiceId":"forty_percent","referenceAnswer":"毛利为 200-120=80 万元，毛利率为毛利除以销售收入，即 80/200=40%。",
+      "rubric":{"version":1,"criteria":[{"code":"calculate_gross_margin_rate","weight":1.0,"concepts":["毛利除以收入","40%"]}],"contradictions":[],"partialThreshold":0.5,"correctThreshold":1.0},
+      "sources":[{"sourceId":"ifrs.ias1.profit_loss","authorityLevel":"primary_official","publisher":"IFRS Foundation","title":"IAS 1 Presentation of Financial Statements","url":"https://www.ifrs.org/issued-standards/list-of-standards/ias-1-presentation-of-financial-statements/","publishedVersion":"Issued Standards 2026","checkedAt":"2026-08-27","validThrough":"2027-08-27","licenseType":"official_reference_only","useMode":"source_based_original","licenseUrl":"https://www.ifrs.org/legal/terms-and-conditions/"}],
+      "review":{"authorId":"source_backed_choice_seed_20260827","reviewerId":"question_bank_gate_v2","reviewScope":"source_and_rubric_engineering_review","reviewerType":"automated_engineering_gate","curriculumReviewRequired":true,"reviewedAt":"2026-08-27","decision":"approved_for_internal_pilot"}
+    },
+    {
+      "id":"service.eu_seller_responsibility.choice.004","version":1,"status":"approved","domainCode":"service","questionType":"single_choice",
+      "prompt":"欧盟消费者在法定保障期内就缺陷商品联系网店，网店最合适的处理立场是什么？",
+      "choices":[{"id":"send_to_manufacturer","text":"一律要求消费者自行联系制造商，网店不处理"},{"id":"seller_handles","text":"销售方对消费者承担法定保障责任，应受理并按规则提供维修、更换、降价或退款等救济"},{"id":"warranty_optional","text":"只有购买了额外商业保修的消费者才能提出缺陷问题"},{"id":"coupon_closes_case","text":"发一张优惠券即可自动终止法定责任"}],
+      "correctChoiceId":"seller_handles","referenceAnswer":"法定保障关系中的责任主体是向消费者销售商品的销售方；商业保修或制造商支持不能取代销售方的法定义务。",
+      "rubric":{"version":1,"criteria":[{"code":"recognize_seller_legal_responsibility","weight":1.0,"concepts":["销售方承担法定责任","受理缺陷商品救济"]}],"contradictions":[],"partialThreshold":0.5,"correctThreshold":1.0},
+      "sources":[{"sourceId":"eu.your_europe.guarantees_returns","authorityLevel":"primary_official","publisher":"European Union","title":"Guarantees and returns","url":"https://europa.eu/youreurope/citizens/consumers/shopping/guarantees-returns/index_en.htm","publishedVersion":"Your Europe consumer guidance","checkedAt":"2026-08-27","validThrough":"2027-02-27","licenseType":"official_reference_only","useMode":"source_based_original","licenseUrl":"https://commission.europa.eu/legal-notice_en"}],
+      "review":{"authorId":"source_backed_choice_seed_20260827","reviewerId":"question_bank_gate_v2","reviewScope":"source_and_rubric_engineering_review","reviewerType":"automated_engineering_gate","curriculumReviewRequired":true,"reviewedAt":"2026-08-27","decision":"approved_for_internal_pilot"}
+    },
+    {
+      "id":"compliance.eu_total_price.choice.003","version":1,"status":"approved","domainCode":"compliance","questionType":"single_choice",
+      "prompt":"面向欧盟消费者的网店，在消费者下单前应怎样展示价格信息？",
+      "choices":[{"id":"base_price_only","text":"只显示商品基础价，税费和必付费用在付款后再告知"},{"id":"hide_delivery","text":"始终隐藏配送费用，即使可以提前计算"},{"id":"total_price_or_method","text":"清楚告知含税总价及其他必付费用；无法预先计算的费用应说明计算方式"},{"id":"verbal_only","text":"无需在页面展示，只要客服能够口头解释"}],
+      "correctChoiceId":"total_price_or_method","referenceAnswer":"远程合同订立前应清楚告知含税总价和其他必付费用；某项费用无法合理预先计算时，应说明其计算方式。",
+      "rubric":{"version":1,"criteria":[{"code":"disclose_total_price_before_order","weight":1.0,"concepts":["下单前告知含税总价","说明其他费用或计算方式"]}],"contradictions":[],"partialThreshold":0.5,"correctThreshold":1.0},
+      "sources":[{"sourceId":"eu.your_europe.online_information","authorityLevel":"primary_official","publisher":"European Union","title":"Information you should get when buying, signing a contract","url":"https://europa.eu/youreurope/citizens/consumers/shopping/contract-information/index_en.htm","publishedVersion":"Your Europe consumer guidance","checkedAt":"2026-08-27","validThrough":"2027-02-27","licenseType":"official_reference_only","useMode":"source_based_original","licenseUrl":"https://commission.europa.eu/legal-notice_en"}],
+      "review":{"authorId":"source_backed_choice_seed_20260827","reviewerId":"question_bank_gate_v2","reviewScope":"source_and_rubric_engineering_review","reviewerType":"automated_engineering_gate","curriculumReviewRequired":true,"reviewedAt":"2026-08-27","decision":"approved_for_internal_pilot"}
+    },
+    {
+      "id":"compliance.eu_extra_payment_consent.choice.004","version":1,"status":"approved","domainCode":"compliance","questionType":"single_choice",
+      "prompt":"欧盟网店结账页预先勾选了付费延保服务，消费者没有主动取消。哪项判断更准确？",
+      "choices":[{"id":"silence_is_consent","text":"消费者没有取消就等于明确同意额外付款"},{"id":"any_checkbox_valid","text":"只要页面有复选框，是否预先勾选都有效"},{"id":"refund_never_needed","text":"额外费用一旦收取就永远无需退还"},{"id":"express_consent_required","text":"额外付款需要消费者明确同意，预先勾选不能代替主动选择"}],
+      "correctChoiceId":"express_consent_required","referenceAnswer":"欧盟消费者权利规则要求额外付款取得消费者明确同意；商家不能依靠预先勾选的默认选项推定同意。",
+      "rubric":{"version":1,"criteria":[{"code":"require_express_extra_payment_consent","weight":1.0,"concepts":["额外付款明确同意","预选框不能代替主动选择"]}],"contradictions":[],"partialThreshold":0.5,"correctThreshold":1.0},
+      "sources":[{"sourceId":"eu.consumer_rights.directive","authorityLevel":"primary_official","publisher":"European Commission","title":"Consumer Rights Directive","url":"https://commission.europa.eu/law/law-topic/consumer-protection-law/consumer-contract-law/consumer-rights-directive_en","publishedVersion":"Directive 2011/83/EU consolidated guidance","checkedAt":"2026-08-27","validThrough":"2027-02-27","licenseType":"official_reference_only","useMode":"source_based_original","licenseUrl":"https://commission.europa.eu/legal-notice_en"}],
+      "review":{"authorId":"source_backed_choice_seed_20260827","reviewerId":"question_bank_gate_v2","reviewScope":"source_and_rubric_engineering_review","reviewerType":"automated_engineering_gate","curriculumReviewRequired":true,"reviewedAt":"2026-08-27","decision":"approved_for_internal_pilot"}
+    }
+  ]
+}

@@ -34,6 +34,7 @@ export interface AgentChatMessageContextSummary {
 
 export interface AgentChatMessage {
   id: string
+  persistedId?: string
   role: AgentChatRole
   content: string
   contextSummary?: AgentChatMessageContextSummary

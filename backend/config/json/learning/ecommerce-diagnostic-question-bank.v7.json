@@ -1,0 +1,857 @@
+{
+  "version": "ecommerce_diagnostic_v7",
+  "baseVersion": "ecommerce_diagnostic_v6",
+  "frameworkVersion": "ecommerce_v1",
+  "sourceRevision": "2026-08-28",
+  "evaluationMode": "deterministic_rubric_v1",
+  "questions": [
+    {
+      "id": "market.trends_not_sales.choice.005",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "market",
+      "questionType": "single_choice",
+      "prompt": "某商品关键词在 Google Trends 中的相对热度连续上涨。下面哪项判断最准确？",
+      "choices": [
+        { "id": "sales_same_rate", "text": "可以直接断定该商品销量会按相同比例上涨" },
+        { "id": "profit_confirmed", "text": "可以直接断定该商品利润已经上涨" },
+        { "id": "relative_interest_signal", "text": "这说明相对搜索兴趣在上升，但仍应结合实际流量、转化和销售数据验证需求" },
+        { "id": "absolute_buyers", "text": "热度数值就是实际购买人数" }
+      ],
+      "correctChoiceId": "relative_interest_signal",
+      "referenceAnswer": "Google Trends 展示的是经过归一化的相对搜索兴趣，不是销量、利润或实际购买人数。它可以作为市场关注信号，但需要结合站内流量、转化和销售数据验证。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "distinguish_search_interest_from_sales",
+            "weight": 1.0,
+            "concepts": ["相对搜索兴趣不是销量", "结合实际经营数据验证"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "google.trends.faq_data",
+          "authorityLevel": "primary_official",
+          "publisher": "Google",
+          "title": "FAQ about Google Trends data",
+          "url": "https://support.google.com/trends/answer/4365533?hl=en",
+          "publishedVersion": "Google Trends Help",
+          "checkedAt": "2026-08-28",
+          "validThrough": "2027-08-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://policies.google.com/terms"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260828",
+        "reviewerId": "question_bank_gate_v3",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-28",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "market.trends_region_relative.choice.006",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "market",
+      "questionType": "single_choice",
+      "prompt": "同一关键词在 Google Trends 的地区比较中，A 地区为 80，B 地区为 40。哪种解释更稳妥？",
+      "choices": [
+        { "id": "double_absolute_searches", "text": "A 地区的绝对搜索次数一定是 B 地区的两倍" },
+        { "id": "double_sales", "text": "A 地区的商品销量一定是 B 地区的两倍" },
+        { "id": "relative_share_higher", "text": "A 地区在各自搜索总量中的相对兴趣更高，但不能据此推算绝对搜索量或销量" },
+        { "id": "same_population", "text": "两个地区的人口规模一定相同" }
+      ],
+      "correctChoiceId": "relative_share_higher",
+      "referenceAnswer": "Trends 的地区值按该地区全部搜索中的相对占比归一化。80 与 40 表示相对兴趣不同，不能直接推出绝对搜索次数、人口或销量倍数。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "interpret_regional_relative_interest",
+            "weight": 1.0,
+            "concepts": ["地区相对兴趣", "不能推算绝对搜索量"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "google.trends.faq_data",
+          "authorityLevel": "primary_official",
+          "publisher": "Google",
+          "title": "FAQ about Google Trends data",
+          "url": "https://support.google.com/trends/answer/4365533?hl=en",
+          "publishedVersion": "Google Trends Help",
+          "checkedAt": "2026-08-28",
+          "validThrough": "2027-08-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://policies.google.com/terms"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260828",
+        "reviewerId": "question_bank_gate_v3",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-28",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "product.condition_used.choice.005",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "product",
+      "questionType": "single_choice",
+      "prompt": "一件商品已经被消费者正常使用过，现在作为二手商品重新销售。Merchant Center 的 condition 最合适填写什么？",
+      "choices": [
+        { "id": "new", "text": "new" },
+        { "id": "used", "text": "used" },
+        { "id": "refurbished_without_process", "text": "只要外观较新就填写 refurbished" },
+        { "id": "omit_condition", "text": "无论商品状态如何都省略 condition" }
+      ],
+      "correctChoiceId": "used",
+      "referenceAnswer": "已经被正常使用过的商品应标记为 used。refurbished 适用于经过专业翻新、恢复到可正常工作状态并通常附带相应保障的商品，不能仅凭外观看起来较新就使用。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "classify_used_product_condition",
+            "weight": 1.0,
+            "concepts": ["使用过的商品标记 used", "不冒充新品或翻新品"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "google.merchant.product_spec.condition",
+          "authorityLevel": "primary_official",
+          "publisher": "Google",
+          "title": "Condition [condition]",
+          "url": "https://support.google.com/merchants/answer/6324469?hl=en",
+          "publishedVersion": "Merchant Center Help",
+          "checkedAt": "2026-08-28",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://policies.google.com/terms"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260828",
+        "reviewerId": "question_bank_gate_v3",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-28",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "product.availability_preorder.choice.006",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "product",
+      "questionType": "single_choice",
+      "prompt": "一款新品尚未正式发布，但商家已经接受预订，并能明确预计发货日期。商品 Feed 的 availability 应怎样设置？",
+      "choices": [
+        { "id": "in_stock_now", "text": "填写 in_stock，表示现在已有现货" },
+        { "id": "preorder_with_date", "text": "填写 preorder，并按规范提供可用日期" },
+        { "id": "out_of_stock_forever", "text": "永远填写 out_of_stock，即使正在接受预订" },
+        { "id": "leave_old_availability", "text": "继续保留旧商品的库存状态" }
+      ],
+      "correctChoiceId": "preorder_with_date",
+      "referenceAnswer": "商家正在接受尚未发布商品的预订时应使用 preorder，并按官方规范提供 availability_date；不能把预订商品伪报为已有现货。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "use_preorder_with_availability_date",
+            "weight": 1.0,
+            "concepts": ["预订商品使用 preorder", "提供可用日期"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "google.merchant.product_spec.availability",
+          "authorityLevel": "primary_official",
+          "publisher": "Google",
+          "title": "Availability [availability]",
+          "url": "https://support.google.com/merchants/answer/6324448?hl=en",
+          "publishedVersion": "Merchant Center Help",
+          "checkedAt": "2026-08-28",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://policies.google.com/terms"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260828",
+        "reviewerId": "question_bank_gate_v3",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-28",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "content.complex_chart_description.choice.005",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "content",
+      "questionType": "single_choice",
+      "prompt": "商品经营报告中有一张包含多个月销售额和退货率的复杂图表。怎样提供替代信息最合适？",
+      "choices": [
+        { "id": "empty_alt_only", "text": "使用空 alt，不再提供任何数据说明" },
+        { "id": "file_name_only", "text": "替代文本只写 chart-final.png" },
+        { "id": "all_data_in_alt", "text": "把所有数据都塞进一个非常长的 alt 中" },
+        { "id": "short_alt_and_long_equivalent", "text": "用简短替代文本说明图表主题，并在附近提供完整文字说明或数据表" }
+      ],
+      "correctChoiceId": "short_alt_and_long_equivalent",
+      "referenceAnswer": "复杂图像通常需要简短替代文本标明图表主题，同时通过相邻正文、长描述或数据表提供完整等价信息；不应仅留空，也不应把全部复杂数据堆进 alt。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "provide_short_and_long_complex_image_alternative",
+            "weight": 1.0,
+            "concepts": ["简短替代文本", "完整文字说明或数据表"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "w3c.wai.complex_images",
+          "authorityLevel": "standard",
+          "publisher": "W3C Web Accessibility Initiative",
+          "title": "Images Tutorial: Complex Images",
+          "url": "https://www.w3.org/WAI/tutorials/images/complex/",
+          "publishedVersion": "WAI Images Tutorial",
+          "checkedAt": "2026-08-28",
+          "validThrough": "2027-08-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://www.w3.org/copyright/document-license-2023/"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260828",
+        "reviewerId": "question_bank_gate_v3",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-28",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "content.linked_product_image.choice.006",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "content",
+      "questionType": "single_choice",
+      "prompt": "商品列表中的背包图片本身就是进入该商品详情页的链接。图片替代文本最合适怎样写？",
+      "choices": [
+        { "id": "image_file", "text": "bag-2026-final.jpg" },
+        { "id": "link_word_only", "text": "链接" },
+        { "id": "destination_purpose", "text": "查看蓝色通勤背包详情" },
+        { "id": "empty_for_all_links", "text": "所有链接图片都必须使用空 alt" }
+      ],
+      "correctChoiceId": "destination_purpose",
+      "referenceAnswer": "作为链接或控件的功能性图片，其替代文本应表达链接目的或执行的动作，例如进入某商品详情，而不是文件名、笼统的“链接”或空文本。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "describe_linked_image_destination",
+            "weight": 1.0,
+            "concepts": ["表达链接目的", "进入商品详情"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "w3c.wai.functional_images",
+          "authorityLevel": "standard",
+          "publisher": "W3C Web Accessibility Initiative",
+          "title": "Images Tutorial: Functional Images",
+          "url": "https://www.w3.org/WAI/tutorials/images/functional/",
+          "publishedVersion": "WAI Images Tutorial",
+          "checkedAt": "2026-08-28",
+          "validThrough": "2027-08-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://www.w3.org/copyright/document-license-2023/"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260828",
+        "reviewerId": "question_bank_gate_v3",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-28",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "traffic.ga4_view_item.choice.005",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "traffic",
+      "questionType": "single_choice",
+      "prompt": "用户打开某件商品的详情页并查看该商品时，GA4 推荐使用哪个电商事件？",
+      "choices": [
+        { "id": "view_item", "text": "view_item" },
+        { "id": "purchase", "text": "purchase" },
+        { "id": "refund", "text": "refund" },
+        { "id": "add_payment_info", "text": "add_payment_info" }
+      ],
+      "correctChoiceId": "view_item",
+      "referenceAnswer": "GA4 推荐使用 view_item 记录用户查看单个商品详情，并通过 items 参数传递被查看商品的信息。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "use_view_item_event",
+            "weight": 1.0,
+            "concepts": ["view_item", "查看商品详情"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "google.ga4.ecommerce.events",
+          "authorityLevel": "primary_official",
+          "publisher": "Google for Developers",
+          "title": "Measure ecommerce",
+          "url": "https://developers.google.com/analytics/devguides/collection/ga4/ecommerce",
+          "publishedVersion": "GA4 recommended ecommerce events",
+          "checkedAt": "2026-08-28",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://developers.google.com/terms/site-terms"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260828",
+        "reviewerId": "question_bank_gate_v3",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-28",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "traffic.ga4_view_cart.choice.006",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "traffic",
+      "questionType": "single_choice",
+      "prompt": "用户打开购物车页面查看当前购物车中的商品时，GA4 推荐发送哪个事件？",
+      "choices": [
+        { "id": "select_promotion", "text": "select_promotion" },
+        { "id": "view_cart", "text": "view_cart" },
+        { "id": "add_shipping_info", "text": "add_shipping_info" },
+        { "id": "refund", "text": "refund" }
+      ],
+      "correctChoiceId": "view_cart",
+      "referenceAnswer": "GA4 推荐在用户查看购物车时发送 view_cart，并在 items 参数中提供购物车商品信息。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "use_view_cart_event",
+            "weight": 1.0,
+            "concepts": ["view_cart", "查看购物车"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "google.ga4.ecommerce.events",
+          "authorityLevel": "primary_official",
+          "publisher": "Google for Developers",
+          "title": "Measure ecommerce",
+          "url": "https://developers.google.com/analytics/devguides/collection/ga4/ecommerce",
+          "publishedVersion": "GA4 recommended ecommerce events",
+          "checkedAt": "2026-08-28",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://developers.google.com/terms/site-terms"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260828",
+        "reviewerId": "question_bank_gate_v3",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-28",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "conversion.ga4_shipping_info.choice.005",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "conversion",
+      "questionType": "single_choice",
+      "prompt": "用户在结账流程中提交了配送信息，GA4 推荐用哪个事件记录这个步骤？",
+      "choices": [
+        { "id": "view_item_list", "text": "view_item_list" },
+        { "id": "add_shipping_info", "text": "add_shipping_info" },
+        { "id": "select_item", "text": "select_item" },
+        { "id": "view_promotion", "text": "view_promotion" }
+      ],
+      "correctChoiceId": "add_shipping_info",
+      "referenceAnswer": "GA4 推荐使用 add_shipping_info 记录用户在结账流程中提交配送信息的步骤。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "use_add_shipping_info_event",
+            "weight": 1.0,
+            "concepts": ["add_shipping_info", "提交配送信息"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "google.ga4.ecommerce.events",
+          "authorityLevel": "primary_official",
+          "publisher": "Google for Developers",
+          "title": "Measure ecommerce",
+          "url": "https://developers.google.com/analytics/devguides/collection/ga4/ecommerce",
+          "publishedVersion": "GA4 recommended ecommerce events",
+          "checkedAt": "2026-08-28",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://developers.google.com/terms/site-terms"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260828",
+        "reviewerId": "question_bank_gate_v3",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-28",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "conversion.ga4_refund.choice.006",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "conversion",
+      "questionType": "single_choice",
+      "prompt": "商家已经为一笔订单办理退款，希望在 GA4 中记录这次退款。推荐使用哪个事件？",
+      "choices": [
+        { "id": "refund", "text": "refund" },
+        { "id": "purchase_again", "text": "再次发送 purchase" },
+        { "id": "view_cart", "text": "view_cart" },
+        { "id": "remove_from_cart", "text": "remove_from_cart" }
+      ],
+      "correctChoiceId": "refund",
+      "referenceAnswer": "GA4 推荐使用 refund 记录退款，并通过 transaction_id 关联原交易；如为部分退款，还可通过 items 描述退回商品。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "use_refund_event",
+            "weight": 1.0,
+            "concepts": ["refund", "记录退款"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "google.ga4.ecommerce.events",
+          "authorityLevel": "primary_official",
+          "publisher": "Google for Developers",
+          "title": "Measure ecommerce",
+          "url": "https://developers.google.com/analytics/devguides/collection/ga4/ecommerce",
+          "publishedVersion": "GA4 recommended ecommerce events",
+          "checkedAt": "2026-08-28",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://developers.google.com/terms/site-terms"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260828",
+        "reviewerId": "question_bank_gate_v3",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-28",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "finance.roas_not_profit.choice.005",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "finance",
+      "questionType": "single_choice",
+      "prompt": "某广告活动的 ROAS 为 4，也就是每投入 1 元广告费带来 4 元转化价值。哪项结论最准确？",
+      "choices": [
+        { "id": "profit_certain", "text": "ROAS 大于 1 就能直接证明活动一定盈利" },
+        { "id": "revenue_efficiency_not_profit", "text": "它说明广告费与转化价值的比例，但是否盈利还要结合商品成本、履约、优惠和退货等费用" },
+        { "id": "margin_is_four", "text": "该活动的毛利率一定是 400%" },
+        { "id": "returns_irrelevant", "text": "退货和退款不会影响经营结果" }
+      ],
+      "correctChoiceId": "revenue_efficiency_not_profit",
+      "referenceAnswer": "ROAS 衡量转化价值与广告支出的关系，不等于利润率。判断盈利仍需扣除商品、履约、优惠、售后和其他经营成本。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "distinguish_roas_from_profit",
+            "weight": 1.0,
+            "concepts": ["ROAS 不是利润率", "结合其他经营成本"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "google.ads.target_roas",
+          "authorityLevel": "primary_official",
+          "publisher": "Google",
+          "title": "About Target ROAS bidding",
+          "url": "https://support.google.com/google-ads/answer/6268637?hl=en",
+          "publishedVersion": "Google Ads Help",
+          "checkedAt": "2026-08-28",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://policies.google.com/terms"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260828",
+        "reviewerId": "question_bank_gate_v3",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-28",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "finance.operating_profit_calculation.choice.006",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "finance",
+      "questionType": "single_choice",
+      "prompt": "某月销售收入 300 万元，销售成本 180 万元，经营费用 90 万元。忽略其他项目，经营利润是多少？",
+      "choices": [
+        { "id": "thirty", "text": "30 万元" },
+        { "id": "ninety", "text": "90 万元" },
+        { "id": "one_hundred_twenty", "text": "120 万元" },
+        { "id": "three_hundred", "text": "300 万元" }
+      ],
+      "correctChoiceId": "thirty",
+      "referenceAnswer": "先计算毛利 300-180=120 万元，再减去经营费用 90 万元，经营利润为 30 万元。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "calculate_operating_profit",
+            "weight": 1.0,
+            "concepts": ["收入减销售成本再减经营费用", "30 万元"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "ifrs.ias1.profit_loss",
+          "authorityLevel": "primary_official",
+          "publisher": "IFRS Foundation",
+          "title": "IAS 1 Presentation of Financial Statements",
+          "url": "https://www.ifrs.org/issued-standards/list-of-standards/ias-1-presentation-of-financial-statements/",
+          "publishedVersion": "Issued Standards 2026",
+          "checkedAt": "2026-08-28",
+          "validThrough": "2027-08-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://www.ifrs.org/legal/terms-and-conditions/"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260828",
+        "reviewerId": "question_bank_gate_v3",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-28",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "service.eu_standard_delivery_period.choice.005",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "service",
+      "questionType": "single_choice",
+      "prompt": "面向欧盟消费者的普通线上订单，如果双方没有另行约定交付时间，销售方通常应在多长时间内交付？",
+      "choices": [
+        { "id": "three_days", "text": "必须在 3 天内" },
+        { "id": "thirty_days", "text": "通常不迟于合同订立后的 30 天" },
+        { "id": "one_year", "text": "一年内均可" },
+        { "id": "no_deadline", "text": "线上订单没有任何交付期限" }
+      ],
+      "correctChoiceId": "thirty_days",
+      "referenceAnswer": "欧盟消费者规则下，除非双方另有约定，销售方通常应不迟于合同订立后 30 天交付商品。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "recognize_default_eu_delivery_period",
+            "weight": 1.0,
+            "concepts": ["未另行约定时 30 天", "欧盟线上交付"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "eu.your_europe.shipping_delivery",
+          "authorityLevel": "primary_official",
+          "publisher": "European Union",
+          "title": "Shipping and delivery",
+          "url": "https://europa.eu/youreurope/citizens/consumers/shopping/shipping-delivery/index_en.htm",
+          "publishedVersion": "Your Europe consumer guidance",
+          "checkedAt": "2026-08-28",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://commission.europa.eu/legal-notice_en"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260828",
+        "reviewerId": "question_bank_gate_v3",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-28",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "service.eu_failed_additional_delivery.choice.006",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "service",
+      "questionType": "single_choice",
+      "prompt": "欧盟网店未按约定时间交货，消费者又给予了合理的补充期限，但网店仍未交付。通常消费者可以怎样处理？",
+      "choices": [
+        { "id": "wait_forever", "text": "只能无限期等待，不能取消订单" },
+        { "id": "coupon_only", "text": "只能接受优惠券，不能要求退款" },
+        { "id": "terminate_and_refund", "text": "可以终止合同并要求退还已支付款项" },
+        { "id": "pay_more", "text": "必须先额外支付费用才能主张权利" }
+      ],
+      "correctChoiceId": "terminate_and_refund",
+      "referenceAnswer": "销售方在约定期限和消费者给予的合理补充期限内仍未交付时，消费者通常可以终止合同并获得退款；具体场景仍应遵循适用法律和订单约定。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "allow_termination_after_failed_extra_period",
+            "weight": 1.0,
+            "concepts": ["补充期限后仍未交付", "终止合同并退款"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "eu.your_europe.shipping_delivery",
+          "authorityLevel": "primary_official",
+          "publisher": "European Union",
+          "title": "Shipping and delivery",
+          "url": "https://europa.eu/youreurope/citizens/consumers/shopping/shipping-delivery/index_en.htm",
+          "publishedVersion": "Your Europe consumer guidance",
+          "checkedAt": "2026-08-28",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://commission.europa.eu/legal-notice_en"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260828",
+        "reviewerId": "question_bank_gate_v3",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-28",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "compliance.eu_order_payment_button.choice.005",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "compliance",
+      "questionType": "single_choice",
+      "prompt": "面向欧盟消费者的结账页，最终下单按钮会立即产生付款义务。按钮文案应怎样设计？",
+      "choices": [
+        { "id": "ambiguous_continue", "text": "只写“继续”，不说明会产生付款义务" },
+        { "id": "clear_payment_obligation", "text": "使用“确认购买并付款”等清楚表明付款义务的文案" },
+        { "id": "hidden_text", "text": "把付款说明隐藏在不可见区域" },
+        { "id": "after_charge_notice", "text": "先扣款，之后再告诉消费者" }
+      ],
+      "correctChoiceId": "clear_payment_obligation",
+      "referenceAnswer": "电子订单会产生付款义务时，消费者在下单前必须被清楚告知；按钮或类似功能应使用明确表示“订单附带付款义务”的措辞，不能使用含糊的“继续”掩盖后果。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "make_payment_obligation_explicit",
+            "weight": 1.0,
+            "concepts": ["下单按钮明确付款义务", "不得使用含糊文案"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "eu.consumer_rights.directive",
+          "authorityLevel": "primary_official",
+          "publisher": "European Commission",
+          "title": "Consumer Rights Directive",
+          "url": "https://commission.europa.eu/law/law-topic/consumer-protection-law/consumer-contract-law/consumer-rights-directive_en",
+          "publishedVersion": "Directive 2011/83/EU consolidated guidance",
+          "checkedAt": "2026-08-28",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://commission.europa.eu/legal-notice_en"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260828",
+        "reviewerId": "question_bank_gate_v3",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-28",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "compliance.eu_trader_identity.choice.006",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "compliance",
+      "questionType": "single_choice",
+      "prompt": "面向欧盟消费者的网店，在消费者线上购买前，关于商家身份信息哪项做法更合适？",
+      "choices": [
+        { "id": "nickname_only", "text": "只展示一个无法追溯的店铺昵称" },
+        { "id": "identity_and_contact", "text": "清楚提供商家身份、地理地址及可联系信息" },
+        { "id": "after_purchase_only", "text": "付款前完全隐藏，成交后再决定是否提供" },
+        { "id": "social_account_only", "text": "只留下一个社交账号即可替代全部法定信息" }
+      ],
+      "correctChoiceId": "identity_and_contact",
+      "referenceAnswer": "远程合同订立前，消费者应能清楚获得商家身份、地理地址和联系方式等必要信息，以便了解交易相对方并在需要时联系或主张权利。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "disclose_trader_identity_and_contact",
+            "weight": 1.0,
+            "concepts": ["提供商家身份", "提供地址和联系方式"]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "eu.your_europe.online_information",
+          "authorityLevel": "primary_official",
+          "publisher": "European Union",
+          "title": "Information you should get when buying, signing a contract",
+          "url": "https://europa.eu/youreurope/citizens/consumers/shopping/contract-information/index_en.htm",
+          "publishedVersion": "Your Europe consumer guidance",
+          "checkedAt": "2026-08-28",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://commission.europa.eu/legal-notice_en"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260828",
+        "reviewerId": "question_bank_gate_v3",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-28",
+        "decision": "approved_for_internal_pilot"
+      }
+    }
+  ]
+}

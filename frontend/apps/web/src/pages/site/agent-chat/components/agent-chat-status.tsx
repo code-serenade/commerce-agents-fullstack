@@ -33,7 +33,7 @@ export function AgentChatStatus({
             </p>
           </div>
           <span className="shrink-0">
-            <Button size="sm" onClick={onLogin}>
+            <Button size="sm" onClick={() => onLogin()}>
               {t("agentChat.loginRequired.action")}
             </Button>
           </span>

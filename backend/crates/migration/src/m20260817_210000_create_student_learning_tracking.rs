@@ -1,0 +1,445 @@
+use sea_orm_migration::prelude::*;
+
+#[derive(DeriveMigrationName)]
+pub struct Migration;
+
+#[async_trait::async_trait]
+impl MigrationTrait for Migration {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .create_table(
+                Table::create()
+                    .table(StudentLearningProfiles::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(StudentLearningProfiles::Id)
+                            .uuid()
+                            .not_null()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningProfiles::UserId)
+                            .uuid()
+                            .not_null()
+                            .unique_key(),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningProfiles::FrameworkVersion)
+                            .string_len(64)
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningProfiles::MasteryMap)
+                            .json_binary()
+                            .not_null()
+                            .default(Expr::cust("'{}'::jsonb")),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningProfiles::EngagementSummary)
+                            .json_binary()
+                            .not_null()
+                            .default(Expr::cust("'{}'::jsonb")),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningProfiles::CoverageRate)
+                            .double()
+                            .not_null()
+                            .default(0.0),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningProfiles::AnalysisStatus)
+                            .string_len(32)
+                            .not_null()
+                            .default("idle"),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningProfiles::LastAnalyzedSequence)
+                            .big_integer()
+                            .not_null()
+                            .default(0),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningProfiles::LastAnalyzedAt)
+                            .timestamp_with_time_zone()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningProfiles::LastErrorCode)
+                            .string_len(64)
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningProfiles::Enabled)
+                            .boolean()
+                            .not_null()
+                            .default(true),
+                    )
+                    .col(audit_col(AuditColumns::CreatedAt))
+                    .col(audit_col(AuditColumns::UpdatedAt))
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_student_learning_profiles_user")
+                            .from(
+                                StudentLearningProfiles::Table,
+                                StudentLearningProfiles::UserId,
+                            )
+                            .to(AppUsers::Table, AppUsers::UserId)
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .create_table(
+                Table::create()
+                    .table(StudentLearningProbes::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(StudentLearningProbes::Id)
+                            .uuid()
+                            .not_null()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningProbes::UserId)
+                            .uuid()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningProbes::ConversationId)
+                            .uuid()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningProbes::AssistantMessageId)
+                            .uuid()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningProbes::AnswerMessageId)
+                            .uuid()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningProbes::FrameworkVersion)
+                            .string_len(64)
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningProbes::KnowledgeCode)
+                            .string_len(100)
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningProbes::Status)
+                            .string_len(32)
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningProbes::QuestionText)
+                            .text()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningProbes::ReasonCode)
+                            .string_len(64)
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningProbes::PriorityScore)
+                            .double()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningProbes::ContextSnapshot)
+                            .json_binary()
+                            .not_null()
+                            .default(Expr::cust("'{}'::jsonb")),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningProbes::OfferedAt)
+                            .timestamp_with_time_zone()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningProbes::AnsweredAt)
+                            .timestamp_with_time_zone()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningProbes::ExpiresAt)
+                            .timestamp_with_time_zone()
+                            .null(),
+                    )
+                    .col(audit_col(AuditColumns::CreatedAt))
+                    .col(audit_col(AuditColumns::UpdatedAt))
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_student_learning_probes_user")
+                            .from(StudentLearningProbes::Table, StudentLearningProbes::UserId)
+                            .to(AppUsers::Table, AppUsers::UserId)
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_student_learning_probes_conversation")
+                            .from(
+                                StudentLearningProbes::Table,
+                                StudentLearningProbes::ConversationId,
+                            )
+                            .to(Conversations::Table, Conversations::Id)
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_student_learning_probes_assistant_message")
+                            .from(
+                                StudentLearningProbes::Table,
+                                StudentLearningProbes::AssistantMessageId,
+                            )
+                            .to(ConversationMessages::Table, ConversationMessages::Id)
+                            .on_delete(ForeignKeyAction::SetNull),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_student_learning_probes_answer_message")
+                            .from(
+                                StudentLearningProbes::Table,
+                                StudentLearningProbes::AnswerMessageId,
+                            )
+                            .to(ConversationMessages::Table, ConversationMessages::Id)
+                            .on_delete(ForeignKeyAction::SetNull),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .create_table(
+                Table::create()
+                    .table(StudentLearningEvidence::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(StudentLearningEvidence::Id)
+                            .uuid()
+                            .not_null()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningEvidence::UserId)
+                            .uuid()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningEvidence::ConversationId)
+                            .uuid()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningEvidence::SourceMessageId)
+                            .uuid()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningEvidence::ProbeId)
+                            .uuid()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningEvidence::FrameworkVersion)
+                            .string_len(64)
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningEvidence::KnowledgeCode)
+                            .string_len(100)
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningEvidence::EvidenceType)
+                            .string_len(32)
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningEvidence::Direction)
+                            .string_len(32)
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningEvidence::Strength)
+                            .double()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningEvidence::Confidence)
+                            .double()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningEvidence::Summary)
+                            .text()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningEvidence::RubricHits)
+                            .json_binary()
+                            .not_null()
+                            .default(Expr::cust("'[]'::jsonb")),
+                    )
+                    .col(
+                        ColumnDef::new(StudentLearningEvidence::AnalyzerVersion)
+                            .string_len(64)
+                            .not_null(),
+                    )
+                    .col(audit_col(AuditColumns::CreatedAt))
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_student_learning_evidence_user")
+                            .from(
+                                StudentLearningEvidence::Table,
+                                StudentLearningEvidence::UserId,
+                            )
+                            .to(AppUsers::Table, AppUsers::UserId)
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_student_learning_evidence_conversation")
+                            .from(
+                                StudentLearningEvidence::Table,
+                                StudentLearningEvidence::ConversationId,
+                            )
+                            .to(Conversations::Table, Conversations::Id)
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_student_learning_evidence_source_message")
+                            .from(
+                                StudentLearningEvidence::Table,
+                                StudentLearningEvidence::SourceMessageId,
+                            )
+                            .to(ConversationMessages::Table, ConversationMessages::Id)
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_student_learning_evidence_probe")
+                            .from(
+                                StudentLearningEvidence::Table,
+                                StudentLearningEvidence::ProbeId,
+                            )
+                            .to(StudentLearningProbes::Table, StudentLearningProbes::Id)
+                            .on_delete(ForeignKeyAction::SetNull),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+        manager.get_connection().execute_unprepared("CREATE INDEX IF NOT EXISTS idx_student_learning_profiles_status_updated ON student_learning_profiles (analysis_status, updated_at); CREATE INDEX IF NOT EXISTS idx_student_learning_evidence_user_knowledge_created ON student_learning_evidence (user_id, knowledge_code, created_at); CREATE INDEX IF NOT EXISTS idx_student_learning_probes_user_status_created ON student_learning_probes (user_id, status, created_at); CREATE UNIQUE INDEX IF NOT EXISTS uk_student_learning_evidence_source_knowledge ON student_learning_evidence (source_message_id, knowledge_code, analyzer_version); CREATE UNIQUE INDEX IF NOT EXISTS uk_student_learning_probes_active ON student_learning_probes (user_id, knowledge_code) WHERE status IN ('planned', 'offered');").await?;
+        Ok(())
+    }
+    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .drop_table(
+                Table::drop()
+                    .table(StudentLearningEvidence::Table)
+                    .cascade()
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_table(
+                Table::drop()
+                    .table(StudentLearningProbes::Table)
+                    .cascade()
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_table(
+                Table::drop()
+                    .table(StudentLearningProfiles::Table)
+                    .cascade()
+                    .to_owned(),
+            )
+            .await
+    }
+}
+fn audit_col<T: IntoIden>(name: T) -> ColumnDef {
+    let mut col = ColumnDef::new(name);
+    col.timestamp_with_time_zone()
+        .not_null()
+        .default(Expr::current_timestamp());
+    col
+}
+#[derive(DeriveIden)]
+enum AuditColumns {
+    CreatedAt,
+    UpdatedAt,
+}
+#[derive(DeriveIden)]
+enum AppUsers {
+    Table,
+    UserId,
+}
+#[derive(DeriveIden)]
+enum Conversations {
+    Table,
+    Id,
+}
+#[derive(DeriveIden)]
+enum ConversationMessages {
+    Table,
+    Id,
+}
+#[derive(DeriveIden)]
+enum StudentLearningProfiles {
+    Table,
+    Id,
+    UserId,
+    FrameworkVersion,
+    MasteryMap,
+    EngagementSummary,
+    CoverageRate,
+    AnalysisStatus,
+    LastAnalyzedSequence,
+    LastAnalyzedAt,
+    LastErrorCode,
+    Enabled,
+}
+#[derive(DeriveIden)]
+enum StudentLearningProbes {
+    Table,
+    Id,
+    UserId,
+    ConversationId,
+    AssistantMessageId,
+    AnswerMessageId,
+    FrameworkVersion,
+    KnowledgeCode,
+    Status,
+    QuestionText,
+    ReasonCode,
+    PriorityScore,
+    ContextSnapshot,
+    OfferedAt,
+    AnsweredAt,
+    ExpiresAt,
+}
+#[derive(DeriveIden)]
+enum StudentLearningEvidence {
+    Table,
+    Id,
+    UserId,
+    ConversationId,
+    SourceMessageId,
+    ProbeId,
+    FrameworkVersion,
+    KnowledgeCode,
+    EvidenceType,
+    Direction,
+    Strength,
+    Confidence,
+    Summary,
+    RubricHits,
+    AnalyzerVersion,
+}

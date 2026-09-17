@@ -1,0 +1,608 @@
+{
+  "schemaVersion": 1,
+  "version": "ecommerce_assessment_angles_v4",
+  "questionBankVersion": "ecommerce_diagnostic_v13",
+  "frameworkVersion": "ecommerce_v1",
+  "mappings": [
+    {
+      "questionId": "market.trends_relative_index.choice.001",
+      "questionVersion": 1,
+      "domainCode": "market",
+      "angleCode": "market.trends_interpretation"
+    },
+    {
+      "questionId": "market.trends_compare_context.choice.002",
+      "questionVersion": 1,
+      "domainCode": "market",
+      "angleCode": "market.trends_comparison"
+    },
+    {
+      "questionId": "market.trends_zero_value.choice.003",
+      "questionVersion": 1,
+      "domainCode": "market",
+      "angleCode": "market.trends_interpretation"
+    },
+    {
+      "questionId": "market.trends_topic_scope.choice.004",
+      "questionVersion": 1,
+      "domainCode": "market",
+      "angleCode": "market.trends_comparison"
+    },
+    {
+      "questionId": "market.trends_not_sales.choice.005",
+      "questionVersion": 1,
+      "domainCode": "market",
+      "angleCode": "market.trends_usage_boundary"
+    },
+    {
+      "questionId": "market.trends_region_relative.choice.006",
+      "questionVersion": 1,
+      "domainCode": "market",
+      "angleCode": "market.trends_usage_boundary"
+    },
+    {
+      "questionId": "market.customer_research_mix.choice.007",
+      "questionVersion": 1,
+      "domainCode": "market",
+      "angleCode": "market.customer_research"
+    },
+    {
+      "questionId": "market.competitor_analysis_scope.choice.008",
+      "questionVersion": 1,
+      "domainCode": "market",
+      "angleCode": "market.competitor_analysis"
+    },
+    {
+      "questionId": "market.customer_demand_research.choice.009",
+      "questionVersion": 1,
+      "domainCode": "market",
+      "angleCode": "market.product_demand_validation"
+    },
+    {
+      "questionId": "market.product_observation_research.choice.010",
+      "questionVersion": 1,
+      "domainCode": "market",
+      "angleCode": "market.product_usage_research"
+    },
+    {
+      "questionId": "product.variant_item_group.choice.001",
+      "questionVersion": 1,
+      "domainCode": "product",
+      "angleCode": "product.variant_grouping"
+    },
+    {
+      "questionId": "product.gtin_integrity.choice.002",
+      "questionVersion": 1,
+      "domainCode": "product",
+      "angleCode": "product.gtin_governance"
+    },
+    {
+      "questionId": "product.feed_landing_price.choice.003",
+      "questionVersion": 1,
+      "domainCode": "product",
+      "angleCode": "product.price_consistency"
+    },
+    {
+      "questionId": "product.availability_in_stock.choice.004",
+      "questionVersion": 1,
+      "domainCode": "product",
+      "angleCode": "product.availability"
+    },
+    {
+      "questionId": "product.condition_used.choice.005",
+      "questionVersion": 1,
+      "domainCode": "product",
+      "angleCode": "product.condition"
+    },
+    {
+      "questionId": "product.availability_preorder.choice.006",
+      "questionVersion": 1,
+      "domainCode": "product",
+      "angleCode": "product.availability"
+    },
+    {
+      "questionId": "product.gtin_no_reallocation.choice.007",
+      "questionVersion": 1,
+      "domainCode": "product",
+      "angleCode": "product.gtin_governance"
+    },
+    {
+      "questionId": "product.changed_item_new_gtin.choice.008",
+      "questionVersion": 1,
+      "domainCode": "product",
+      "angleCode": "product.gtin_governance"
+    },
+    {
+      "questionId": "product.reorder_point_inputs.choice.009",
+      "questionVersion": 1,
+      "domainCode": "product",
+      "angleCode": "product.reorder_point_planning"
+    },
+    {
+      "questionId": "product.stocktake_action.choice.010",
+      "questionVersion": 1,
+      "domainCode": "product",
+      "angleCode": "product.stocktake_actions"
+    },
+    {
+      "questionId": "content.informative_image_alt.choice.001",
+      "questionVersion": 1,
+      "domainCode": "content",
+      "angleCode": "content.informative_image_accessibility"
+    },
+    {
+      "questionId": "content.decorative_image_alt.choice.002",
+      "questionVersion": 1,
+      "domainCode": "content",
+      "angleCode": "content.decorative_image_accessibility"
+    },
+    {
+      "questionId": "content.functional_image_alt.choice.003",
+      "questionVersion": 1,
+      "domainCode": "content",
+      "angleCode": "content.functional_image_accessibility"
+    },
+    {
+      "questionId": "content.image_of_text.choice.004",
+      "questionVersion": 1,
+      "domainCode": "content",
+      "angleCode": "content.image_text_accessibility"
+    },
+    {
+      "questionId": "content.complex_chart_description.choice.005",
+      "questionVersion": 1,
+      "domainCode": "content",
+      "angleCode": "content.informative_image_accessibility"
+    },
+    {
+      "questionId": "content.linked_product_image.choice.006",
+      "questionVersion": 1,
+      "domainCode": "content",
+      "angleCode": "content.functional_image_accessibility"
+    },
+    {
+      "questionId": "content.people_first_purpose.choice.007",
+      "questionVersion": 1,
+      "domainCode": "content",
+      "angleCode": "content.people_first_content"
+    },
+    {
+      "questionId": "content.ftc_endorsement_disclosure.choice.008",
+      "questionVersion": 1,
+      "domainCode": "content",
+      "angleCode": "content.endorsement_disclosure"
+    },
+    {
+      "questionId": "content.first_hand_expertise.choice.009",
+      "questionVersion": 1,
+      "domainCode": "content",
+      "angleCode": "content.first_hand_expertise"
+    },
+    {
+      "questionId": "content.cn_review_integrity.choice.010",
+      "questionVersion": 1,
+      "domainCode": "content",
+      "angleCode": "content.cn_review_integrity"
+    },
+    {
+      "questionId": "traffic.funnel_diagnosis.choice.001",
+      "questionVersion": 1,
+      "domainCode": "traffic",
+      "angleCode": "traffic.funnel_diagnosis"
+    },
+    {
+      "questionId": "traffic.ga4_add_to_cart_event.choice.002",
+      "questionVersion": 1,
+      "domainCode": "traffic",
+      "angleCode": "traffic.cart_event_measurement"
+    },
+    {
+      "questionId": "traffic.ga4_view_item_list.choice.003",
+      "questionVersion": 1,
+      "domainCode": "traffic",
+      "angleCode": "traffic.list_event_measurement"
+    },
+    {
+      "questionId": "traffic.ga4_select_item.choice.004",
+      "questionVersion": 1,
+      "domainCode": "traffic",
+      "angleCode": "traffic.list_event_measurement"
+    },
+    {
+      "questionId": "traffic.ga4_view_item.choice.005",
+      "questionVersion": 1,
+      "domainCode": "traffic",
+      "angleCode": "traffic.product_view_measurement"
+    },
+    {
+      "questionId": "traffic.ga4_view_cart.choice.006",
+      "questionVersion": 1,
+      "domainCode": "traffic",
+      "angleCode": "traffic.cart_event_measurement"
+    },
+    {
+      "questionId": "traffic.search_impressions_clicks.choice.007",
+      "questionVersion": 1,
+      "domainCode": "traffic",
+      "angleCode": "traffic.search_click_optimization"
+    },
+    {
+      "questionId": "traffic.search_seasonality_compare.choice.008",
+      "questionVersion": 1,
+      "domainCode": "traffic",
+      "angleCode": "traffic.search_seasonality"
+    },
+    {
+      "questionId": "traffic.promotion_sales_attribution.choice.009",
+      "questionVersion": 1,
+      "domainCode": "traffic",
+      "angleCode": "traffic.sales_attribution"
+    },
+    {
+      "questionId": "traffic.search_query_page_analysis.choice.010",
+      "questionVersion": 1,
+      "domainCode": "traffic",
+      "angleCode": "traffic.search_query_analysis"
+    },
+    {
+      "questionId": "conversion.checkout_dropoff.choice.001",
+      "questionVersion": 1,
+      "domainCode": "conversion",
+      "angleCode": "conversion.checkout_funnel"
+    },
+    {
+      "questionId": "conversion.ga4_purchase_event.choice.002",
+      "questionVersion": 1,
+      "domainCode": "conversion",
+      "angleCode": "conversion.purchase_outcome_events"
+    },
+    {
+      "questionId": "conversion.ga4_begin_checkout.choice.003",
+      "questionVersion": 1,
+      "domainCode": "conversion",
+      "angleCode": "conversion.checkout_event_measurement"
+    },
+    {
+      "questionId": "conversion.ga4_payment_info.choice.004",
+      "questionVersion": 1,
+      "domainCode": "conversion",
+      "angleCode": "conversion.checkout_event_measurement"
+    },
+    {
+      "questionId": "conversion.ga4_shipping_info.choice.005",
+      "questionVersion": 1,
+      "domainCode": "conversion",
+      "angleCode": "conversion.checkout_event_measurement"
+    },
+    {
+      "questionId": "conversion.ga4_refund.choice.006",
+      "questionVersion": 1,
+      "domainCode": "conversion",
+      "angleCode": "conversion.purchase_outcome_events"
+    },
+    {
+      "questionId": "conversion.goal_metric_online_sales.choice.007",
+      "questionVersion": 1,
+      "domainCode": "conversion",
+      "angleCode": "conversion.goal_metric_alignment"
+    },
+    {
+      "questionId": "conversion.ab_test_two_versions.choice.008",
+      "questionVersion": 1,
+      "domainCode": "conversion",
+      "angleCode": "conversion.experimentation"
+    },
+    {
+      "questionId": "conversion.cart_abandonment_measurement.choice.009",
+      "questionVersion": 1,
+      "domainCode": "conversion",
+      "angleCode": "conversion.cart_abandonment"
+    },
+    {
+      "questionId": "conversion.repeat_buyer_mix.choice.010",
+      "questionVersion": 1,
+      "domainCode": "conversion",
+      "angleCode": "conversion.buyer_mix"
+    },
+    {
+      "questionId": "finance.revenue_profit.choice.001",
+      "questionVersion": 1,
+      "domainCode": "finance",
+      "angleCode": "finance.revenue_vs_profit"
+    },
+    {
+      "questionId": "finance.gross_profit_cost.choice.002",
+      "questionVersion": 1,
+      "domainCode": "finance",
+      "angleCode": "finance.gross_profit"
+    },
+    {
+      "questionId": "finance.gross_profit_calculation.choice.003",
+      "questionVersion": 1,
+      "domainCode": "finance",
+      "angleCode": "finance.gross_profit"
+    },
+    {
+      "questionId": "finance.gross_margin_rate.choice.004",
+      "questionVersion": 1,
+      "domainCode": "finance",
+      "angleCode": "finance.gross_margin"
+    },
+    {
+      "questionId": "finance.roas_not_profit.choice.005",
+      "questionVersion": 1,
+      "domainCode": "finance",
+      "angleCode": "finance.ad_efficiency_vs_profit"
+    },
+    {
+      "questionId": "finance.operating_profit_calculation.choice.006",
+      "questionVersion": 1,
+      "domainCode": "finance",
+      "angleCode": "finance.operating_profit"
+    },
+    {
+      "questionId": "finance.cashflow_long_term_asset.choice.007",
+      "questionVersion": 1,
+      "domainCode": "finance",
+      "angleCode": "finance.cashflow_classification"
+    },
+    {
+      "questionId": "finance.cashflow_new_borrowing.choice.008",
+      "questionVersion": 1,
+      "domainCode": "finance",
+      "angleCode": "finance.cashflow_classification"
+    },
+    {
+      "questionId": "finance.cost_plus_pricing.choice.009",
+      "questionVersion": 1,
+      "domainCode": "finance",
+      "angleCode": "finance.cost_plus_pricing"
+    },
+    {
+      "questionId": "finance.discount_profitability.choice.010",
+      "questionVersion": 1,
+      "domainCode": "finance",
+      "angleCode": "finance.discount_profitability"
+    },
+    {
+      "questionId": "service.eu_faulty_goods_remedy.choice.001",
+      "questionVersion": 1,
+      "domainCode": "service",
+      "angleCode": "service.eu_faulty_goods_remedy"
+    },
+    {
+      "questionId": "service.eu_legal_guarantee.choice.002",
+      "questionVersion": 1,
+      "domainCode": "service",
+      "angleCode": "service.eu_legal_guarantee"
+    },
+    {
+      "questionId": "service.ftc_shipping_delay.choice.003",
+      "questionVersion": 1,
+      "domainCode": "service",
+      "angleCode": "service.us_shipping_delay"
+    },
+    {
+      "questionId": "service.eu_seller_responsibility.choice.004",
+      "questionVersion": 1,
+      "domainCode": "service",
+      "angleCode": "service.eu_faulty_goods_remedy"
+    },
+    {
+      "questionId": "service.eu_standard_delivery_period.choice.005",
+      "questionVersion": 1,
+      "domainCode": "service",
+      "angleCode": "service.eu_delivery_rights"
+    },
+    {
+      "questionId": "service.eu_failed_additional_delivery.choice.006",
+      "questionVersion": 1,
+      "domainCode": "service",
+      "angleCode": "service.eu_delivery_rights"
+    },
+    {
+      "questionId": "service.cn_return_reasonable_inspection.choice.007",
+      "questionVersion": 1,
+      "domainCode": "service",
+      "angleCode": "service.cn_return_inspection"
+    },
+    {
+      "questionId": "service.cn_complaint_mechanism.choice.008",
+      "questionVersion": 1,
+      "domainCode": "service",
+      "angleCode": "service.cn_complaint_handling"
+    },
+    {
+      "questionId": "service.cn_deposit_refund.choice.009",
+      "questionVersion": 1,
+      "domainCode": "service",
+      "angleCode": "service.cn_deposit_refund"
+    },
+    {
+      "questionId": "service.cn_dispute_records.choice.010",
+      "questionVersion": 1,
+      "domainCode": "service",
+      "angleCode": "service.cn_dispute_records"
+    },
+    {
+      "questionId": "compliance.eu_distance_withdrawal.choice.001",
+      "questionVersion": 1,
+      "domainCode": "compliance",
+      "angleCode": "compliance.eu_withdrawal_rights"
+    },
+    {
+      "questionId": "compliance.eu_return_shipping.choice.002",
+      "questionVersion": 1,
+      "domainCode": "compliance",
+      "angleCode": "compliance.eu_withdrawal_rights"
+    },
+    {
+      "questionId": "compliance.eu_total_price.choice.003",
+      "questionVersion": 1,
+      "domainCode": "compliance",
+      "angleCode": "compliance.eu_price_transparency"
+    },
+    {
+      "questionId": "compliance.eu_extra_payment_consent.choice.004",
+      "questionVersion": 1,
+      "domainCode": "compliance",
+      "angleCode": "compliance.eu_extra_payment_consent"
+    },
+    {
+      "questionId": "compliance.eu_order_payment_button.choice.005",
+      "questionVersion": 1,
+      "domainCode": "compliance",
+      "angleCode": "compliance.eu_payment_obligation"
+    },
+    {
+      "questionId": "compliance.eu_trader_identity.choice.006",
+      "questionVersion": 1,
+      "domainCode": "compliance",
+      "angleCode": "compliance.eu_trader_identity"
+    },
+    {
+      "questionId": "compliance.cn_personalized_search_option.choice.007",
+      "questionVersion": 1,
+      "domainCode": "compliance",
+      "angleCode": "compliance.cn_personalization_choice"
+    },
+    {
+      "questionId": "compliance.cn_personal_info_minimum.choice.008",
+      "questionVersion": 1,
+      "domainCode": "compliance",
+      "angleCode": "compliance.cn_data_minimization"
+    },
+    {
+      "questionId": "compliance.cn_default_bundling.choice.009",
+      "questionVersion": 1,
+      "domainCode": "compliance",
+      "angleCode": "compliance.cn_default_bundling"
+    },
+    {
+      "questionId": "compliance.cn_marketing_opt_out.choice.010",
+      "questionVersion": 1,
+      "domainCode": "compliance",
+      "angleCode": "compliance.cn_marketing_opt_out"
+    },
+    {
+      "questionId": "product.title_clarity.choice.011",
+      "questionVersion": 1,
+      "domainCode": "product",
+      "angleCode": "product.title_clarity"
+    },
+    {
+      "questionId": "product.highlight_focus.choice.012",
+      "questionVersion": 1,
+      "domainCode": "product",
+      "angleCode": "product.highlight_focus"
+    },
+    {
+      "questionId": "product.title_key_details.choice.013",
+      "questionVersion": 1,
+      "domainCode": "product",
+      "angleCode": "product.title_clarity"
+    },
+    {
+      "questionId": "product.title_promotion_boundary.choice.014",
+      "questionVersion": 1,
+      "domainCode": "product",
+      "angleCode": "product.title_clarity"
+    },
+    {
+      "questionId": "product.highlight_verifiable.choice.015",
+      "questionVersion": 1,
+      "domainCode": "product",
+      "angleCode": "product.highlight_focus"
+    },
+    {
+      "questionId": "service.price_objection_needs.choice.011",
+      "questionVersion": 1,
+      "domainCode": "service",
+      "angleCode": "service.price_objection_needs"
+    },
+    {
+      "questionId": "product.title_fact_consistency.choice.016",
+      "questionVersion": 1,
+      "domainCode": "product",
+      "angleCode": "product.title_fact_consistency"
+    },
+    {
+      "questionId": "product.title_variant_identity.choice.017",
+      "questionVersion": 1,
+      "domainCode": "product",
+      "angleCode": "product.title_fact_consistency"
+    },
+    {
+      "questionId": "product.title_claim_evidence.choice.018",
+      "questionVersion": 1,
+      "domainCode": "product",
+      "angleCode": "product.title_fact_consistency"
+    },
+    {
+      "questionId": "product.highlight_test_conditions.choice.019",
+      "questionVersion": 1,
+      "domainCode": "product",
+      "angleCode": "product.highlight_evidence_application"
+    },
+    {
+      "questionId": "product.highlight_comparison_evidence.choice.020",
+      "questionVersion": 1,
+      "domainCode": "product",
+      "angleCode": "product.highlight_evidence_application"
+    },
+    {
+      "questionId": "product.highlight_usage_evidence.choice.021",
+      "questionVersion": 1,
+      "domainCode": "product",
+      "angleCode": "product.highlight_evidence_application"
+    },
+    {
+      "questionId": "content.original_value.choice.011",
+      "questionVersion": 1,
+      "domainCode": "content",
+      "angleCode": "content.people_first_content"
+    },
+    {
+      "questionId": "content.no_fixed_word_count.choice.012",
+      "questionVersion": 1,
+      "domainCode": "content",
+      "angleCode": "content.people_first_content"
+    },
+    {
+      "questionId": "traffic.ga4_remove_from_cart.choice.011",
+      "questionVersion": 1,
+      "domainCode": "traffic",
+      "angleCode": "traffic.cart_event_measurement"
+    },
+    {
+      "questionId": "traffic.ga4_select_not_purchase.choice.012",
+      "questionVersion": 1,
+      "domainCode": "traffic",
+      "angleCode": "traffic.list_event_measurement"
+    },
+    {
+      "questionId": "conversion.ga4_partial_refund_items.choice.011",
+      "questionVersion": 1,
+      "domainCode": "conversion",
+      "angleCode": "conversion.purchase_outcome_events"
+    },
+    {
+      "questionId": "conversion.cart_event_not_purchase.choice.012",
+      "questionVersion": 1,
+      "domainCode": "conversion",
+      "angleCode": "conversion.cart_abandonment"
+    },
+    {
+      "questionId": "finance.cost_plus_inclusive.choice.011",
+      "questionVersion": 1,
+      "domainCode": "finance",
+      "angleCode": "finance.cost_plus_pricing"
+    },
+    {
+      "questionId": "finance.cost_plus_margin_difference.choice.012",
+      "questionVersion": 1,
+      "domainCode": "finance",
+      "angleCode": "finance.cost_plus_pricing"
+    }
+  ]
+}

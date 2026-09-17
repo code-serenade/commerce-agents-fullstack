@@ -28,6 +28,12 @@ mod m20260619_090000_create_team_usage_quota;
 mod m20260619_110000_create_account_usage_quota;
 mod m20260624_090000_raise_question_quota_default;
 mod m20260630_144220_create_product_access_analytics;
+mod m20260817_210000_create_student_learning_tracking;
+mod m20260819_100000_create_learning_admin_permission;
+mod m20260821_160000_harden_student_learning_tracking_constraints;
+mod m20260827_121017_allow_structured_learning_evidence;
+mod m20260909_051613_create_student_learning_question_gaps;
+mod m20260909_082401_allow_parallel_student_learning_probes;
 
 pub struct Migrator;
 
@@ -63,6 +69,12 @@ impl MigratorTrait for Migrator {
             Box::new(m20260619_110000_create_account_usage_quota::Migration),
             Box::new(m20260624_090000_raise_question_quota_default::Migration),
             Box::new(m20260630_144220_create_product_access_analytics::Migration),
+            Box::new(m20260817_210000_create_student_learning_tracking::Migration),
+            Box::new(m20260819_100000_create_learning_admin_permission::Migration),
+            Box::new(m20260821_160000_harden_student_learning_tracking_constraints::Migration),
+            Box::new(m20260827_121017_allow_structured_learning_evidence::Migration),
+            Box::new(m20260909_051613_create_student_learning_question_gaps::Migration),
+            Box::new(m20260909_082401_allow_parallel_student_learning_probes::Migration),
         ]
     }
 }

@@ -112,6 +112,13 @@ export const navigationSections: NavigationSectionConfig[] = [
             href: "/analytics/access",
             matcher: (pathname) => pathname.startsWith("/analytics/access"),
           },
+          {
+            id: "learning",
+            permissionCode: "learning:read",
+            labelKey: "admin.navigation.learning",
+            href: "/analytics/learning",
+            matcher: (pathname) => pathname.startsWith("/analytics/learning"),
+          },
         ],
       },
       {

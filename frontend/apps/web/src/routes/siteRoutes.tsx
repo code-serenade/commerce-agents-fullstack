@@ -17,6 +17,7 @@ import {
   QuestionIdeasPage,
   ProfilePage,
   TeamSchoolPage,
+  LearningProgressPage,
   WorkspacesPage,
   WorkspacesDetailPage,
 } from "@/routes/lazy/sitePages"
@@ -63,6 +64,10 @@ export const siteRoutes: RouteObject = {
     {
       element: <RequireAuth />,
       children: [
+        {
+          path: "learning-progress",
+          element: withSuspense(<LearningProgressPage />),
+        },
         {
           path: "overview",
           element: withSuspense(<CommerceOverviewPage />),

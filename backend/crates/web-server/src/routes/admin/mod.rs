@@ -1,6 +1,7 @@
 mod access;
 mod account;
 mod analytics;
+mod learning;
 mod rbac;
 mod usage;
 

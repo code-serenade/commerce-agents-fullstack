@@ -1,0 +1,145 @@
+{
+  "version": "ecommerce_diagnostic_v10",
+  "baseVersion": "ecommerce_diagnostic_v9",
+  "frameworkVersion": "ecommerce_v1",
+  "sourceRevision": "2026-08-31",
+  "evaluationMode": "deterministic_rubric_v1",
+  "questions": [
+    {
+      "id": "product.title_clarity.choice.011",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "product",
+      "questionType": "single_choice",
+      "prompt": "优化一款咖啡商品的标题时，下面哪种做法最稳妥？",
+      "choices": [
+        {
+          "id": "add_price_shipping_promotion",
+          "text": "把限时价格、包邮和促销日期都塞进标题，尽量制造紧迫感"
+        },
+        {
+          "id": "describe_product_and_variant_clearly",
+          "text": "切中要点地描述落地页上的同一商品，并写清口味、规格等可区分信息"
+        },
+        {
+          "id": "use_symbols_and_all_caps",
+          "text": "大量使用符号和全大写文字，让标题在列表中更醒目"
+        },
+        {
+          "id": "reuse_one_generic_title",
+          "text": "所有咖啡规格都使用同一个宽泛标题，不体现口味或净含量差异"
+        }
+      ],
+      "correctChoiceId": "describe_product_and_variant_clearly",
+      "referenceAnswer": "Google Merchant Center 商品名规范要求用切中要点的商品名清楚描述落地页上的同一商品，并在商品名中加入款式或规格特有的细节；同时不应加入价格、促销日期、运费等促销文字。因此，准确描述商品并区分口味、规格等变体信息最稳妥。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "title_matches_product_and_distinguishes_variant",
+            "weight": 1.0,
+            "concepts": [
+              "商品标题准确描述落地页商品",
+              "商品名区分口味规格且不使用促销文字"
+            ]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "google.merchant.title_specification",
+          "authorityLevel": "primary_official",
+          "publisher": "Google Merchant Center",
+          "title": "商品名 [title]",
+          "url": "https://support.google.com/merchants/answer/6324415?hl=zh-Hans",
+          "publishedVersion": "Merchant Center product data specification",
+          "checkedAt": "2026-08-31",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://support.google.com/merchants/answer/6324415?hl=zh-Hans"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260831",
+        "reviewerId": "question_bank_gate_v10",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-31",
+        "decision": "approved_for_internal_pilot"
+      }
+    },
+    {
+      "id": "product.highlight_focus.choice.012",
+      "version": 1,
+      "status": "approved",
+      "domainCode": "product",
+      "questionType": "single_choice",
+      "prompt": "为一款咖啡提炼商品卖点时，下面哪组表达原则更合适？",
+      "choices": [
+        {
+          "id": "compare_and_claim_best",
+          "text": "重点写“全面碾压其他品牌”和“全网最好”，不必说明商品本身"
+        },
+        {
+          "id": "describe_store_history_and_policy",
+          "text": "主要介绍店铺发展历史、退换政策和其他在售商品"
+        },
+        {
+          "id": "focus_on_product_with_professional_language",
+          "text": "只介绍咖啡本身的具体亮点，用专业、符合语法的表达，不混入促销或竞品比较"
+        },
+        {
+          "id": "repeat_keywords_and_links",
+          "text": "重复堆砌热门关键词，并加入店铺链接和促销口号"
+        }
+      ],
+      "correctChoiceId": "focus_on_product_with_professional_language",
+      "referenceAnswer": "Google Merchant Center 商品亮点规范要求卖点只介绍商品本身，不介绍店铺历史、政策或其他商品；应使用专业且符合语法的语言，避免促销文字、关键词堆砌和与其他商品比较。因此，围绕咖啡本身的可核实亮点进行清晰表达更合适。",
+      "rubric": {
+        "version": 1,
+        "criteria": [
+          {
+            "code": "highlight_focuses_on_product_facts",
+            "weight": 1.0,
+            "concepts": [
+              "商品卖点只介绍商品本身",
+              "商品亮点专业清晰且不促销不比较"
+            ]
+          }
+        ],
+        "contradictions": [],
+        "partialThreshold": 0.5,
+        "correctThreshold": 1.0
+      },
+      "sources": [
+        {
+          "sourceId": "google.merchant.product_highlight_specification",
+          "authorityLevel": "primary_official",
+          "publisher": "Google Merchant Center",
+          "title": "商品亮点 [product_highlight]",
+          "url": "https://support.google.com/merchants/answer/9216100?hl=zh-Hans",
+          "publishedVersion": "Merchant Center product data specification",
+          "checkedAt": "2026-08-31",
+          "validThrough": "2027-02-28",
+          "licenseType": "official_reference_only",
+          "useMode": "source_based_original",
+          "licenseUrl": "https://support.google.com/merchants/answer/9216100?hl=zh-Hans"
+        }
+      ],
+      "review": {
+        "authorId": "source_backed_choice_seed_20260831",
+        "reviewerId": "question_bank_gate_v10",
+        "reviewScope": "source_and_rubric_engineering_review",
+        "reviewerType": "automated_engineering_gate",
+        "curriculumReviewRequired": true,
+        "reviewedAt": "2026-08-31",
+        "decision": "approved_for_internal_pilot"
+      }
+    }
+  ]
+}

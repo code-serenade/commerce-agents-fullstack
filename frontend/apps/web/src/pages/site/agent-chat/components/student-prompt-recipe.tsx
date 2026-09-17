@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next"
-import { getStudentPromptRecipeItems } from "../view-model/student-next-actions-view-model"
+import { getStudentPromptRecipeItems } from "../view-model/student-chat-entry-view-model"
 
 export function StudentPromptRecipe() {
   const { t } = useTranslation()

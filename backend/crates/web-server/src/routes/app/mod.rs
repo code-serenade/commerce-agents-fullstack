@@ -4,6 +4,7 @@ mod approval_audit;
 mod briefing;
 mod campaign;
 mod commerce_playbook;
+mod learning;
 mod package_governance;
 mod platform_connect;
 mod product;
@@ -19,6 +20,7 @@ pub fn app_routes() -> Router {
         Router::new()
             .merge(account::account_routes())
             .merge(analytics::analytics_routes())
+            .merge(learning::learning_routes())
             .merge(product::product_routes())
             .merge(campaign::campaign_routes())
             .merge(commerce_playbook::commerce_playbook_routes())

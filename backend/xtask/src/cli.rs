@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::{Parser, Subcommand};
 
 #[derive(Debug, Parser)]
@@ -37,6 +39,27 @@ pub enum Command {
     InitAppPermissions,
     /// Bind an auth account to the root admin role.
     InitRoot,
+    /// Generate or verify the internal learning-question curriculum review pack.
+    LearningQuestionReviewPack {
+        #[command(subcommand)]
+        command: LearningQuestionReviewPackCommand,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum LearningQuestionReviewPackCommand {
+    /// Generate the deterministic internal review reference pack.
+    Generate {
+        /// Override the output path. Relative paths resolve from the repository root.
+        #[arg(long, value_name = "PATH")]
+        output: Option<PathBuf>,
+    },
+    /// Verify that the review reference pack matches the current immutable catalogs.
+    Check {
+        /// Override the pack path. Relative paths resolve from the repository root.
+        #[arg(long, value_name = "PATH")]
+        output: Option<PathBuf>,
+    },
 }
 
 #[derive(Debug, Subcommand)]

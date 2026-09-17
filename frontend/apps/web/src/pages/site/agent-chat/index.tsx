@@ -89,6 +89,7 @@ export default function AgentChatPage() {
         composerFocusVersion={composerFocusVersion}
         onExamplePromptSelect={selectExamplePrompt}
         onNextActionPromptSubmit={submitNextActionPrompt}
+        onAnswerProbe={selectExamplePrompt}
         onSendMessage={sendMessage}
         onUploadAttachments={uploadAttachments}
         processPanel={processPanel}

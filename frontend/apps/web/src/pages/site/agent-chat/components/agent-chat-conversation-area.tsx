@@ -7,6 +7,7 @@ import {
   AgentChatWelcomeRolePanel,
 } from "./agent-chat-welcome-content"
 import { useTranslation } from "react-i18next"
+import { useLayoutEffect, useRef } from "react"
 import type { AgentChatContextValue } from "../context/agent-chat-context-value"
 import type { AgentChatReportActionsState } from "../view-model/use-agent-chat-report-actions"
 import type { useAgentChatRequestedComposerPanel } from "../view-model/use-agent-chat-requested-composer-panel"
@@ -17,6 +18,7 @@ export function AgentChatConversationArea({
   composerFocusVersion,
   onExamplePromptSelect,
   onNextActionPromptSubmit,
+  onAnswerProbe,
   onSendMessage,
   onUploadAttachments,
   processPanel,
@@ -27,6 +29,7 @@ export function AgentChatConversationArea({
   composerFocusVersion: number
   onExamplePromptSelect: (prompt: string) => void
   onNextActionPromptSubmit: (prompt: string) => void
+  onAnswerProbe: (question: string) => void
   onSendMessage: () => void
   onUploadAttachments: (files: File[]) => void
   processPanel: ReturnType<typeof useAgentProcessPanel>
@@ -36,13 +39,32 @@ export function AgentChatConversationArea({
   const { t } = useTranslation()
   const isWelcomeMode =
     chat.messages.length === 1 && chat.messages[0]?.id === "welcome"
+  const conversationAreaRef = useRef<HTMLDivElement>(null)
+
+  useLayoutEffect(() => {
+    const conversationArea = conversationAreaRef.current
+    if (!isWelcomeMode && conversationArea?.scrollTop) {
+      conversationArea.scrollTop = 0
+    }
+  })
 
   return (
     <div
+      ref={conversationAreaRef}
+      data-agent-chat-conversation-area={isWelcomeMode ? "welcome" : "thread"}
+      onScroll={
+        isWelcomeMode
+          ? undefined
+          : (event) => {
+              if (event.currentTarget.scrollTop !== 0) {
+                event.currentTarget.scrollTop = 0
+              }
+            }
+      }
       className={
         isWelcomeMode
           ? "agent-chat-scrollarea relative z-10 flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col overflow-y-auto px-4 pt-[clamp(3.5rem,10svh,5rem)] pb-8 sm:px-7 lg:pt-[clamp(4rem,9svh,5.5rem)]"
-          : "relative z-10 flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col overflow-hidden"
+          : "relative z-10 flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col overflow-clip"
       }
     >
       {isWelcomeMode ? null : (
@@ -66,11 +88,13 @@ export function AgentChatConversationArea({
           />
           <AgentChatThread
             activeProcessMessageId={processPanel.activeProcessMessage?.id ?? null}
+            conversationId={chat.conversationId ?? undefined}
             isStreaming={chat.isStreaming}
             messages={chat.messages}
             onCloseProcessPanel={processPanel.closeProcessPanel}
             onExamplePromptSelect={onExamplePromptSelect}
             onNextActionPromptSubmit={onNextActionPromptSubmit}
+            onAnswerProbe={onAnswerProbe}
             onOpenProcessPanel={processPanel.openProcessPanel}
             runtimeEvents={chat.runtimeEvents}
             selectedStrategy={chat.selectedStrategy}

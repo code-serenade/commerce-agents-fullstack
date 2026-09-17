@@ -16,17 +16,25 @@ import {
 } from "./thread-message-blocks"
 
 export function AgentChatThreadMessage({
+  conversationId,
   errorRetryPrompt,
   message,
+  onAnswerProbe,
   onExamplePromptSelect,
   onNextActionPromptSubmit,
   previousUserContent,
+  showLearningProbe = false,
+  isCurrentLearningProbe = false,
 }: {
+  conversationId?: string
   errorRetryPrompt?: string
   message: AgentChatMessage
+  onAnswerProbe?: (question: string) => void
   onExamplePromptSelect?: (prompt: string) => void
   onNextActionPromptSubmit?: (prompt: string) => void
   previousUserContent?: string
+  showLearningProbe?: boolean
+  isCurrentLearningProbe?: boolean
 }) {
   const { t } = useTranslation()
   const isUser = message.role === "user"
@@ -99,9 +107,13 @@ export function AgentChatThreadMessage({
           ) : null}
           {shouldShowStudentNextActions(message) ? (
             <StudentNextActions
+              conversationId={conversationId}
               message={message}
+              onAnswerProbe={onAnswerProbe}
               onSelectPrompt={onNextActionPromptSubmit}
               previousUserContent={previousUserContent}
+              showLearningProbe={showLearningProbe}
+              isCurrentLearningProbe={isCurrentLearningProbe}
             />
           ) : null}
         </div>

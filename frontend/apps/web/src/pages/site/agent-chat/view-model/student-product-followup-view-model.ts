@@ -1,27 +1,40 @@
 import type { TFunction } from "i18next"
 
-export function getContextualProductFollowupPrompts(t: TFunction, text: string) {
+export function getContextualProductFollowupPrompts(
+  t: TFunction,
+  text: string
+) {
   const context = getProductFollowupContext(text, t)
   if (!context.hasSpecificSignal) return []
 
   return [
-    t("agentChat.thread.nextActions.contextualProductFollowup.mainImage", context),
+    t(
+      "agentChat.thread.nextActions.contextualProductFollowup.mainImage",
+      context
+    ),
     t("agentChat.thread.nextActions.contextualProductFollowup.title", context),
     t("agentChat.thread.nextActions.contextualProductFollowup.value", context),
-    t("agentChat.thread.nextActions.contextualProductFollowup.validation", context),
+    t(
+      "agentChat.thread.nextActions.contextualProductFollowup.validation",
+      context
+    ),
   ]
 }
 
 export function matchesProductFollowupIntent(text: string) {
-  return /product|sku|item|\u5546\u54c1|\u9009\u54c1|\u5356\u70b9|\u4eba\u7fa4|\u6807\u9898|\u4e3b\u56fe|\u5b9a\u4ef7|\u4ef7\u683c|\u52a0\u8d2d|\u70b9\u51fb|\u9632\u6652\u8863|\u5927\u5b66\u751f|\u6bdb\u5229|\u5229\u6da6|\u7ade\u54c1|\u5bf9\u6807|\u6d4b\u6b3e|\u8f6c\u5316|\u5c0f\u6d4b/i.test(text)
+  return /product|sku|item|\u5546\u54c1|\u9009\u54c1|\u5356\u70b9|\u4eba\u7fa4|\u6807\u9898|\u4e3b\u56fe|\u5b9a\u4ef7|\u4ef7\u683c|\u52a0\u8d2d|\u70b9\u51fb|\u9632\u6652\u8863|\u5927\u5b66\u751f|\u6bdb\u5229|\u5229\u6da6|\u7ade\u54c1|\u5bf9\u6807|\u6d4b\u6b3e|\u8f6c\u5316|\u5c0f\u6d4b/i.test(
+    text
+  )
 }
 
 export function hasConcreteProductFollowupSignal(text: string) {
   return Boolean(
     extractProductSubject(text) ||
-      extractFirstMatch(text, /(\d+(?:\.\d+)?\s*\u5143)/i) ||
-      extractAudience(text) ||
-      /\u4e3b\u56fe|\u9996\u56fe|\u56fe\u7247|\u89c6\u89c9|\u6807\u9898|\u5173\u952e\u8bcd|\u4ef7\u683c|\u5b9a\u4ef7|\u552e\u4ef7|\u5229\u6da6|\u6bdb\u5229|\u7ade\u54c1|\u5bf9\u6807|\u6d4b\u6b3e|\u8f6c\u5316|\u70b9\u51fb|\u5c0f\u6d4b/i.test(text)
+    extractFirstMatch(text, /(\d+(?:\.\d+)?\s*\u5143)/i) ||
+    extractAudience(text) ||
+    /\u4e3b\u56fe|\u9996\u56fe|\u56fe\u7247|\u89c6\u89c9|\u6807\u9898|\u5173\u952e\u8bcd|\u4ef7\u683c|\u5b9a\u4ef7|\u552e\u4ef7|\u5229\u6da6|\u6bdb\u5229|\u7ade\u54c1|\u5bf9\u6807|\u6d4b\u6b3e|\u8f6c\u5316|\u70b9\u51fb|\u5c0f\u6d4b/i.test(
+      text
+    )
   )
 }
 
@@ -32,11 +45,13 @@ function getProductFollowupContext(text: string, t: TFunction) {
   const issue = getProductIssue(text, t)
 
   return {
-    audience: audience || t("agentChat.thread.nextActions.contextFallback.audience"),
+    audience:
+      audience || t("agentChat.thread.nextActions.contextFallback.audience"),
     hasSpecificSignal: Boolean(subject || price || audience || issue),
     issue: issue || t("agentChat.thread.nextActions.contextFallback.issue"),
     price: price || t("agentChat.thread.nextActions.contextFallback.price"),
-    subject: subject || t("agentChat.thread.nextActions.contextFallback.subject"),
+    subject:
+      subject || t("agentChat.thread.nextActions.contextFallback.subject"),
   }
 }
 
@@ -60,7 +75,7 @@ function extractProductSubject(text: string) {
 function extractAudience(text: string) {
   const explicitAudience = extractFirstMatch(
     text,
-    /(?:\u9762\u5411|\u76ee\u6807\u4eba\u7fa4|\u4eba\u7fa4|\u9002\u5408)\s*[:：]?\s*([^，。,.；;\n]{2,18})/i
+    /(?:\u9762\u5411|\u76ee\u6807\u4eba\u7fa4|\u4eba\u7fa4|\u9002\u5408)\s*[:：]?\s*([^，。,.；;\n'"‘’“”]{2,18})/i
   )
   if (explicitAudience && !isGenericExtractedValue(explicitAudience)) {
     return explicitAudience
@@ -78,13 +93,21 @@ function getProductIssue(text: string, t: TFunction) {
   if (/\u6807\u9898|\u5173\u952e\u8bcd/i.test(text)) {
     return t("agentChat.thread.nextActions.contextIssue.title")
   }
-  if (/\u4ef7\u683c|\u5b9a\u4ef7|\u552e\u4ef7|\u5229\u6da6|\u6bdb\u5229/i.test(text)) {
+  if (
+    /\u4ef7\u683c|\u5b9a\u4ef7|\u552e\u4ef7|\u5229\u6da6|\u6bdb\u5229/i.test(
+      text
+    )
+  ) {
     return t("agentChat.thread.nextActions.contextIssue.price")
   }
   if (/\u7ade\u54c1|\u5bf9\u6807|\u540c\u884c|\u7ade\u4e89/i.test(text)) {
     return t("agentChat.thread.nextActions.contextIssue.competition")
   }
-  if (/\u6d4b\u6b3e|\u8f6c\u5316|\u70b9\u51fb|\u52a0\u8d2d|\u5c0f\u6d4b|\u9a8c\u8bc1/i.test(text)) {
+  if (
+    /\u6d4b\u6b3e|\u8f6c\u5316|\u70b9\u51fb|\u52a0\u8d2d|\u5c0f\u6d4b|\u9a8c\u8bc1/i.test(
+      text
+    )
+  ) {
     return t("agentChat.thread.nextActions.contextIssue.validation")
   }
   if (/\u4eba\u7fa4|\u5927\u5b66\u751f|\u5b66\u751f|\u7528\u6237/i.test(text)) {
@@ -111,5 +134,12 @@ function normalizeExtractedValue(value?: string) {
 }
 
 function isGenericExtractedValue(value: string) {
-  return /\u5206\u6790\u5bf9\u8c61|\u76ee\u6807\u52a8\u4f5c|\u5f53\u524d\u53ef\u7528\u4fe1\u606f|\u5173\u952e\u5224\u65ad|\u8fd9\u4e2a\u7ed3\u8bba|\u5f53\u524d\u56de\u7b54|\u4e0b\u4e00\u6b65|\u6700\u503c\u5f97|\u91cd\u505a\u4e00\u7248|\u7684\u662f/.test(value)
+  return (
+    /\u5206\u6790\u5bf9\u8c61|\u76ee\u6807\u52a8\u4f5c|\u5f53\u524d\u53ef\u7528\u4fe1\u606f|\u5173\u952e\u5224\u65ad|\u8fd9\u4e2a\u7ed3\u8bba|\u5f53\u524d\u56de\u7b54|\u4e0b\u4e00\u6b65|\u6700\u503c\u5f97|\u91cd\u505a\u4e00\u7248|\u7684\u662f/.test(
+      value
+    ) ||
+    /^(?:\u6211|\u6211\u4eec|\u4f60|\u4f60\u4eec|\u81ea\u5df1)(?:\u7684|['"‘’“”]|$)/.test(
+      value
+    )
+  )
 }
